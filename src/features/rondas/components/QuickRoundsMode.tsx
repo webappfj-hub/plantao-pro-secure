@@ -85,6 +85,12 @@ const CANCEL_PHRASE = 'ENCERRAR RONDA';
 interface QuickRoundsModeProps {
   unitId: string | null;
   team: string | null;
+  /** Avisa quem hospeda o painel se existe um rodízio esperando ou rodando
+   * (mesmo sem cadastro/login) — usado pra travar o fechamento acidental da
+   * janela/aba enquanto o Modo Rápido está ativo, do mesmo jeito que já
+   * acontece para um turno estruturado. "done" não conta: a ronda já
+   * terminou, só falta o cartão de conclusão fechar sozinho. */
+  onSessionActiveChange?: (active: boolean) => void;
 }
 
 interface Session {
@@ -125,7 +131,7 @@ function StatusStrip({ team, agentCount, perAgentMs }: { team: string | null; ag
  * horário), o estado é salvo no localStorage — sobrevive a refresh e só
  * libera a tela de configuração quando a programação termina ou é cancelada.
  */
-export function QuickRoundsMode({ unitId, team }: QuickRoundsModeProps) {
+export function QuickRoundsMode({ unitId, team, onSessionActiveChange }: QuickRoundsModeProps) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const storageKey = `quick-rounds-session-${unitId ?? 'x'}-${team ?? 'x'}`;
@@ -210,6 +216,15 @@ export function QuickRoundsMode({ unitId, team }: QuickRoundsModeProps) {
     return () => window.clearInterval(iv);
   }, [session]);
 
+  // Avisa quem hospeda o painel que há um rodízio esperando/rodando — mesmo
+  // pra visitante sem login — pra travar o fechamento acidental da janela.
+  useEffect(() => {
+    const active = session != null && session.phase !== 'done';
+    onSessionActiveChange?.(active);
+    return () => onSessionActiveChange?.(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session?.phase]);
+
   // Ressincroniza o relógio do servidor ao montar e sempre que a aba volta
   // ao foco — garante que uma ronda ativa nunca fique presa a um desvio de
   // horário do dispositivo detectado enquanto a aba estava em segundo plano.
@@ -292,23 +307,45 @@ export function QuickRoundsMode({ unitId, team }: QuickRoundsModeProps) {
       return;
     }
     savedRef.current = false;
-    // "Iniciar agora" respeita o horário de início digitado, não o
-    // instante do clique — se o supervisor marcar 08:00 e só cadastrar os
-    // nomes às 14:00, o rodízio já nasce sabendo que passou 6h: os agentes
-    // cujo pedaço já venceu aparecem concluídos, e só o atual/futuros
-    // ficam ativos. Nunca cria elapsed negativo (não deixa "iniciar" no
-    // futuro se o horário digitado ainda não chegou).
-    const triggerAt = mode === 'now' ? new Date(Math.min(todayAt(startTime).getTime(), getServerDate().getTime())) : nextOccurrence(startTime);
-    const backdatedMinutes = mode === 'now' ? Math.round((getServerDate().getTime() - triggerAt.getTime()) / 60_000) : 0;
+    const now = getServerDate();
+    const typedStart = todayAt(startTime);
+
+    if (mode === 'scheduled') {
+      const triggerAt = nextOccurrence(startTime);
+      persist({
+        names: activeNames, startTime, endTime, durationMinutes,
+        triggerAt: triggerAt.toISOString(), phase: 'waiting', wasScheduled: true,
+      });
+      toast.success(`Programado para iniciar às ${startTime}.`);
+      return;
+    }
+
+    // "Iniciar agora": respeita o horário de início digitado, não o
+    // instante do clique. Se o horário ainda não chegou, o sistema
+    // INTERCEPTA o clique — em vez de ignorar o que foi digitado e começar
+    // já (fora do horário programado), entra sozinho em contagem regressiva
+    // até o primeiro quarto de hora, exatamente como "Programar" faria.
+    // Se já passou, o rodízio nasce sabendo quanto tempo já se foi: os
+    // agentes cujo pedaço já venceu aparecem concluídos, só o atual/futuros
+    // ficam ativos.
+    if (typedStart.getTime() > now.getTime()) {
+      persist({
+        names: activeNames, startTime, endTime, durationMinutes,
+        triggerAt: typedStart.toISOString(), phase: 'waiting', wasScheduled: false,
+      });
+      toast.info(`Ainda não são ${startTime} — o rodízio vai começar sozinho nesse horário.`);
+      return;
+    }
+
+    const backdatedMinutes = Math.round((now.getTime() - typedStart.getTime()) / 60_000);
     persist({
       names: activeNames, startTime, endTime, durationMinutes,
-      triggerAt: triggerAt.toISOString(), phase: mode === 'now' ? 'running' : 'waiting',
-      wasScheduled: mode === 'scheduled',
+      triggerAt: typedStart.toISOString(), phase: 'running', wasScheduled: false,
     });
     if (backdatedMinutes > 1) {
       toast.success(`Rodízio iniciado — ${backdatedMinutes} min já contabilizados desde as ${startTime}.`);
     } else {
-      toast.success(mode === 'now' ? 'Rodízio iniciado.' : `Programado para iniciar às ${startTime}.`);
+      toast.success('Rodízio iniciado.');
     }
   };
 

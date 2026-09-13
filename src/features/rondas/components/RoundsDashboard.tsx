@@ -101,6 +101,10 @@ export function RoundsDashboard({ onShiftActiveChange }: RoundsDashboardProps = 
   const [dividerOpen, setDividerOpen] = useState(false);
   const [isOnline, setIsOnline] = useState(typeof navigator === 'undefined' ? true : navigator.onLine);
   const [pendingCount, setPendingCount] = useState(() => getQueueLength());
+  // Rodízio do Modo Rápido (ronda avulsa) esperando ou rodando — não gera
+  // um `patrol_shift`, então precisa do próprio sinal pra travar o
+  // fechamento acidental da janela (mesmo sem login).
+  const [quickRoundActive, setQuickRoundActive] = useState(false);
 
   // Allow manual team/unit selection for unauthenticated users.
   // Default to ALFA team and CS Feijó (unidade real — antes usava a string
@@ -146,14 +150,33 @@ export function RoundsDashboard({ onShiftActiveChange }: RoundsDashboardProps = 
   });
   const shift = shiftQuery.data ?? null;
 
-  // Reporta a existência de um turno ativo pra fora — o modal da home usa
-  // isso pra travar o botão de fechar (mesmo sem login) enquanto a ronda
-  // criada continua rodando, evitando fechamento acidental.
+  // Existe alguma ronda em andamento — turno estruturado OU Modo Rápido.
+  const hasActiveRound = !!shift || quickRoundActive;
+
+  // Reporta pra fora (o modal da home usa isso pra travar o botão de fechar
+  // e pedir confirmação) — mesmo sem login, mesmo sendo ronda avulsa.
   useEffect(() => {
-    onShiftActiveChange?.(!!shift);
+    onShiftActiveChange?.(hasActiveRound);
     return () => onShiftActiveChange?.(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [shift]);
+  }, [hasActiveRound]);
+
+  // Trava o fechamento da PRÓPRIA ABA/JANELA do navegador (não só o modal
+  // interno) enquanto há ronda em andamento — recarregar ou fechar a aba
+  // sem querer não pode simplesmente descartar o acompanhamento. O texto do
+  // `returnValue` é ignorado pelos navegadores modernos (mostram sempre a
+  // mensagem padrão do próprio sistema), mas é obrigatório setar algo pra
+  // acionar o aviso nativo de "Sair do site?".
+  useEffect(() => {
+    if (!hasActiveRound) return;
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = '';
+      return '';
+    };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [hasActiveRound]);
 
   const slotsQuery = useQuery({
     queryKey: ['patrol-slots', shift?.id],
@@ -447,7 +470,7 @@ export function RoundsDashboard({ onShiftActiveChange }: RoundsDashboardProps = 
           <div className="h-px flex-1 bg-border" /> ou <div className="h-px flex-1 bg-border" />
         </div>
 
-        <QuickRoundsMode unitId={unitId} team={team} />
+        <QuickRoundsMode unitId={unitId} team={team} onSessionActiveChange={setQuickRoundActive} />
 
         {scheduledRounds.length > 0 && (
           <section className="rounded-2xl border border-border bg-card p-4">
