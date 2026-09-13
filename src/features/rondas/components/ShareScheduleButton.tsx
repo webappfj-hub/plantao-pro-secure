@@ -57,7 +57,14 @@ export function ShareScheduleButton(props: RoundSharePosterProps) {
 
   return (
     <>
-      <Button variant="outline" size="sm" className="h-7 gap-1.5 px-2.5 text-xs sm:h-8 sm:px-3" onClick={handleShare} disabled={busy || props.windows.length === 0}>
+      <Button
+        variant="outline"
+        size="sm"
+        aria-label={busy ? 'Gerando imagem da escala' : 'Compartilhar escala'}
+        className="relative h-7 gap-1.5 px-2.5 text-xs before:absolute before:-inset-y-2.5 before:-inset-x-1 before:content-[''] sm:h-8 sm:px-3"
+        onClick={handleShare}
+        disabled={busy || props.windows.length === 0}
+      >
         {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Share2 className="h-3.5 w-3.5" />}
         <span className="hidden sm:inline">{busy ? 'Gerando...' : 'Compartilhar escala'}</span>
       </Button>

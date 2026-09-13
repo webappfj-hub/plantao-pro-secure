@@ -14,6 +14,7 @@ import {
 import { useAuth } from '@/contexts/AuthContext';
 import { getServerDate, acreWallTimeToServerMs, syncServerTime } from '@/hooks/useServerTime';
 import { getTeamColors, getTeamEmblem } from '@/lib/teamAssets';
+import { useLowMotion } from '@/hooks/useLowMotion';
 import * as api from '../api';
 import { AgentScheduleTimeline, buildQuickModeWindows } from './AgentScheduleTimeline';
 import { TacticalChronometer } from './TacticalChronometer';
@@ -131,6 +132,7 @@ function StatusStrip({ team, agentCount, perAgentMs }: { team: string | null; ag
  * libera a tela de configuração quando a programação termina ou é cancelada.
  */
 export function QuickRoundsMode({ unitId, team, onSessionActiveChange }: QuickRoundsModeProps) {
+  const { lowMotion } = useLowMotion();
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const storageKey = `quick-rounds-session-${unitId ?? 'x'}-${team ?? 'x'}`;
@@ -474,7 +476,12 @@ export function QuickRoundsMode({ unitId, team, onSessionActiveChange }: QuickRo
             <span className="flex items-center gap-1.5 text-[10.5px] font-semibold uppercase tracking-wide" style={{ color: waitColors.primary }}>
               <GripVertical className="h-3.5 w-3.5" /> Aguardando · {team}
             </span>
-            <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground" onClick={handleCancelClick}>
+            <Button
+              variant="ghost" size="icon"
+              aria-label="Cancelar rodízio agendado"
+              className="relative h-6 w-6 text-muted-foreground before:absolute before:-inset-2.5 before:content-['']"
+              onClick={handleCancelClick}
+            >
               <Square className="h-3 w-3" />
             </Button>
           </div>
@@ -540,7 +547,7 @@ export function QuickRoundsMode({ unitId, team, onSessionActiveChange }: QuickRo
         <div className="flex items-center justify-between gap-3 px-4 py-2">
           <h3 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-foreground">
             <span className="relative flex h-2 w-2">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-70" />
+              {!lowMotion && <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-70" />}
               <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
             </span>
             Rodízio em andamento
@@ -554,7 +561,12 @@ export function QuickRoundsMode({ unitId, team, onSessionActiveChange }: QuickRo
                 windows={buildQuickModeWindows(sessionNames, new Date(triggerMs), perAgentMs)}
               />
             )}
-            <Button variant="ghost" size="sm" className="h-7 gap-1.5 text-xs text-muted-foreground" onClick={handleCancelClick}>
+            <Button
+              variant="ghost" size="sm"
+              aria-label="Encerrar rodízio"
+              className="relative h-7 gap-1.5 text-xs text-muted-foreground before:absolute before:-inset-y-2.5 before:-inset-x-1 before:content-['']"
+              onClick={handleCancelClick}
+            >
               <Square className="h-3 w-3" /> Encerrar
             </Button>
           </div>
@@ -626,9 +638,20 @@ export function QuickRoundsMode({ unitId, team, onSessionActiveChange }: QuickRo
               >
                 {i + 1}
               </span>
-              <Input value={name} onChange={(e) => updateName(i, e.target.value)} placeholder={`Nome do agente ${i + 1}`} className="h-8 text-sm" />
+              <Input
+                value={name}
+                onChange={(e) => updateName(i, e.target.value)}
+                placeholder={`Nome do agente ${i + 1}`}
+                aria-label={`Nome do agente ${i + 1}`}
+                className="h-8 text-sm"
+              />
               {names.length > 1 && (
-                <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-muted-foreground" onClick={() => removeName(i)}>
+                <Button
+                  variant="ghost" size="icon"
+                  aria-label={`Remover agente ${i + 1}`}
+                  className="relative h-8 w-8 shrink-0 text-muted-foreground before:absolute before:-inset-1 before:content-['']"
+                  onClick={() => removeName(i)}
+                >
                   <X className="h-3.5 w-3.5" />
                 </Button>
               )}
@@ -641,9 +664,11 @@ export function QuickRoundsMode({ unitId, team, onSessionActiveChange }: QuickRo
 
         <div className="flex items-center gap-2">
           <input type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)}
+            aria-label="Horário de início do rodízio"
             className="flex h-8 w-full rounded-md border border-input bg-background px-2.5 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" />
           <ArrowRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
           <input type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)}
+            aria-label="Horário de término do rodízio"
             className="flex h-8 w-full rounded-md border border-input bg-background px-2.5 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" />
         </div>
 

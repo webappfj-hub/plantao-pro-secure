@@ -238,7 +238,7 @@ export function AgentScheduleTimeline({ rangeStart, rangeEnd, windows, live = fa
         {ticks.map((t, i) => (
           <span
             key={i}
-            className="absolute top-0 -translate-x-1/2 text-[9px] font-medium tabular-nums text-muted-foreground/70"
+            className="absolute top-0 -translate-x-1/2 text-[9px] font-medium tabular-nums text-muted-foreground"
             style={{ left: `${pct(t.getTime() - rangeStart.getTime(), totalMs)}%` }}
           >
             {fmtHm(t)}
@@ -352,10 +352,12 @@ export function AgentScheduleTimeline({ rangeStart, rangeEnd, windows, live = fa
                 <button
                   type="button"
                   disabled={!canExpand}
+                  aria-expanded={canExpand ? isExpanded : undefined}
+                  aria-label={canExpand ? `${isExpanded ? 'Recolher' : 'Expandir'} detalhes de horário de ${w.name}` : undefined}
                   onClick={() => setExpanded(isExpanded ? null : w.key)}
                   className={cn(
                     'flex w-[126px] shrink-0 items-center justify-between gap-1 rounded-lg px-2 py-1 text-right sm:w-36',
-                    canExpand && 'transition-colors hover:bg-muted/50',
+                    canExpand && 'transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60',
                   )}
                 >
                   <div className="min-w-0 flex-1 leading-tight">

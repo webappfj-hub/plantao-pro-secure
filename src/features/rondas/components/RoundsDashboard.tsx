@@ -176,7 +176,7 @@ function OperationalClock({ color }: { color: string }) {
       <div className="h-8 w-px shrink-0" style={{ background: `${color}30` }} />
       <div className="text-right leading-none">
         <div className="text-[11px] font-bold text-white/90">{dateLabel}</div>
-        <div className="mt-0.5 text-[8.5px] font-medium uppercase tracking-wide text-white/40">Sincronizado</div>
+        <div className="mt-0.5 text-[8.5px] font-medium uppercase tracking-wide text-white/60">Sincronizado</div>
       </div>
     </div>
   );
@@ -194,6 +194,7 @@ interface RoundsDashboardProps {
  * ronda atual > timer > próximas > timeline > agentes > ocorrências > KPIs.
  */
 export function RoundsDashboard({ onShiftActiveChange }: RoundsDashboardProps = {}) {
+  const { lowMotion } = useLowMotion();
   const { agent } = useAgentProfile();
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -490,9 +491,9 @@ export function RoundsDashboard({ onShiftActiveChange }: RoundsDashboardProps = 
             <p className="text-xs font-semibold text-primary">Acesso público — indique sua equipe e unidade</p>
             <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
               <div>
-                <label className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Equipe</label>
+                <label htmlFor="guest-team-select" className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Equipe</label>
                 <Select value={guestTeam || 'ALFA'} onValueChange={(v) => setGuestTeam(v || 'ALFA')}>
-                  <SelectTrigger className="mt-1 h-9 border-slate-700 bg-slate-800/90 text-sm text-white">
+                  <SelectTrigger id="guest-team-select" className="mt-1 h-9 border-slate-700 bg-slate-800/90 text-sm text-white">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent side="bottom" avoidCollisions={false}>
@@ -504,9 +505,9 @@ export function RoundsDashboard({ onShiftActiveChange }: RoundsDashboardProps = 
                 </Select>
               </div>
               <div>
-                <label className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Unidade</label>
+                <label htmlFor="guest-unit-select" className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Unidade</label>
                 <Select value={guestUnitId || '__loading__'} onValueChange={(v) => setGuestUnitId(v || null)}>
-                  <SelectTrigger className="mt-1 h-9 border-slate-700 bg-slate-800/90 text-sm text-white">
+                  <SelectTrigger id="guest-unit-select" className="mt-1 h-9 border-slate-700 bg-slate-800/90 text-sm text-white">
                     <SelectValue placeholder="Carregando unidades…" />
                   </SelectTrigger>
                   <SelectContent side="bottom" avoidCollisions={false}>
@@ -637,7 +638,8 @@ export function RoundsDashboard({ onShiftActiveChange }: RoundsDashboardProps = 
             <OperationalClock color={getTeamColors(team).primary} />
             <Button
               variant="outline" size="sm"
-              className="h-7 gap-1.5 border-white/15 bg-white/[0.06] px-2 text-[11px] text-white hover:bg-white/10 hover:text-white"
+              aria-label="Dividir ou reprogramar a ronda"
+              className="relative h-7 gap-1.5 border-white/15 bg-white/[0.06] px-2 text-[11px] text-white before:absolute before:-inset-y-2.5 before:-inset-x-1 before:content-[''] hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
               onClick={() => setDividerOpen(true)}
             >
               <SplitSquareHorizontal className="h-3.5 w-3.5" />
@@ -741,7 +743,7 @@ export function RoundsDashboard({ onShiftActiveChange }: RoundsDashboardProps = 
             <div className="relative mb-4 flex items-center justify-between gap-3">
               <h3 className="flex items-center gap-2 text-[13px] font-semibold uppercase tracking-wide text-foreground">
                 <span className="relative flex h-2 w-2">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-70" />
+                  {!lowMotion && <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-70" />}
                   <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
                 </span>
                 Ronda em andamento
@@ -839,8 +841,8 @@ export function RoundsDashboard({ onShiftActiveChange }: RoundsDashboardProps = 
         <Tabs defaultValue="agentes" className="w-full">
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-3 pt-2.5">
             <TabsList className="h-8 bg-muted/60 p-0.5">
-              <TabsTrigger value="agentes" className="h-7 px-2.5 text-[11px]">Tempo por agente</TabsTrigger>
-              <TabsTrigger value="quartos" className="h-7 px-2.5 text-[11px]">Quartos de hora</TabsTrigger>
+              <TabsTrigger value="agentes" className="relative h-7 px-2.5 text-[11px] before:absolute before:-inset-y-2 before:content-['']">Tempo por agente</TabsTrigger>
+              <TabsTrigger value="quartos" className="relative h-7 px-2.5 text-[11px] before:absolute before:-inset-y-2 before:content-['']">Quartos de hora</TabsTrigger>
             </TabsList>
           </div>
           <TabsContent value="agentes" className="m-0 p-3">
@@ -958,7 +960,7 @@ function AddSupportAgent({ excludeIds, onAdd }: { excludeIds: string[]; onAdd: (
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-border py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary"
+        className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-border py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
       >
         <UserPlus className="h-3.5 w-3.5" /> Adicionar agente de apoio (BH)
       </button>
@@ -974,6 +976,7 @@ function AddSupportAgent({ excludeIds, onAdd }: { excludeIds: string[]; onAdd: (
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Buscar agente pelo nome..."
+          aria-label="Buscar agente de apoio pelo nome"
           className="w-full rounded-md border border-border bg-background py-1.5 pl-7 pr-2 text-xs outline-none focus:border-primary/50"
         />
       </div>
@@ -995,7 +998,7 @@ function AddSupportAgent({ excludeIds, onAdd }: { excludeIds: string[]; onAdd: (
                 setOpen(false);
                 setQuery('');
               }}
-              className="flex w-full items-center justify-between gap-2 rounded-md px-2 py-1.5 text-left text-xs hover:bg-background disabled:opacity-60"
+              className="flex w-full items-center justify-between gap-2 rounded-md px-2 py-1.5 text-left text-xs hover:bg-background disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
             >
               <span className="truncate text-foreground">{r.name}</span>
               <span className="flex shrink-0 items-center gap-1 text-[10px] text-muted-foreground">
@@ -1008,7 +1011,7 @@ function AddSupportAgent({ excludeIds, onAdd }: { excludeIds: string[]; onAdd: (
       <button
         type="button"
         onClick={() => { setOpen(false); setQuery(''); setResults([]); }}
-        className="w-full text-center text-[11px] text-muted-foreground hover:text-foreground"
+        className="w-full text-center text-[11px] text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 rounded-sm"
       >
         Cancelar
       </button>
@@ -1107,20 +1110,23 @@ function CreateShiftDialog({ open, onOpenChange, unitId, team, createdBy, onCrea
 
         <div className="space-y-4 px-6 py-5">
           <div className="space-y-1.5">
-            <Label className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            <Label htmlFor="shift-start-at" className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               <CalendarDays className="h-3.5 w-3.5 text-primary" /> Início
             </Label>
             <input
+              id="shift-start-at"
               type="datetime-local"
               value={startAt}
               onChange={(e) => setStartAt(e.target.value)}
+              aria-invalid={!!dateError}
+              aria-describedby={dateError ? 'shift-start-at-error' : undefined}
               className={cn(
                 'flex h-10 w-full rounded-md border bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
                 dateError ? 'border-destructive focus-visible:ring-destructive' : 'border-input',
               )}
             />
             {dateError && (
-              <p className="flex items-center gap-1.5 text-xs font-medium text-destructive">
+              <p id="shift-start-at-error" className="flex items-center gap-1.5 text-xs font-medium text-destructive">
                 <ShieldOff className="h-3.5 w-3.5 shrink-0" /> {dateError}
               </p>
             )}

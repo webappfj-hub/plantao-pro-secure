@@ -42,7 +42,7 @@ export function RoundAgentList({ agents, onRemove }: { agents: PatrolAgentAssign
                 type="button"
                 aria-label={`Remover ${a.agent?.name ?? 'agente'} da ronda`}
                 onClick={() => onRemove(a.agent_id)}
-                className="shrink-0 rounded-md p-1 text-muted-foreground/60 transition-colors hover:bg-destructive/10 hover:text-destructive"
+                className="relative shrink-0 rounded-md p-1 text-muted-foreground/60 transition-colors before:absolute before:-inset-2.5 before:content-[''] hover:bg-destructive/10 hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
               >
                 <X className="h-3.5 w-3.5" />
               </button>
