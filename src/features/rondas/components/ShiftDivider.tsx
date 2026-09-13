@@ -126,8 +126,8 @@ export function ShiftDivider({ open, onOpenChange, startAt, endAt, intervalMinut
             <span className="font-semibold text-foreground">{preview.length}</span> slots serão criados
             {preview.length > 0 && (
               <span className="text-muted-foreground">
-                {' '}({preview[0].scheduled_start.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })} até{' '}
-                {preview[preview.length - 1].scheduled_end.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })})
+                {' '}({preview[0].scheduled_start.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Rio_Branco' })} até{' '}
+                {preview[preview.length - 1].scheduled_end.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Rio_Branco' })})
               </span>
             )}
           </div>

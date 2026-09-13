@@ -398,6 +398,10 @@
     to { transform: rotate(360deg); }
   }
   .radar-rotate { animation: radar-rotate 8s linear infinite; transform-origin: center; }
+
+  /* Gancho de classe pro keyframe tacticalPulse (definido mais abaixo) —
+     usado nos "blips" do radar do Gestor de Rondas. */
+  .radar-blip { animation: tacticalPulse 1.8s ease-in-out infinite; transform-origin: center; }
 }
 
 

@@ -14,7 +14,8 @@ import { Label } from '@/components/ui/label';
 import { BrasaoSentinela } from '@/components/BrasaoSentinela';
 import { LiveClock } from '@/components/LiveClock';
 import { getServerDate, parseAcreDateTimeLocal, formatAcreDateTimeLocal } from '@/hooks/useServerTime';
-import { teamPosters, getTeamPoster, getTeamColors } from '@/lib/teamAssets';
+import { teamPosters, getTeamColors } from '@/lib/teamAssets';
+import { useLowMotion } from '@/hooks/useLowMotion';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { QuickRoundsMode } from './QuickRoundsMode';
 import * as api from '../api';
@@ -32,35 +33,88 @@ import { ShiftDivider } from './ShiftDivider';
 import { RoundHistory } from './RoundHistory';
 import { enqueuePatrolAction, flushPatrolQueue, getQueueLength } from '../offlineQueue';
 import type { PatrolSlot } from '../types';
-import roundsHeroImage from '@/assets/midias/hero-agentes-viatura.webp';
 
 /**
- * Cabeçalho institucional do Gestor de Rondas — a foto de fundo agora é o
- * pôster real da equipe selecionada (o mesmo usado nos cards de seleção),
- * com o degradê tingido na cor daquela equipe, em vez de uma foto genérica
- * igual pra todo mundo. Quando há turno ativo, a faixa de operação (turno,
- * equipe, unidade, relógio e ações) fica embutida aqui mesmo — substitui o
- * bloco de cabeçalho separado de antes, economizando uma seção inteira de
- * altura de página.
+ * Radar de operação — nada de foto: um círculo de varredura (o símbolo
+ * universal de vigilância/segurança) desenhado só em SVG/CSS, leve (zero
+ * bytes de imagem) e que se liga de verdade ao tema de rondas. O feixe gira
+ * sozinho via CSS puro (GPU, sem custo de JS); em `lowMotion` ele para e vira
+ * um anel estático — nunca deixa de existir, só some o movimento.
+ */
+function RadarSweep({ color, lowMotion }: { color: string; lowMotion: boolean }) {
+  return (
+    <div className="pointer-events-none absolute -right-6 -top-10 h-48 w-48 opacity-90 sm:-right-2 sm:-top-6 sm:h-56 sm:w-56">
+      <svg viewBox="0 0 200 200" className="h-full w-full">
+        <defs>
+          <radialGradient id="radar-fade" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stopColor={color} stopOpacity="0.55" />
+            <stop offset="100%" stopColor={color} stopOpacity="0" />
+          </radialGradient>
+          <clipPath id="radar-circle-clip">
+            <circle cx="100" cy="100" r="92" />
+          </clipPath>
+        </defs>
+        {[92, 66, 40].map((r) => (
+          <circle key={r} cx="100" cy="100" r={r} fill="none" stroke={color} strokeOpacity="0.28" strokeWidth="1" />
+        ))}
+        <line x1="100" y1="8" x2="100" y2="192" stroke={color} strokeOpacity="0.14" strokeWidth="1" />
+        <line x1="8" y1="100" x2="192" y2="100" stroke={color} strokeOpacity="0.14" strokeWidth="1" />
+        <g clipPath="url(#radar-circle-clip)">
+          <rect
+            x="100" y="100" width="92" height="92"
+            fill="url(#radar-fade)"
+            className={lowMotion ? undefined : 'radar-rotate'}
+            style={{ transformOrigin: '100px 100px' }}
+          />
+        </g>
+        {/* "Blips" — presenças detectadas no raio, reforça a leitura de vigilância ativa */}
+        {[{ x: 132, y: 68 }, { x: 70, y: 122 }].map((p, i) => (
+          <circle key={i} cx={p.x} cy={p.y} r="3" fill={color} className={lowMotion ? undefined : 'radar-blip'} style={{ animationDelay: `${i * 900}ms` }} />
+        ))}
+        <circle cx="100" cy="100" r="92" fill="none" stroke={color} strokeOpacity="0.5" strokeWidth="1.5" />
+      </svg>
+    </div>
+  );
+}
+
+/**
+ * Cabeçalho do Gestor de Rondas — visual tático (radar + grade de pontos +
+ * linha de varredura), sem nenhuma foto: mais leve (zero download de
+ * imagem) e mais alinhado ao tema de segurança/vigilância do que um pôster
+ * de equipe. A cor de destaque muda por equipe (mesma fonte usada no resto
+ * do app), então a identidade continua ali, só que via luz, não retrato.
+ * Quando há turno ativo, a faixa de operação (turno, equipe, unidade,
+ * relógio e ações) fica embutida aqui mesmo, economizando uma seção inteira.
  */
 function RondasHero({ team, children }: { team?: string | null; children?: ReactNode }) {
-  const poster = getTeamPoster(team ?? null) ?? roundsHeroImage;
   const colors = getTeamColors(team ?? null);
+  const { lowMotion } = useLowMotion();
   return (
-    <div className="relative overflow-hidden rounded-2xl">
-      <img
-        src={poster}
-        alt={team ? `Equipe ${team} — PlantãoPro AC` : 'Agentes da Socioeducação do Acre em viatura operacional'}
-        loading="eager"
-        decoding="async"
-        className="absolute inset-0 h-full w-full object-cover object-[50%_25%]"
-        draggable={false}
-      />
+    <div
+      className="relative overflow-hidden rounded-2xl border"
+      style={{ borderColor: `${colors.primary}30`, background: 'linear-gradient(160deg, #070b14 0%, #0b1120 55%, #070b14 100%)' }}
+    >
+      {/* Grade tática de pontos — mesma textura usada no resto do painel */}
       <div
         aria-hidden
-        className="absolute inset-0"
-        style={{ background: `linear-gradient(180deg, hsl(222 47% 6% / 0.35) 0%, hsl(222 47% 5% / 0.72) 55%, hsl(222 47% 4% / 0.95) 100%), linear-gradient(90deg, ${colors.secondary}55 0%, transparent 60%)` }}
+        className="pointer-events-none absolute inset-0 opacity-40"
+        style={{ backgroundImage: `radial-gradient(${colors.primary}33 1px, transparent 1px)`, backgroundSize: '16px 16px' }}
       />
+      {/* Linha de varredura vertical — reforça o "modo operação" sem pesar */}
+      {!lowMotion && (
+        <div
+          aria-hidden
+          className="scan-line-y pointer-events-none absolute inset-x-0 h-16"
+          style={{ background: `linear-gradient(180deg, transparent 0%, ${colors.primary}30 50%, transparent 100%)` }}
+        />
+      )}
+      <RadarSweep color={colors.primary} lowMotion={lowMotion} />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0"
+        style={{ background: 'linear-gradient(180deg, transparent 0%, #070b14aa 75%, #070b14 100%)' }}
+      />
+
       <div className="relative flex items-end gap-3 px-4 pb-2.5 pt-6 sm:px-5">
         <BrasaoSentinela size={30} title="Gestor de Rondas — PlantãoPro AC" />
         <div className="min-w-0 flex-1">
@@ -69,7 +123,7 @@ function RondasHero({ team, children }: { team?: string | null; children?: React
             style={{ background: `${colors.primary}26`, borderColor: colors.primary, boxShadow: `inset 0 0 0 1px ${colors.primary}55` }}
           >
             <span className="relative flex h-1.5 w-1.5">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full opacity-70" style={{ background: colors.primary }} />
+              {!lowMotion && <span className="absolute inline-flex h-full w-full animate-ping rounded-full opacity-70" style={{ background: colors.primary }} />}
               <span className="relative inline-flex h-1.5 w-1.5 rounded-full" style={{ background: colors.primary }} />
             </span>
             {team ? `Equipe ${team} · em operação` : 'Operação em tempo real'}
