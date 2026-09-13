@@ -151,7 +151,16 @@ export function AuthDialog({
               "relative w-full overflow-hidden shrink-0",
               variant === 'register'
                 ? "aspect-[16/5] sm:aspect-[16/5]"
-                : "aspect-[16/11] sm:aspect-[16/8] md:aspect-[16/7]"
+                // Decorative team photo — was eating a huge, fixed chunk of
+                // the dialog's limited height budget (up to ~275px on a
+                // typical phone at aspect-[16/11], ~192px on desktop at
+                // md:aspect-[16/7]), competing with the actual matrícula/
+                // senha fields and the submit button for space inside the
+                // max-h-[88vh] cap and forcing users to scroll a cramped
+                // inner region just to find "Continuar". Fixed, modest
+                // heights instead of aspect-ratio keep it recognizable
+                // without dominating the dialog.
+                : "h-24 sm:h-28 md:h-32"
             )}
             style={{ background: `linear-gradient(135deg, ${teamColor!.secondary}, ${teamColor!.primary})` }}
           >
