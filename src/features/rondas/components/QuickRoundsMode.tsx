@@ -338,6 +338,14 @@ export function QuickRoundsMode({ unitId, team, onSessionActiveChange }: QuickRo
     }
 
     const backdatedMinutes = Math.round((now.getTime() - typedStart.getTime()) / 60_000);
+    // O período digitado (startTime–endTime) já passou por completo — sem
+    // essa checagem, o rodízio nascia retroativo além do próprio fim e
+    // aparecia "concluído" na hora, no instante de criar (parecia um erro:
+    // "abre e fecha sozinho"). Intercepta e avisa em vez de deixar passar.
+    if (backdatedMinutes >= durationMinutes) {
+      toast.error(`O período ${startTime}–${endTime} já terminou há ${fmtClock(now.getTime() - typedStart.getTime() - durationMinutes * 60_000)}. Ajuste o horário antes de iniciar.`);
+      return;
+    }
     persist({
       names: activeNames, startTime, endTime, durationMinutes,
       triggerAt: typedStart.toISOString(), phase: 'running', wasScheduled: false,
