@@ -12,8 +12,7 @@ import { Dialog, DialogContent, DialogTitle, DialogDescription, DialogFooter } f
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { BrasaoSentinela } from '@/components/BrasaoSentinela';
-import { LiveClock } from '@/components/LiveClock';
-import { getServerDate, parseAcreDateTimeLocal, formatAcreDateTimeLocal } from '@/hooks/useServerTime';
+import { getServerDate, useServerClockParts, parseAcreDateTimeLocal, formatAcreDateTimeLocal } from '@/hooks/useServerTime';
 import { teamPosters, getTeamColors } from '@/lib/teamAssets';
 import { useLowMotion } from '@/hooks/useLowMotion';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
@@ -132,6 +131,53 @@ function RondasHero({ team, children }: { team?: string | null; children?: React
         </div>
       </div>
       {children && <div className="relative border-t border-white/10 bg-black/30 px-3 py-2 backdrop-blur-md sm:px-4">{children}</div>}
+    </div>
+  );
+}
+
+/**
+ * Relógio operacional do Gestor de Rondas — versão "chique" do LiveClock
+ * genérico, feita pra ocupar de verdade o espaço da faixa de operação em
+ * vez de uma pastilha pequena perdida no canto. Mostra a hora com brilho
+ * sutil, o rótulo "horário oficial" (deixa claro que é o relógio do
+ * servidor/Acre, nunca o do aparelho) e a data, com um indicador de
+ * sincronização ao vivo. `useServerClockParts` já é imune ao relógio do
+ * dispositivo (Seção 41).
+ */
+function OperationalClock({ color }: { color: string }) {
+  const { hours, minutes, seconds, date } = useServerClockParts();
+  const { lowMotion } = useLowMotion();
+  const pad = (n: number) => String(n).padStart(2, '0');
+  const dateLabel = date
+    .toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: 'short', timeZone: 'America/Rio_Branco' })
+    .replace('.', '')
+    .toUpperCase();
+
+  return (
+    <div
+      className="flex items-center gap-3 rounded-lg border px-3 py-1.5"
+      style={{ borderColor: `${color}35`, background: `linear-gradient(90deg, ${color}14, transparent)` }}
+    >
+      <div className="leading-none">
+        <div className="flex items-baseline gap-1 font-mono text-lg font-bold tabular-nums text-white sm:text-xl" style={{ textShadow: `0 0 14px ${color}70` }}>
+          <span>{pad(hours)}</span>
+          <span style={{ color }}>:</span>
+          <span>{pad(minutes)}</span>
+          <span className="text-xs font-semibold opacity-60 sm:text-sm" style={{ color }}>:{pad(seconds)}</span>
+        </div>
+        <div className="mt-0.5 flex items-center gap-1 text-[8.5px] font-bold uppercase tracking-[0.16em]" style={{ color }}>
+          <span className="relative flex h-1 w-1">
+            {!lowMotion && <span className="absolute inline-flex h-full w-full animate-ping rounded-full opacity-70" style={{ background: color }} />}
+            <span className="relative inline-flex h-1 w-1 rounded-full" style={{ background: color }} />
+          </span>
+          Horário oficial · Acre
+        </div>
+      </div>
+      <div className="h-8 w-px shrink-0" style={{ background: `${color}30` }} />
+      <div className="text-right leading-none">
+        <div className="text-[11px] font-bold text-white/90">{dateLabel}</div>
+        <div className="mt-0.5 text-[8.5px] font-medium uppercase tracking-wide text-white/40">Sincronizado</div>
+      </div>
     </div>
   );
 }
@@ -575,18 +621,20 @@ export function RoundsDashboard({ onShiftActiveChange }: RoundsDashboardProps = 
           desmontava e remontava a foto, gerando o "flash" branco e o atraso
           percebido na transição. */}
       <RondasHero team={team}>
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
-          <span className="flex items-center gap-1.5 text-[11px] font-semibold text-white/90">
-            {isNightShift ? <Moon className="h-3.5 w-3.5 text-primary" strokeWidth={2.2} /> : <Sun className="h-3.5 w-3.5 text-primary" strokeWidth={2.2} />}
-            {fmtHm(shiftStart)}–{fmtHm(shiftEnd)}
-          </span>
-          <span className="hidden h-3 w-px bg-white/20 sm:block" />
-          <span className="flex items-center gap-1.5 text-[11px] font-semibold text-white/90">
-            <Building2 className="h-3.5 w-3.5 shrink-0 text-primary" strokeWidth={2.2} /> <span className="max-w-[9rem] truncate">{agent?.unit?.name ?? 'Minha unidade'}</span>
-          </span>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+            <span className="flex items-center gap-1.5 text-[11px] font-semibold text-white/90">
+              {isNightShift ? <Moon className="h-3.5 w-3.5 text-primary" strokeWidth={2.2} /> : <Sun className="h-3.5 w-3.5 text-primary" strokeWidth={2.2} />}
+              {fmtHm(shiftStart)}–{fmtHm(shiftEnd)}
+            </span>
+            <span className="hidden h-3 w-px bg-white/20 sm:block" />
+            <span className="flex items-center gap-1.5 text-[11px] font-semibold text-white/90">
+              <Building2 className="h-3.5 w-3.5 shrink-0 text-primary" strokeWidth={2.2} /> <span className="max-w-[9rem] truncate">{agent?.unit?.name ?? 'Minha unidade'}</span>
+            </span>
+          </div>
 
-          <div className="ml-auto flex items-center gap-1.5">
-            <LiveClock />
+          <div className="flex flex-wrap items-center gap-1.5 sm:justify-end">
+            <OperationalClock color={getTeamColors(team).primary} />
             <Button
               variant="outline" size="sm"
               className="h-7 gap-1.5 border-white/15 bg-white/[0.06] px-2 text-[11px] text-white hover:bg-white/10 hover:text-white"
