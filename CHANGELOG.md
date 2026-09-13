@@ -30,6 +30,10 @@
 - **Problema:** 22 políticas RLS em 10 tabelas (incluindo shift_swaps) ainda comparavam com CPF, mas login mudou para matrícula
 - **Solução:** Confirmado que RLS foi corrigida no banco; documentado em migrations versionadas; histórico de migrations ressincronizado entre local e remoto
 
+### 8. Valor Padrão da Hora de BH Incorreto
+- **Problema:** Valor padrão da hora de BH estava configurado como R$ 15.75 em diversos arquivos
+- **Solução:** Alterado para R$ 2.00 em todos os componentes de gerenciamento de BH (EditUnitDialog, EditAgentDialog, AgentBHManagement, BHTracker, NextShiftCountdown, BHControlCard)
+
 ---
 
 **Data:** 2026-09-13  
