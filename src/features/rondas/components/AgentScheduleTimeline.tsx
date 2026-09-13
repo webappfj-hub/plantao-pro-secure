@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ChevronDown, Clock3, Radio } from 'lucide-react';
+import { CheckCircle2, ChevronDown, Clock3, Radio } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getServerDate } from '@/hooks/useServerTime';
 import { useLowMotion } from '@/hooks/useLowMotion';
@@ -254,6 +254,18 @@ export function AgentScheduleTimeline({ rangeStart, rangeEnd, windows, live = fa
           const canExpand = w.segments.length > 1;
           const overallStart = w.segments[0]?.start;
           const overallEnd = w.segments[w.segments.length - 1]?.end;
+          // Marcação de status — só faz sentido ao vivo: identifica quem já
+          // cumpriu o horário (todos os segmentos já terminaram), quem está
+          // em ronda agora e quem ainda espera a vez. Deixa isso explícito
+          // em vez de só a cor esmaecida da trilha, pra bater o olho e saber
+          // quem "já foi", sem precisar interpretar a barra.
+          const agentStatus: 'done' | 'active' | 'waiting' | null = !live
+            ? null
+            : w.segments.every((s) => s.end.getTime() <= now.getTime())
+            ? 'done'
+            : w.segments.some((s) => s.start.getTime() <= now.getTime() && s.end.getTime() > now.getTime())
+            ? 'active'
+            : 'waiting';
 
           return (
             <div
@@ -261,13 +273,36 @@ export function AgentScheduleTimeline({ rangeStart, rangeEnd, windows, live = fa
               className={cn(
                 'rounded-xl border transition-all duration-300',
                 isHighlighted ? 'border-primary/50 bg-primary/[0.06] shadow-[0_0_0_1px_hsl(var(--primary)/0.3),0_0_20px_-4px_hsl(var(--primary)/0.35)]' : 'border-transparent',
+                agentStatus === 'done' && 'opacity-55',
               )}
             >
               <div className="flex items-center gap-2 py-1.5 sm:gap-3">
                 {/* Identidade do agente */}
                 <div className="flex w-[104px] shrink-0 items-center gap-2 sm:w-28">
                   <AgentAvatar name={w.name} avatarUrl={w.avatarUrl} color={rowColor} glow={isHighlighted} />
-                  <span className="min-w-0 truncate text-[12px] font-semibold text-foreground">{w.name}</span>
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-[12px] font-semibold leading-tight text-foreground">{w.name}</div>
+                    {agentStatus && (
+                      <span
+                        className={cn(
+                          'mt-0.5 flex items-center gap-1 text-[8.5px] font-bold uppercase tracking-wide',
+                          agentStatus === 'done' && 'text-emerald-400',
+                          agentStatus === 'active' && 'text-primary',
+                          agentStatus === 'waiting' && 'text-muted-foreground',
+                        )}
+                      >
+                        {agentStatus === 'done' && <CheckCircle2 className="h-2.5 w-2.5" />}
+                        {agentStatus === 'active' && (
+                          <span className="relative flex h-1.5 w-1.5">
+                            {!lowMotion && <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-70" />}
+                            <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-primary" />
+                          </span>
+                        )}
+                        {agentStatus === 'waiting' && <Clock3 className="h-2.5 w-2.5" />}
+                        {agentStatus === 'done' ? 'Concluído' : agentStatus === 'active' ? 'Em ronda' : 'Aguardando'}
+                      </span>
+                    )}
+                  </div>
                 </div>
 
                 {/* Trilha proporcional */}

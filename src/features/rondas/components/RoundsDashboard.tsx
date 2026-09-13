@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label';
 import { BrasaoSentinela } from '@/components/BrasaoSentinela';
 import { getServerDate, useServerClockParts, parseAcreDateTimeLocal, formatAcreDateTimeLocal } from '@/hooks/useServerTime';
-import { teamPosters, getTeamColors } from '@/lib/teamAssets';
+import { teamPosters, getTeamColors, getTeamEmblem } from '@/lib/teamAssets';
 import { useLowMotion } from '@/hooks/useLowMotion';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { QuickRoundsMode } from './QuickRoundsMode';
@@ -726,8 +726,19 @@ export function RoundsDashboard({ onShiftActiveChange }: RoundsDashboardProps = 
       {/* Bloco principal: ronda atual (destaque) + fila de próximas rondas */}
       <div className="grid grid-cols-1 gap-3 xl:grid-cols-[1.55fr_1fr]">
         {currentAgentSlot && timer ? (
-          <section className="rounded-xl border border-border bg-card p-4">
-            <div className="mb-4 flex items-center justify-between gap-3">
+          <section className="relative overflow-hidden rounded-xl border border-border bg-card p-4">
+            {/* Emblema da equipe ao fundo — leve (ícone vetorial, não foto),
+                só pra dar identidade visual ao card sem pesar. */}
+            {getTeamEmblem(team) && (
+              <img
+                src={getTeamEmblem(team)!}
+                alt=""
+                aria-hidden
+                loading="lazy"
+                className="pointer-events-none absolute -right-6 -top-6 h-28 w-28 opacity-[0.07] grayscale"
+              />
+            )}
+            <div className="relative mb-4 flex items-center justify-between gap-3">
               <h3 className="flex items-center gap-2 text-[13px] font-semibold uppercase tracking-wide text-foreground">
                 <span className="relative flex h-2 w-2">
                   <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-70" />
@@ -768,6 +779,16 @@ export function RoundsDashboard({ onShiftActiveChange }: RoundsDashboardProps = 
                       <dd className="flex items-center gap-1.5 text-xs text-emerald-400">
                         <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
                         {timer.isPaused ? 'Pausado' : 'Em ronda'}
+                      </dd>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-2.5">
+                    <CalendarDays className="mt-0.5 h-4 w-4 shrink-0 text-primary" strokeWidth={2.2} />
+                    <div className="min-w-0">
+                      <dt className="text-[11px] uppercase tracking-wide text-muted-foreground">Turno programado desde</dt>
+                      <dd className="truncate text-[13px] font-semibold text-foreground">
+                        {shiftStart.toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: 'short', timeZone: 'America/Rio_Branco' })} · {fmtHm(shiftStart)}
                       </dd>
                     </div>
                   </div>

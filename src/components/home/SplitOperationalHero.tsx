@@ -124,7 +124,7 @@ export function SplitOperationalHero({ onTeamClick }: Props) {
             tingir a foto — ela literalmente se dissolve no fundo que já
             é da mesma cor, sem sobreposição visível. */}
         <div
-          className="relative order-1 h-48 sm:order-2 sm:h-auto sm:min-h-[260px]"
+          className="relative order-1 h-56 sm:order-2 sm:h-auto sm:min-h-[45vh]"
           style={{ background: 'linear-gradient(155deg, hsl(222 47% 7%) 0%, hsl(217 50% 11%) 55%, hsl(213 55% 14%) 100%)' }}
         >
           <img
@@ -132,8 +132,13 @@ export function SplitOperationalHero({ onTeamClick }: Props) {
             alt="Agente da Socioeducação do Acre, com o brasão do Governo do Acre ao fundo, em unidade operacional"
             loading="eager"
             decoding="async"
-            className="hero-photo-fade absolute inset-0 h-full w-full object-cover object-[78%_30%] sm:object-[72%_28%]"
+            className="absolute inset-0 h-full w-full object-cover object-[78%_30%] sm:object-[72%_28%]"
             draggable={false}
+          />
+          <div
+            aria-hidden
+            className="hero-fade-overlay pointer-events-none absolute inset-0"
+            style={{ ['--hero-fade-color' as string]: 'hsl(222 47% 7%)' }}
           />
         </div>
       </div>

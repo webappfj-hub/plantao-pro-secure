@@ -117,7 +117,7 @@ export function CinematicBrandHero({
           camada de gradiente colorido por cima — sem efeito de "sujeira"
           na emenda com o texto. */}
       <div
-        className="relative order-1 h-56 sm:h-72 lg:order-2 lg:h-auto lg:min-h-[380px]"
+        className="relative order-1 h-64 sm:h-80 lg:order-2 lg:h-auto lg:min-h-[60vh]"
         style={{ background: "hsl(222 20% 6%)" }}
       >
         <img
@@ -126,8 +126,13 @@ export function CinematicBrandHero({
           draggable={false}
           loading="lazy"
           decoding="async"
-          className="hero-photo-fade-lg absolute inset-0 h-full w-full select-none object-cover object-[62%_35%] lg:object-[58%_32%]"
+          className="absolute inset-0 h-full w-full select-none object-cover object-[62%_35%] lg:object-[58%_32%]"
           style={{ filter: "saturate(0.9) contrast(1.02)" }}
+        />
+        <div
+          aria-hidden
+          className="hero-fade-overlay-lg pointer-events-none absolute inset-0"
+          style={{ ['--hero-fade-color' as string]: 'hsl(222 20% 6%)' }}
         />
       </div>
     </section>
