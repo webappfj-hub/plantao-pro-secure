@@ -338,12 +338,21 @@ export function QuickRoundsMode({ unitId, team, onSessionActiveChange }: QuickRo
     }
 
     const backdatedMinutes = Math.round((now.getTime() - typedStart.getTime()) / 60_000);
-    // O período digitado (startTime–endTime) já passou por completo — sem
-    // essa checagem, o rodízio nascia retroativo além do próprio fim e
-    // aparecia "concluído" na hora, no instante de criar (parecia um erro:
-    // "abre e fecha sozinho"). Intercepta e avisa em vez de deixar passar.
+    // O horário digitado já passou por completo hoje (ex.: 00:00 com o
+    // relógio em 23h) — isso não é um erro do usuário, é ambiguidade de
+    // dia: um turno que atravessa a madrugada (meia-noite até o dia
+    // seguinte) naturalmente "já passou" se lido como hoje de manhã bem
+    // cedo. Sem travar nada, reinterpreta pra próxima vez que esse horário
+    // chega (essa madrugada/amanhã) e entra em contagem regressiva —
+    // nunca bloqueia a criação da ronda.
     if (backdatedMinutes >= durationMinutes) {
-      toast.error(`O período ${startTime}–${endTime} já terminou há ${fmtClock(now.getTime() - typedStart.getTime() - durationMinutes * 60_000)}. Ajuste o horário antes de iniciar.`);
+      const nextStart = nextOccurrence(startTime);
+      const isTomorrow = nextStart.getTime() - typedStart.getTime() > 60_000;
+      persist({
+        names: activeNames, startTime, endTime, durationMinutes,
+        triggerAt: nextStart.toISOString(), phase: 'waiting', wasScheduled: false,
+      });
+      toast.info(`As ${startTime} de hoje já passaram — o rodízio vai começar sozinho às ${startTime}${isTomorrow ? ' de amanhã' : ''}.`);
       return;
     }
     persist({
