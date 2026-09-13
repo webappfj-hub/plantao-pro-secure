@@ -45,6 +45,25 @@ export function RoundsManagerLazy({ customTrigger }: Props) {
 
   const handleTriggerClick = useCallback(() => setOpen(true), []);
 
+  // Trava a rolagem de quem fica ATRÁS do modal enquanto ele está aberto.
+  // O Radix Dialog só bloqueia `document.body` por padrão, mas esse site
+  // não rola pelo body: no mobile, `body`/`#root` já nascem com
+  // `overflow:hidden` (index.html) e quem rola de verdade é o wrapper
+  // `.home-typo` (ou outro container com overflow-y-auto). Sem travar
+  // esse elemento também, o conteúdo atrás do modal continuava rolando
+  // ao arrastar o dedo por cima dele.
+  useEffect(() => {
+    if (!open) return;
+    const targets = [document.body, document.querySelector<HTMLElement>('.home-typo')].filter(
+      (el): el is HTMLElement => !!el,
+    );
+    const previous = targets.map((el) => el.style.overflow);
+    targets.forEach((el) => { el.style.overflow = 'hidden'; });
+    return () => {
+      targets.forEach((el, i) => { el.style.overflow = previous[i]; });
+    };
+  }, [open]);
+
   /** Trava o fechamento (X, clique fora, Esc) enquanto existir um turno de
    * rondas ativo — mesmo criado por um visitante sem login — e pede
    * confirmação explícita em vez de fechar direto. */
@@ -84,7 +103,7 @@ export function RoundsManagerLazy({ customTrigger }: Props) {
           {/* Overlay leve e rápido — nada de scrim quase-preto nem blur pesado,
               para a abertura não parecer uma "tela preta" antes do conteúdo. */}
           <DialogPrimitive.Overlay className="fixed inset-0 z-[60] bg-background/60 backdrop-blur-[2px] data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 duration-150" />
-          <DialogPrimitive.Content className="fixed left-1/2 top-1/2 z-[61] flex max-h-[92dvh] w-[96vw] max-w-6xl -translate-x-1/2 -translate-y-1/2 flex-col gap-0 overflow-hidden rounded-xl border border-border bg-background shadow-2xl data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 duration-150">
+          <DialogPrimitive.Content className="fixed left-1/2 top-1/2 z-[61] flex max-h-[85dvh] w-[92vw] max-w-5xl -translate-x-1/2 -translate-y-1/2 flex-col gap-0 overflow-hidden rounded-xl border border-border bg-background shadow-2xl data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 duration-150">
             <DialogPrimitive.Title className="sr-only">Gestor de Rondas</DialogPrimitive.Title>
             <DialogPrimitive.Description className="sr-only">
               Controle, acompanhamento e segurança das rondas em tempo real.
