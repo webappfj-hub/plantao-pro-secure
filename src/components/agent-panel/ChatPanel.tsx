@@ -36,6 +36,7 @@ import {
 import { useSoundEffects } from '@/hooks/useSoundEffects';
 import chatBgTacticalPro from '@/assets/chat-bg-tactical-pro.png';
 import { useBubbleTheme, BubbleTheme } from '@/hooks/useChatSettings';
+import { useLowMotion } from '@/hooks/useLowMotion';
 
 // Bubble theme styles mapping
 const bubbleStyles: Record<BubbleTheme, { own: string; other: string; ownText: string; nameColor: string }> = {
@@ -134,6 +135,7 @@ const chatRoomConfig: Record<ChatType, {
 };
 
 export function ChatPanel({ agentId, unitId, team, agentName, agentRole, agentAvatarUrl }: ChatPanelProps) {
+  const { lowMotion } = useLowMotion();
   const [activeRoom, setActiveRoom] = useState<ChatRoom | null>(null);
   const [rooms, setRooms] = useState<ChatRoom[]>([]);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -670,7 +672,7 @@ export function ChatPanel({ agentId, unitId, team, agentName, agentRole, agentAv
   const currentConfig = chatRoomConfig[chatType];
 
   return (
-    <Card className="bg-zinc-900/95 border border-zinc-700/60 h-[550px] flex flex-col relative overflow-hidden">
+    <Card className="bg-zinc-900/95 border border-zinc-700/60 h-[70vh] max-h-[550px] min-h-[380px] flex flex-col relative overflow-hidden">
       {/* Professional tactical background - deep dark with subtle pattern */}
       <div 
         className="absolute inset-0 z-0"
@@ -727,7 +729,7 @@ export function ChatPanel({ agentId, unitId, team, agentName, agentRole, agentAv
             <Tooltip>
               <TooltipTrigger asChild>
                 <div className="flex items-center gap-1.5 px-2 py-1 bg-emerald-500/10 border border-emerald-500/30 rounded-full cursor-default">
-                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  <div className={`w-1.5 h-1.5 rounded-full bg-emerald-400 ${lowMotion ? '' : 'animate-pulse'}`} />
                   <span className="text-[10px] font-medium text-emerald-300">
                     {onlineUsers.length + 1}
                   </span>
@@ -800,10 +802,13 @@ export function ChatPanel({ agentId, unitId, team, agentName, agentRole, agentAv
               <button
                 key={type}
                 type="button"
+                role="tab"
+                aria-selected={isActive}
                 onClick={() => switchRoom(type)}
                 className={`
                   flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold
                   transition-all duration-200 flex-shrink-0 border
+                  focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60
                   ${isActive ? colors.active : colors.inactive}
                 `}
               >
@@ -879,7 +884,7 @@ export function ChatPanel({ agentId, unitId, team, agentName, agentRole, agentAv
                             <Button 
                               variant="ghost" 
                               size="icon" 
-                              className="h-5 w-5 opacity-60 md:opacity-0 md:group-hover:opacity-100 transition-opacity text-zinc-400 hover:text-zinc-100"
+                              className="relative h-5 w-5 opacity-60 md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100 transition-opacity text-zinc-400 hover:text-zinc-100 before:absolute before:-inset-2.5 before:content-['']"
                               aria-label="Opções da mensagem"
                             >
                               <MoreVertical className="h-3 w-3" />
@@ -930,6 +935,7 @@ export function ChatPanel({ agentId, unitId, team, agentName, agentRole, agentAv
               onChange={(e) => setNewMessage(e.target.value)}
               onKeyPress={handleKeyPress}
               placeholder="Mensagem..."
+              aria-label="Mensagem do chat"
               className="flex-1 bg-zinc-800 border-zinc-700 h-8 text-xs"
               disabled={isSending}
             />
@@ -937,7 +943,8 @@ export function ChatPanel({ agentId, unitId, team, agentName, agentRole, agentAv
               onClick={sendMessage}
               disabled={!newMessage.trim() || isSending}
               size="icon"
-              className="bg-primary hover:bg-primary text-black h-8 w-8"
+              aria-label="Enviar mensagem"
+              className="relative bg-primary hover:bg-primary text-black h-8 w-8 before:absolute before:-inset-1.5 before:content-['']"
             >
               {isSending ? (
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />

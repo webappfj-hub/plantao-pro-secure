@@ -11,6 +11,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { SignatureCanvas } from '@/components/ui/signature-canvas';
 import { notify } from '@/lib/notify';
+import { useConfirm } from '@/components/ui/confirm-provider';
 import { ArrowRightLeft, Plus, Loader2, Check, X, Clock, User, FileText, Download, ArrowLeft, CalendarDays, Sparkles, Edit2, Eye, Trash2, PenTool } from 'lucide-react';
 import { EmptyState } from '@/components/ui/data-states';
 import { format, parseISO, addDays } from 'date-fns';
@@ -65,6 +66,7 @@ const REASON_TEMPLATES = [
 ];
 
 export function SwapRequestsCard({ agentId, unitId, team }: SwapRequestsCardProps) {
+  const confirm = useConfirm();
   const [swapRequests, setSwapRequests] = useState<SwapRequest[]>([]);
   const [myShifts, setMyShifts] = useState<AgentShift[]>([]);
   const [teamAgents, setTeamAgents] = useState<TeamAgent[]>([]);
@@ -598,6 +600,15 @@ Data de geração: ${format(now, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
   };
 
   const respondToRequest = async (requestId: string, status: 'accepted' | 'rejected') => {
+    if (status === 'rejected') {
+      const ok = await confirm({
+        title: 'Recusar permuta?',
+        description: 'O agente que pediu a troca será notificado da recusa.',
+        confirmText: 'Recusar',
+        destructive: true,
+      });
+      if (!ok) return;
+    }
     try {
       const { error } = await (supabase as any)
         .from('shift_swaps')
@@ -955,10 +966,10 @@ Documento gerado automaticamente pelo PlantãoPro
                       )}
                     </div>
                     <div className="flex gap-1 shrink-0">
-                      <Button size="sm" variant="ghost" onClick={() => respondToRequest(request.id, 'accepted')} className="h-8 w-8 p-0 text-green-400 hover:text-green-300 hover:bg-green-500/10">
+                      <Button size="sm" variant="ghost" aria-label="Aceitar permuta" onClick={() => respondToRequest(request.id, 'accepted')} className="h-8 w-8 p-0 text-green-400 hover:text-green-300 hover:bg-green-500/10">
                         <Check className="h-4 w-4" />
                       </Button>
-                      <Button size="sm" variant="ghost" onClick={() => respondToRequest(request.id, 'rejected')} className="h-8 w-8 p-0 text-red-400 hover:text-red-300 hover:bg-red-500/10">
+                      <Button size="sm" variant="ghost" aria-label="Recusar permuta" onClick={() => respondToRequest(request.id, 'rejected')} className="h-8 w-8 p-0 text-red-400 hover:text-red-300 hover:bg-red-500/10">
                         <X className="h-4 w-4" />
                       </Button>
                     </div>
@@ -1006,45 +1017,49 @@ Documento gerado automaticamente pelo PlantãoPro
                     </div>
                     <div className="flex items-center gap-2 shrink-0 relative z-10">
                       {/* Preview document button */}
-                      <button 
+                      <button
                         type="button"
-                        onClick={(e) => { e.stopPropagation(); showPreview(request); }} 
-                        className="h-8 w-8 flex items-center justify-center rounded-md text-slate-400 hover:text-white hover:bg-slate-600 transition-colors cursor-pointer" 
+                        onClick={(e) => { e.stopPropagation(); showPreview(request); }}
+                        className="h-8 w-8 flex items-center justify-center rounded-md text-slate-400 hover:text-white hover:bg-slate-600 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
                         title="Visualizar documento"
+                        aria-label="Visualizar documento da permuta"
                       >
                         <Eye className="h-4 w-4" />
                       </button>
-                      
+
                       {/* Edit button - only for pending and requester */}
                       {request.status === 'pending' && request.requester_id === agentId && (
-                        <button 
+                        <button
                           type="button"
-                          onClick={(e) => { e.stopPropagation(); openEditDialog(request); }} 
-                          className="h-8 w-8 flex items-center justify-center rounded-md text-blue-400 hover:text-white hover:bg-blue-600 transition-colors cursor-pointer" 
+                          onClick={(e) => { e.stopPropagation(); openEditDialog(request); }}
+                          className="h-8 w-8 flex items-center justify-center rounded-md text-blue-400 hover:text-white hover:bg-blue-600 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
                           title="Editar"
+                          aria-label="Editar solicitação de permuta"
                         >
                           <Edit2 className="h-4 w-4" />
                         </button>
                       )}
-                      
+
                       {/* Cancel button - only for pending and requester */}
                       {request.status === 'pending' && request.requester_id === agentId && (
-                        <button 
+                        <button
                           type="button"
-                          onClick={(e) => { e.stopPropagation(); openCancelConfirm(request.id); }} 
-                          className="h-8 w-8 flex items-center justify-center rounded-md text-red-400 hover:text-white hover:bg-red-600 transition-colors cursor-pointer" 
+                          onClick={(e) => { e.stopPropagation(); openCancelConfirm(request.id); }}
+                          className="h-8 w-8 flex items-center justify-center rounded-md text-red-400 hover:text-white hover:bg-red-600 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
                           title="Cancelar"
+                          aria-label="Cancelar solicitação de permuta"
                         >
                           <Trash2 className="h-4 w-4" />
                         </button>
                       )}
-                      
+
                       {/* Export button - available for all statuses */}
-                      <button 
+                      <button
                         type="button"
-                        onClick={(e) => { e.stopPropagation(); showPreview(request); }} 
-                        className="h-8 w-8 flex items-center justify-center rounded-md text-green-400 hover:text-white hover:bg-green-600 transition-colors cursor-pointer" 
+                        onClick={(e) => { e.stopPropagation(); showPreview(request); }}
+                        className="h-8 w-8 flex items-center justify-center rounded-md text-green-400 hover:text-white hover:bg-green-600 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
                         title="Exportar PDF"
+                        aria-label="Exportar permuta em PDF"
                       >
                         <Download className="h-4 w-4" />
                       </button>

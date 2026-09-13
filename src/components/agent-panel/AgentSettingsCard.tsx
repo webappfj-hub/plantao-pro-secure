@@ -311,9 +311,11 @@ export function AgentSettingsCard({
               </AvatarFallback>
             </Avatar>
             <button
+              type="button"
               onClick={() => fileInputRef.current?.click()}
               disabled={isUploading}
-              className="absolute -bottom-0.5 -right-0.5 p-1 bg-primary rounded-full hover:bg-primary transition-colors disabled:opacity-50 shadow"
+              aria-label="Alterar foto do perfil"
+              className="absolute -bottom-0.5 -right-0.5 p-1 bg-primary rounded-full hover:bg-primary transition-colors disabled:opacity-50 shadow before:absolute before:-inset-2 before:content-[''] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
             >
               {isUploading ? (
                 <Loader2 className="h-2.5 w-2.5 text-black animate-spin" />
@@ -348,9 +350,10 @@ export function AgentSettingsCard({
           <CollapsibleContent className="pt-2 space-y-2">
             {/* Email */}
             <div className="space-y-1">
-              <Label className="text-[10px] text-zinc-400 uppercase tracking-wide">E-mail</Label>
+              <Label htmlFor="agent-settings-email" className="text-[10px] text-zinc-400 uppercase tracking-wide">E-mail</Label>
               <div className="flex gap-1.5">
                 <Input
+                  id="agent-settings-email"
                   type="email"
                   placeholder="seu@email.com"
                   value={email}
@@ -361,6 +364,7 @@ export function AgentSettingsCard({
                   onClick={handleSaveEmail}
                   disabled={isSaving || email === originalEmail}
                   size="icon"
+                  aria-label="Salvar e-mail"
                   className="bg-cyan-600 hover:bg-cyan-500 h-8 w-8 shrink-0"
                 >
                   {isSaving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}
@@ -370,9 +374,10 @@ export function AgentSettingsCard({
 
             {/* Phone */}
             <div className="space-y-1">
-              <Label className="text-[10px] text-zinc-400 uppercase tracking-wide">Telefone</Label>
+              <Label htmlFor="agent-settings-phone" className="text-[10px] text-zinc-400 uppercase tracking-wide">Telefone</Label>
               <div className="flex gap-1.5">
                 <Input
+                  id="agent-settings-phone"
                   type="tel"
                   placeholder="(68) 99999-9999"
                   value={phone}
@@ -384,6 +389,7 @@ export function AgentSettingsCard({
                   onClick={handleSavePhone}
                   disabled={isSavingPhone || phone === originalPhone}
                   size="icon"
+                  aria-label="Salvar telefone"
                   className="bg-cyan-600 hover:bg-cyan-500 h-8 w-8 shrink-0"
                 >
                   {isSavingPhone ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}
@@ -393,9 +399,10 @@ export function AgentSettingsCard({
 
             {/* Address */}
             <div className="space-y-1">
-              <Label className="text-[10px] text-zinc-400 uppercase tracking-wide">Endereço</Label>
+              <Label htmlFor="agent-settings-address" className="text-[10px] text-zinc-400 uppercase tracking-wide">Endereço</Label>
               <div className="flex gap-1.5">
                 <Textarea
+                  id="agent-settings-address"
                   placeholder="Rua, número, bairro..."
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
@@ -406,6 +413,7 @@ export function AgentSettingsCard({
                   onClick={handleSaveAddress}
                   disabled={isSavingAddress || address === originalAddress}
                   size="icon"
+                  aria-label="Salvar endereço"
                   className="bg-cyan-600 hover:bg-cyan-500 h-8 w-8 shrink-0 self-start"
                 >
                   {isSavingAddress ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}

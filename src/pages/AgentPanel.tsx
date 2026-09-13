@@ -877,7 +877,7 @@ export default function AgentPanel() {
                           aria-selected={active}
                           onClick={() => setShiftsFilter(f.id)}
                           className={
-                            'flex-1 min-w-0 px-2 sm:px-3 py-1.5 text-[11px] sm:text-xs font-semibold uppercase tracking-widest rounded-md transition-colors ' +
+                            'flex-1 min-w-0 px-2 sm:px-3 py-1.5 text-[11px] sm:text-xs font-semibold uppercase tracking-widest rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 ' +
                             (active
                               ? 'bg-primary text-slate-950 shadow'
                               : 'text-slate-300 hover:bg-slate-800/70')

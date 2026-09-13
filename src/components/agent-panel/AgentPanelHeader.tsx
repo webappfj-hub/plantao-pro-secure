@@ -10,6 +10,7 @@ import { NotificationsPanel } from '@/components/agent-panel/NotificationsPanel'
 import { FontSizeControl } from '@/components/FontSizeControl';
 import { cn } from '@/lib/utils';
 import { TeamEmblem } from '@/components/TeamEmblem';
+import { useLowMotion } from '@/hooks/useLowMotion';
 import panelHeaderBg from '@/assets/midias/hero-agentes-viatura.webp';
 
 interface Agent {
@@ -137,6 +138,7 @@ function TeamInsignia({ team, prominent = false }: { team: string | null; promin
    ──────────────────────────────────────────────────────────────── */
 
 function OnlinePulse({ isOnline }: { isOnline: boolean }) {
+  const { lowMotion } = useLowMotion();
   const color = isOnline ? '#10b981' : '#f59e0b';
   return (
     <div
@@ -145,7 +147,7 @@ function OnlinePulse({ isOnline }: { isOnline: boolean }) {
     >
       <svg viewBox="0 0 12 12" className="h-3 w-3">
         <circle cx="6" cy="6" r="5" fill="none" stroke={color} strokeOpacity=".35" strokeWidth="1" />
-        {isOnline && <circle cx="6" cy="6" r="5" fill="none" stroke={color} strokeWidth="1" opacity=".8">
+        {isOnline && !lowMotion && <circle cx="6" cy="6" r="5" fill="none" stroke={color} strokeWidth="1" opacity=".8">
           <animate attributeName="r" from="2" to="5.5" dur="1.6s" repeatCount="indefinite" />
           <animate attributeName="opacity" from=".8" to="0" dur="1.6s" repeatCount="indefinite" />
         </circle>}
@@ -208,10 +210,11 @@ function ActionButton({
   tone?: 'neutral' | 'amber' | 'orange' | 'emerald';
   children: React.ReactNode;
 }) {
+  const { lowMotion } = useLowMotion();
   const tones = {
     neutral: 'border-slate-700/70 text-slate-300 hover:text-amber-300 hover:border-amber-500/50',
     amber:   'border-amber-500/40 text-amber-300 hover:border-amber-400/70',
-    orange:  'border-orange-500/50 text-orange-300 hover:border-orange-400/70 animate-pulse',
+    orange:  cn('border-orange-500/50 text-orange-300 hover:border-orange-400/70', !lowMotion && 'animate-pulse'),
     emerald: 'border-emerald-500/40 text-emerald-300 hover:border-emerald-400/70',
   }[tone];
   return (
@@ -221,11 +224,13 @@ function ActionButton({
           <button
             type="button"
             onClick={onClick}
+            aria-label={tooltip}
             className={cn(
               'relative flex items-center justify-center h-10 min-w-10 px-2.5 rounded-md',
               'bg-gradient-to-b from-slate-900/90 to-slate-950/90 border',
               'shadow-[inset_0_1px_0_rgba(255,255,255,.04)] transition-all duration-200',
               'hover:-translate-y-[1px] active:translate-y-0 [&>svg]:h-[18px] [&>svg]:w-[18px]',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60',
               tones,
             )}
           >
@@ -301,7 +306,8 @@ export function AgentPanelHeader({ agent, isOnline, onReactivateShiftBanner, isS
           <button
             type="button"
             onClick={() => navigate('/agent-profile')}
-            className="group flex items-center gap-2.5 min-w-0 flex-shrink text-left"
+            aria-label={`Abrir perfil de ${agent.name}`}
+            className="group flex items-center gap-2.5 min-w-0 flex-shrink text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 rounded-md"
           >
             {/* Avatar with SVG rank ring */}
             <div className="relative shrink-0">
