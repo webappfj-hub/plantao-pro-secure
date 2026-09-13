@@ -22,6 +22,7 @@ import {
 } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { useConfirm } from '@/components/ui/confirm-provider';
 import { toast } from 'sonner';
 import {
   ArrowRightLeft,
@@ -61,6 +62,7 @@ interface SwapManagementPanelProps {
 }
 
 export function SwapManagementPanel({ onDataChange }: SwapManagementPanelProps) {
+  const confirm = useConfirm();
   const [swapRequests, setSwapRequests] = useState<SwapRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedSwap, setSelectedSwap] = useState<SwapRequest | null>(null);
@@ -122,6 +124,15 @@ export function SwapManagementPanel({ onDataChange }: SwapManagementPanelProps) 
   }, [fetchSwapRequests]);
 
   const handleAdminAction = async (swapId: string, status: 'accepted' | 'rejected') => {
+    if (status === 'rejected') {
+      const ok = await confirm({
+        title: 'Rejeitar permuta?',
+        description: 'Os dois agentes envolvidos serão notificados da rejeição. Esta ação não pode ser desfeita.',
+        confirmText: 'Rejeitar',
+        destructive: true,
+      });
+      if (!ok) return;
+    }
     try {
       setIsProcessing(true);
 
@@ -405,6 +416,7 @@ Documento gerado automaticamente pelo PlantãoPro
                         <Button
                           variant="ghost"
                           size="sm"
+                          aria-label="Ver detalhes da permuta"
                           onClick={() => {
                             setSelectedSwap(swap);
                             setAdminNotes('');
@@ -419,6 +431,7 @@ Documento gerado automaticamente pelo PlantãoPro
                             <Button
                               variant="ghost"
                               size="sm"
+                              aria-label="Aprovar permuta"
                               onClick={() => handleAdminAction(swap.id, 'accepted')}
                               disabled={isProcessing}
                               className="h-8 w-8 p-0 text-green-400 hover:text-green-300 hover:bg-green-500/10"
@@ -428,6 +441,7 @@ Documento gerado automaticamente pelo PlantãoPro
                             <Button
                               variant="ghost"
                               size="sm"
+                              aria-label="Rejeitar permuta"
                               onClick={() => handleAdminAction(swap.id, 'rejected')}
                               disabled={isProcessing}
                               className="h-8 w-8 p-0 text-red-400 hover:text-red-300 hover:bg-red-500/10"

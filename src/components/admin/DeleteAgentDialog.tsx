@@ -87,7 +87,7 @@ export function DeleteAgentDialog({ agentId, agentName, onSuccess, trigger }: De
     <AlertDialog open={open} onOpenChange={setOpen}>
       <AlertDialogTrigger asChild>
         {trigger || (
-          <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive hover:bg-destructive/10">
+          <Button variant="ghost" size="icon" aria-label="Excluir agente" className="text-destructive hover:text-destructive hover:bg-destructive/10">
             <Trash2 className="h-4 w-4" />
           </Button>
         )}

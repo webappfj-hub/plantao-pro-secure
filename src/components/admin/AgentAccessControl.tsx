@@ -322,8 +322,10 @@ export function AgentAccessControl({ agents, onRefresh }: AgentAccessControlProp
           <div className="grid grid-cols-5 gap-2 mt-4">
             <button
               onClick={() => setFilterStatus('all')}
+              aria-pressed={filterStatus === 'all'}
+              aria-label="Filtrar: todos os agentes"
               className={cn(
-                "p-2 rounded-lg text-center transition-colors",
+                "p-2 rounded-lg text-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60",
                 filterStatus === 'all' ? "bg-primary/20 border border-primary/50" : "bg-muted/30 hover:bg-muted/50"
               )}
             >
@@ -332,8 +334,10 @@ export function AgentAccessControl({ agents, onRefresh }: AgentAccessControlProp
             </button>
             <button
               onClick={() => setFilterStatus('active')}
+              aria-pressed={filterStatus === 'active'}
+              aria-label="Filtrar: agentes ativos"
               className={cn(
-                "p-2 rounded-lg text-center transition-colors",
+                "p-2 rounded-lg text-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60",
                 filterStatus === 'active' ? "bg-green-500/20 border border-green-500/50" : "bg-muted/30 hover:bg-muted/50"
               )}
             >
@@ -342,8 +346,10 @@ export function AgentAccessControl({ agents, onRefresh }: AgentAccessControlProp
             </button>
             <button
               onClick={() => setFilterStatus('inactive')}
+              aria-pressed={filterStatus === 'inactive'}
+              aria-label="Filtrar: agentes inativos"
               className={cn(
-                "p-2 rounded-lg text-center transition-colors",
+                "p-2 rounded-lg text-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60",
                 filterStatus === 'inactive' ? "bg-slate-500/20 border border-slate-500/50" : "bg-muted/30 hover:bg-muted/50"
               )}
             >
@@ -352,8 +358,10 @@ export function AgentAccessControl({ agents, onRefresh }: AgentAccessControlProp
             </button>
             <button
               onClick={() => setFilterStatus('frozen')}
+              aria-pressed={filterStatus === 'frozen'}
+              aria-label="Filtrar: agentes bloqueados"
               className={cn(
-                "p-2 rounded-lg text-center transition-colors",
+                "p-2 rounded-lg text-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60",
                 filterStatus === 'frozen' ? "bg-red-500/20 border border-red-500/50" : "bg-muted/30 hover:bg-muted/50"
               )}
             >
@@ -362,8 +370,10 @@ export function AgentAccessControl({ agents, onRefresh }: AgentAccessControlProp
             </button>
             <button
               onClick={() => setFilterStatus('expired')}
+              aria-pressed={filterStatus === 'expired'}
+              aria-label="Filtrar: agentes expirados"
               className={cn(
-                "p-2 rounded-lg text-center transition-colors",
+                "p-2 rounded-lg text-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60",
                 filterStatus === 'expired' ? "bg-amber-500/20 border border-amber-500/50" : "bg-muted/30 hover:bg-muted/50"
               )}
             >
@@ -445,7 +455,11 @@ export function AgentAccessControl({ agents, onRefresh }: AgentAccessControlProp
                         ) : (
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-8 w-8">
+                              <Button
+                                variant="ghost" size="icon"
+                                aria-label={`Ações do agente ${agent.name ?? ''}`}
+                                className="relative h-8 w-8 before:absolute before:-inset-1.5 before:content-['']"
+                              >
                                 <MoreVertical className="h-4 w-4" />
                               </Button>
                             </DropdownMenuTrigger>

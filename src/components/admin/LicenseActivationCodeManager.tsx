@@ -438,6 +438,7 @@ export function LicenseActivationCodeManager() {
                     <Button
                       variant="ghost"
                       size="icon"
+                      aria-label="Excluir código de ativação"
                       className="h-8 w-8 text-red-400 hover:text-red-300 hover:bg-red-500/10"
                       onClick={() => deleteCode(code)}
                     >

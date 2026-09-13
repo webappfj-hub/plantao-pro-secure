@@ -301,13 +301,13 @@ export function ScheduledRoundsManager() {
                       <Zap className="h-3.5 w-3.5" />
                       {firingId === r.id ? 'Disparando...' : 'Disparar agora'}
                     </Button>
-                    <Button size="sm" variant="ghost" onClick={() => toggleEnabled(r)} title={r.is_enabled ? 'Pausar' : 'Ativar'}>
+                    <Button size="sm" variant="ghost" onClick={() => toggleEnabled(r)} title={r.is_enabled ? 'Pausar' : 'Ativar'} aria-label={r.is_enabled ? 'Pausar programação' : 'Ativar programação'}>
                       {r.is_enabled ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
                     </Button>
-                    <Button size="sm" variant="ghost" onClick={() => openEdit(r)}>
+                    <Button size="sm" variant="ghost" onClick={() => openEdit(r)} aria-label="Editar programação">
                       <Pencil className="h-4 w-4" />
                     </Button>
-                    <Button size="sm" variant="ghost" className="text-red-400 hover:text-red-300" onClick={() => remove(r.id)}>
+                    <Button size="sm" variant="ghost" className="text-red-400 hover:text-red-300" onClick={() => remove(r.id)} aria-label="Excluir programação">
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
@@ -398,7 +398,14 @@ export function ScheduledRoundsManager() {
                           {(editing.recur_times || []).map(t => (
                             <Badge key={t} variant="outline" className="gap-1 border-amber-500/40 text-amber-300">
                               {t}
-                              <button onClick={() => removeTime(t)} className="ml-1 hover:text-red-400">×</button>
+                              <button
+                                type="button"
+                                onClick={() => removeTime(t)}
+                                aria-label={`Remover horário ${t}`}
+                                className="relative ml-1 hover:text-red-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 rounded-sm before:absolute before:-inset-1.5 before:content-['']"
+                              >
+                                ×
+                              </button>
                             </Badge>
                           ))}
                         </div>

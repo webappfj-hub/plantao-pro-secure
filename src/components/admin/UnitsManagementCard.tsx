@@ -193,8 +193,9 @@ export function UnitsManagementCard({ units, agents, onEditUnit, onRefresh }: Un
                 <div className="space-y-4 py-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label>Nome da Unidade *</Label>
+                      <Label htmlFor="new-unit-name">Nome da Unidade *</Label>
                       <Input
+                        id="new-unit-name"
                         placeholder="Ex: CS Feijó"
                         value={newUnitData.name}
                         onChange={(e) => setNewUnitData({ ...newUnitData, name: e.target.value })}
@@ -202,8 +203,9 @@ export function UnitsManagementCard({ units, agents, onEditUnit, onRefresh }: Un
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label>Município *</Label>
+                      <Label htmlFor="new-unit-municipality">Município *</Label>
                       <Input
+                        id="new-unit-municipality"
                         placeholder="Ex: Feijó"
                         value={newUnitData.municipality}
                         onChange={(e) => setNewUnitData({ ...newUnitData, municipality: e.target.value })}
@@ -213,8 +215,9 @@ export function UnitsManagementCard({ units, agents, onEditUnit, onRefresh }: Un
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label>Diretor</Label>
+                      <Label htmlFor="new-unit-director">Diretor</Label>
                       <Input
+                        id="new-unit-director"
                         placeholder="Nome do diretor"
                         value={newUnitData.director_name}
                         onChange={(e) => setNewUnitData({ ...newUnitData, director_name: e.target.value })}
@@ -222,8 +225,9 @@ export function UnitsManagementCard({ units, agents, onEditUnit, onRefresh }: Un
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label>Coordenador</Label>
+                      <Label htmlFor="new-unit-coordinator">Coordenador</Label>
                       <Input
+                        id="new-unit-coordinator"
                         placeholder="Nome do coordenador"
                         value={newUnitData.coordinator_name}
                         onChange={(e) => setNewUnitData({ ...newUnitData, coordinator_name: e.target.value })}
@@ -233,8 +237,9 @@ export function UnitsManagementCard({ units, agents, onEditUnit, onRefresh }: Un
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label>Telefone</Label>
+                      <Label htmlFor="new-unit-phone">Telefone</Label>
                       <Input
+                        id="new-unit-phone"
                         placeholder="(00) 0000-0000"
                         value={newUnitData.phone}
                         onChange={(e) => setNewUnitData({ ...newUnitData, phone: e.target.value })}
@@ -242,8 +247,9 @@ export function UnitsManagementCard({ units, agents, onEditUnit, onRefresh }: Un
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label>Email</Label>
+                      <Label htmlFor="new-unit-email">Email</Label>
                       <Input
+                        id="new-unit-email"
                         placeholder="email@unidade.gov.br"
                         value={newUnitData.email}
                         onChange={(e) => setNewUnitData({ ...newUnitData, email: e.target.value })}
@@ -328,6 +334,7 @@ export function UnitsManagementCard({ units, agents, onEditUnit, onRefresh }: Un
                       <Button
                         variant="ghost"
                         size="icon"
+                        aria-label={`Editar unidade ${unit.name ?? ''}`}
                         onClick={(e) => {
                           e.stopPropagation();
                           onEditUnit(unit);

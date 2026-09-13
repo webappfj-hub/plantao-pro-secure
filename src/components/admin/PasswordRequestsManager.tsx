@@ -26,6 +26,7 @@ import { Check, X, Clock, Key, Shield, MessageSquare, Loader2, RefreshCw } from 
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { AgentPasswordManager } from '@/components/admin/AgentPasswordManager';
+import { useConfirm } from '@/components/ui/confirm-provider';
 import { cn } from '@/lib/utils';
 
 interface PasswordRequest {
@@ -45,6 +46,7 @@ interface PasswordRequest {
 }
 
 export function PasswordRequestsManager() {
+  const confirm = useConfirm();
   const { toast } = useToast();
   const [requests, setRequests] = useState<PasswordRequest[]>([]);
   const [loading, setLoading] = useState(true);
@@ -97,6 +99,12 @@ export function PasswordRequestsManager() {
   };
 
   const handleApprove = async (request: PasswordRequest) => {
+    const ok = await confirm({
+      title: 'Aprovar redefinição de senha?',
+      description: `${request.agent.name} poderá alterar a senha imediatamente após a aprovação.`,
+      confirmText: 'Aprovar',
+    });
+    if (!ok) return;
     setProcessingId(request.id);
     try {
       const { error } = await supabase
@@ -278,6 +286,7 @@ export function PasswordRequestsManager() {
                             <Button
                               variant="ghost"
                               size="icon"
+                              aria-label={`Aprovar redefinição de senha de ${request.agent?.name ?? 'agente'}`}
                               className="h-8 w-8 text-green-500 hover:text-green-400 hover:bg-green-500/10"
                               onClick={() => handleApprove(request)}
                               disabled={processingId === request.id}
@@ -291,6 +300,7 @@ export function PasswordRequestsManager() {
                             <Button
                               variant="ghost"
                               size="icon"
+                              aria-label={`Rejeitar redefinição de senha de ${request.agent?.name ?? 'agente'}`}
                               className="h-8 w-8 text-red-500 hover:text-red-400 hover:bg-red-500/10"
                               onClick={() => openRejectDialog(request)}
                               disabled={processingId === request.id}

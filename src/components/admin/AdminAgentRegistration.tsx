@@ -280,20 +280,24 @@ export function AdminAgentRegistration() {
               </h3>
 
               <div>
-                <Label>Nome Completo *</Label>
+                <Label htmlFor="reg-name">Nome Completo *</Label>
                 <Input
+                  id="reg-name"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   placeholder="Ex: João da Silva"
+                  aria-invalid={!!errors.name}
+                  aria-describedby={errors.name ? 'reg-name-error' : undefined}
                   className={errors.name ? 'border-red-500' : ''}
                 />
-                {errors.name && <p className="text-xs text-red-500 mt-1">{errors.name}</p>}
+                {errors.name && <p id="reg-name-error" className="text-xs text-red-500 mt-1">{errors.name}</p>}
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label>CPF *</Label>
+                  <Label htmlFor="reg-cpf">CPF *</Label>
                   <Input
+                    id="reg-cpf"
                     value={formData.cpf}
                     onChange={(e) =>
                       setFormData({ ...formData, cpf: formatCPF(e.target.value) })
@@ -301,14 +305,17 @@ export function AdminAgentRegistration() {
                     placeholder="000.000.000-00"
                     maxLength={14}
                     inputMode="numeric"
+                    aria-invalid={!!errors.cpf}
+                    aria-describedby={errors.cpf ? 'reg-cpf-error' : undefined}
                     className={errors.cpf ? 'border-red-500' : ''}
                   />
-                  {errors.cpf && <p className="text-xs text-red-500 mt-1">{errors.cpf}</p>}
+                  {errors.cpf && <p id="reg-cpf-error" className="text-xs text-red-500 mt-1">{errors.cpf}</p>}
                 </div>
 
                 <div>
-                  <Label>Matrícula</Label>
+                  <Label htmlFor="reg-matricula">Matrícula</Label>
                   <Input
+                    id="reg-matricula"
                     value={formData.matricula}
                     onChange={(e) =>
                       setFormData({ ...formData, matricula: formatMatricula(e.target.value) })
@@ -316,16 +323,19 @@ export function AdminAgentRegistration() {
                     placeholder="00000000"
                     maxLength={8}
                     inputMode="numeric"
+                    aria-invalid={!!errors.matricula}
+                    aria-describedby={errors.matricula ? 'reg-matricula-error' : undefined}
                     className={errors.matricula ? 'border-red-500' : ''}
                   />
-                  {errors.matricula && <p className="text-xs text-red-500 mt-1">{errors.matricula}</p>}
+                  {errors.matricula && <p id="reg-matricula-error" className="text-xs text-red-500 mt-1">{errors.matricula}</p>}
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label>Data de Nascimento (DD-MM-AAAA)</Label>
+                  <Label htmlFor="reg-birth-date">Data de Nascimento (DD-MM-AAAA)</Label>
                   <Input
+                    id="reg-birth-date"
                     value={formData.birth_date}
                     onChange={(e) =>
                       setFormData({ ...formData, birth_date: formatBirthDate(e.target.value) })
@@ -333,17 +343,20 @@ export function AdminAgentRegistration() {
                     placeholder="01-01-1990"
                     maxLength={10}
                     inputMode="numeric"
+                    aria-invalid={!!errors.birth_date}
+                    aria-describedby={errors.birth_date ? 'reg-birth-date-error' : undefined}
                     className={errors.birth_date ? 'border-red-500' : ''}
                   />
                   {calculatedAge && (
                     <p className="text-xs text-emerald-600 mt-1">{calculatedAge} anos</p>
                   )}
-                  {errors.birth_date && <p className="text-xs text-red-500 mt-1">{errors.birth_date}</p>}
+                  {errors.birth_date && <p id="reg-birth-date-error" className="text-xs text-red-500 mt-1">{errors.birth_date}</p>}
                 </div>
 
                 <div>
-                  <Label>Telefone</Label>
+                  <Label htmlFor="reg-phone">Telefone</Label>
                   <Input
+                    id="reg-phone"
                     value={formData.phone}
                     onChange={(e) =>
                       setFormData({ ...formData, phone: formatPhone(e.target.value) })
@@ -364,11 +377,11 @@ export function AdminAgentRegistration() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label>Unidade *</Label>
+                  <Label htmlFor="reg-unit">Unidade *</Label>
                   <Select value={formData.unit_id} onValueChange={(value) =>
                     setFormData({ ...formData, unit_id: value })
                   }>
-                    <SelectTrigger className={errors.unit_id ? 'border-red-500' : ''}>
+                    <SelectTrigger id="reg-unit" className={errors.unit_id ? 'border-red-500' : ''}>
                       <SelectValue placeholder="Selecione uma unidade" />
                     </SelectTrigger>
                     <SelectContent>
@@ -383,11 +396,11 @@ export function AdminAgentRegistration() {
                 </div>
 
                 <div>
-                  <Label>Equipe *</Label>
+                  <Label htmlFor="reg-team">Equipe *</Label>
                   <Select value={formData.team} onValueChange={(value) =>
                     setFormData({ ...formData, team: value })
                   }>
-                    <SelectTrigger>
+                    <SelectTrigger id="reg-team">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -401,8 +414,9 @@ export function AdminAgentRegistration() {
               </div>
 
               <div>
-                <Label>Endereço</Label>
+                <Label htmlFor="reg-address">Endereço</Label>
                 <Input
+                  id="reg-address"
                   value={formData.address}
                   onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                   placeholder="Rua, número, cidade"
@@ -418,8 +432,9 @@ export function AdminAgentRegistration() {
               </h3>
 
               <div>
-                <Label>Email (Opcional)</Label>
+                <Label htmlFor="reg-email">Email (Opcional)</Label>
                 <Input
+                  id="reg-email"
                   type="email"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
@@ -429,8 +444,9 @@ export function AdminAgentRegistration() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label>Senha (6 dígitos numéricos) *</Label>
+                  <Label htmlFor="reg-password">Senha (6 dígitos numéricos) *</Label>
                   <Input
+                    id="reg-password"
                     type="password"
                     inputMode="numeric"
                     maxLength={6}
@@ -439,14 +455,17 @@ export function AdminAgentRegistration() {
                       setFormData({ ...formData, password: e.target.value.replace(/\D/g, '') })
                     }
                     placeholder="000000"
+                    aria-invalid={!!errors.password}
+                    aria-describedby={errors.password ? 'reg-password-error' : undefined}
                     className={errors.password ? 'border-red-500' : ''}
                   />
-                  {errors.password && <p className="text-xs text-red-500 mt-1">{errors.password}</p>}
+                  {errors.password && <p id="reg-password-error" className="text-xs text-red-500 mt-1">{errors.password}</p>}
                 </div>
 
                 <div>
-                  <Label>Confirmar Senha *</Label>
+                  <Label htmlFor="reg-confirm-password">Confirmar Senha *</Label>
                   <Input
+                    id="reg-confirm-password"
                     type="password"
                     inputMode="numeric"
                     maxLength={6}
@@ -455,10 +474,12 @@ export function AdminAgentRegistration() {
                       setFormData({ ...formData, confirmPassword: e.target.value.replace(/\D/g, '') })
                     }
                     placeholder="000000"
+                    aria-invalid={!!errors.confirmPassword}
+                    aria-describedby={errors.confirmPassword ? 'reg-confirm-password-error' : undefined}
                     className={errors.confirmPassword ? 'border-red-500' : ''}
                   />
                   {errors.confirmPassword && (
-                    <p className="text-xs text-red-500 mt-1">{errors.confirmPassword}</p>
+                    <p id="reg-confirm-password-error" className="text-xs text-red-500 mt-1">{errors.confirmPassword}</p>
                   )}
                 </div>
               </div>

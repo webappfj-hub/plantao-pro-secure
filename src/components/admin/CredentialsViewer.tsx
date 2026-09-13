@@ -517,7 +517,8 @@ export function CredentialsViewer() {
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-7 w-7"
+                              aria-label={showCpfs[agent.id] ? 'Ocultar CPF' : 'Mostrar CPF'}
+                              className="relative h-7 w-7 before:absolute before:-inset-1.5 before:content-['']"
                               onClick={() => toggleShowCpf(agent.id)}
                             >
                               {showCpfs[agent.id] ? (
@@ -529,7 +530,8 @@ export function CredentialsViewer() {
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-7 w-7"
+                              aria-label="Copiar CPF"
+                              className="relative h-7 w-7 before:absolute before:-inset-1.5 before:content-['']"
                               onClick={() => copyToClipboard(agent.cpf!, 'CPF')}
                             >
                               <Copy className="h-3.5 w-3.5" />

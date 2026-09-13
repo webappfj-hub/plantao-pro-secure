@@ -189,8 +189,9 @@ export function EditUnitDialog({ unit, open, onOpenChange, onSuccess }: EditUnit
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Nome da Unidade</Label>
+              <Label htmlFor="edit-unit-name">Nome da Unidade</Label>
               <Input
+                id="edit-unit-name"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value.toUpperCase() })}
                 className="bg-input"
@@ -198,8 +199,9 @@ export function EditUnitDialog({ unit, open, onOpenChange, onSuccess }: EditUnit
             </div>
 
             <div className="space-y-2">
-              <Label>Município</Label>
+              <Label htmlFor="edit-unit-municipality">Município</Label>
               <Input
+                id="edit-unit-municipality"
                 value={formData.municipality}
                 onChange={(e) => setFormData({ ...formData, municipality: e.target.value.toUpperCase() })}
                 className="bg-input"
@@ -210,8 +212,9 @@ export function EditUnitDialog({ unit, open, onOpenChange, onSuccess }: EditUnit
           {/* Director and Coordinator */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Nome do Diretor</Label>
+              <Label htmlFor="edit-unit-director">Nome do Diretor</Label>
               <Input
+                id="edit-unit-director"
                 value={formData.director_name}
                 onChange={(e) => setFormData({ ...formData, director_name: e.target.value.toUpperCase() })}
                 placeholder="Nome completo do diretor"
@@ -220,8 +223,9 @@ export function EditUnitDialog({ unit, open, onOpenChange, onSuccess }: EditUnit
             </div>
 
             <div className="space-y-2">
-              <Label>Coordenador de Segurança</Label>
+              <Label htmlFor="edit-unit-coordinator">Coordenador de Segurança</Label>
               <Input
+                id="edit-unit-coordinator"
                 value={formData.coordinator_name}
                 onChange={(e) => setFormData({ ...formData, coordinator_name: e.target.value.toUpperCase() })}
                 placeholder="Nome do coordenador"
@@ -232,8 +236,9 @@ export function EditUnitDialog({ unit, open, onOpenChange, onSuccess }: EditUnit
 
           {/* Address */}
           <div className="space-y-2">
-            <Label>Endereço</Label>
+            <Label htmlFor="edit-unit-address">Endereço</Label>
             <Input
+              id="edit-unit-address"
               value={formData.address}
               onChange={(e) => setFormData({ ...formData, address: e.target.value })}
               placeholder="Endereço completo da unidade"
@@ -244,8 +249,9 @@ export function EditUnitDialog({ unit, open, onOpenChange, onSuccess }: EditUnit
           {/* Contact Info */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Email de Contato</Label>
+              <Label htmlFor="edit-unit-email">Email de Contato</Label>
               <Input
+                id="edit-unit-email"
                 type="email"
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
@@ -255,8 +261,9 @@ export function EditUnitDialog({ unit, open, onOpenChange, onSuccess }: EditUnit
             </div>
 
             <div className="space-y-2">
-              <Label>Telefone</Label>
+              <Label htmlFor="edit-unit-phone">Telefone</Label>
               <Input
+                id="edit-unit-phone"
                 value={formData.phone}
                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                 placeholder="(00) 0000-0000"
@@ -279,12 +286,13 @@ export function EditUnitDialog({ unit, open, onOpenChange, onSuccess }: EditUnit
             
             <div className="grid grid-cols-3 gap-3">
               <div className="space-y-2">
-                <Label className="text-xs flex items-center gap-1">
+                <Label htmlFor="edit-unit-bh-limit-1" className="text-xs flex items-center gap-1">
                   <Clock className="h-3 w-3 text-blue-400" />
                   Limite 1ª Quinz.
                 </Label>
                 <div className="relative">
                   <Input
+                    id="edit-unit-bh-limit-1"
                     type="number"
                     min="0"
                     max="200"
@@ -297,12 +305,13 @@ export function EditUnitDialog({ unit, open, onOpenChange, onSuccess }: EditUnit
               </div>
 
               <div className="space-y-2">
-                <Label className="text-xs flex items-center gap-1">
+                <Label htmlFor="edit-unit-bh-limit-2" className="text-xs flex items-center gap-1">
                   <Clock className="h-3 w-3 text-purple-400" />
                   Limite 2ª Quinz.
                 </Label>
                 <div className="relative">
                   <Input
+                    id="edit-unit-bh-limit-2"
                     type="number"
                     min="0"
                     max="200"
@@ -315,12 +324,13 @@ export function EditUnitDialog({ unit, open, onOpenChange, onSuccess }: EditUnit
               </div>
 
               <div className="space-y-2">
-                <Label className="text-xs flex items-center gap-1">
+                <Label htmlFor="edit-unit-bh-rate" className="text-xs flex items-center gap-1">
                   <DollarSign className="h-3 w-3 text-green-400" />
                   Valor Hora
                 </Label>
                 <div className="relative">
                   <Input
+                    id="edit-unit-bh-rate"
                     type="number"
                     min="0"
                     step="0.01"

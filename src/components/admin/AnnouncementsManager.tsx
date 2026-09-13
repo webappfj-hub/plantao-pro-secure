@@ -529,6 +529,7 @@ export function AnnouncementsManager() {
                         <Button
                           variant="ghost"
                           size="icon"
+                          aria-label={announcement.is_active ? 'Desativar aviso' : 'Ativar aviso'}
                           onClick={() => toggleActive(announcement)}
                           className="h-8 w-8 hover:bg-slate-700/50"
                         >
@@ -541,6 +542,7 @@ export function AnnouncementsManager() {
                         <Button
                           variant="ghost"
                           size="icon"
+                          aria-label="Editar aviso"
                           onClick={() => openEditDialog(announcement)}
                           className="h-8 w-8 hover:bg-slate-700/50"
                         >
@@ -549,6 +551,7 @@ export function AnnouncementsManager() {
                         <Button
                           variant="ghost"
                           size="icon"
+                          aria-label="Excluir aviso"
                           onClick={() => {
                             setDeletingId(announcement.id);
                             setDeleteDialogOpen(true);

@@ -194,8 +194,9 @@ export function EditAgentDialog({ agent, open, onOpenChange, onSuccess }: EditAg
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="col-span-2 space-y-2">
-              <Label>Nome</Label>
+              <Label htmlFor="edit-agent-name">Nome</Label>
               <Input
+                id="edit-agent-name"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value.toUpperCase() })}
                 className="bg-input"
@@ -203,8 +204,9 @@ export function EditAgentDialog({ agent, open, onOpenChange, onSuccess }: EditAg
             </div>
 
             <div className="space-y-2">
-              <Label>CPF</Label>
+              <Label htmlFor="edit-agent-cpf">CPF</Label>
               <Input
+                id="edit-agent-cpf"
                 value={formData.cpf}
                 disabled
                 className="bg-muted"
@@ -212,8 +214,9 @@ export function EditAgentDialog({ agent, open, onOpenChange, onSuccess }: EditAg
             </div>
 
             <div className="space-y-2">
-              <Label>Matrícula</Label>
+              <Label htmlFor="edit-agent-matricula">Matrícula</Label>
               <Input
+                id="edit-agent-matricula"
                 value={formData.matricula}
                 onChange={(e) => setFormData({ ...formData, matricula: formatMatricula(e.target.value) })}
                 placeholder="000.000.000"
@@ -223,8 +226,9 @@ export function EditAgentDialog({ agent, open, onOpenChange, onSuccess }: EditAg
             </div>
 
             <div className="space-y-2">
-              <Label>Email</Label>
+              <Label htmlFor="edit-agent-email">Email</Label>
               <Input
+                id="edit-agent-email"
                 type="email"
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
@@ -233,8 +237,9 @@ export function EditAgentDialog({ agent, open, onOpenChange, onSuccess }: EditAg
             </div>
 
             <div className="space-y-2">
-              <Label>Telefone</Label>
+              <Label htmlFor="edit-agent-phone">Telefone</Label>
               <Input
+                id="edit-agent-phone"
                 value={formData.phone}
                 onChange={(e) => setFormData({ ...formData, phone: formatPhone(e.target.value) })}
                 className="bg-input"
@@ -242,8 +247,9 @@ export function EditAgentDialog({ agent, open, onOpenChange, onSuccess }: EditAg
             </div>
 
             <div className="col-span-2 space-y-2">
-              <Label>Endereço</Label>
+              <Label htmlFor="edit-agent-address">Endereço</Label>
               <Input
+                id="edit-agent-address"
                 value={formData.address}
                 onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                 className="bg-input"
@@ -251,12 +257,12 @@ export function EditAgentDialog({ agent, open, onOpenChange, onSuccess }: EditAg
             </div>
 
             <div className="space-y-2">
-              <Label>Unidade</Label>
+              <Label htmlFor="edit-agent-unit">Unidade</Label>
               <Select
                 value={formData.unit_id}
                 onValueChange={(value) => setFormData({ ...formData, unit_id: value })}
               >
-                <SelectTrigger className="bg-input">
+                <SelectTrigger id="edit-agent-unit" className="bg-input">
                   <SelectValue placeholder="Selecione" />
                 </SelectTrigger>
                 <SelectContent className="bg-popover border-border">
@@ -270,12 +276,12 @@ export function EditAgentDialog({ agent, open, onOpenChange, onSuccess }: EditAg
             </div>
 
             <div className="space-y-2">
-              <Label>Equipe</Label>
+              <Label htmlFor="edit-agent-team">Equipe</Label>
               <Select
                 value={formData.team}
                 onValueChange={(value) => setFormData({ ...formData, team: value })}
               >
-                <SelectTrigger className="bg-input">
+                <SelectTrigger id="edit-agent-team" className="bg-input">
                   <SelectValue placeholder="Selecione" />
                 </SelectTrigger>
                 <SelectContent className="bg-popover border-border">
@@ -297,11 +303,12 @@ export function EditAgentDialog({ agent, open, onOpenChange, onSuccess }: EditAg
               
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label className="flex items-center gap-1 text-sm">
+                  <Label htmlFor="edit-agent-bh-limit" className="flex items-center gap-1 text-sm">
                     <Clock className="h-3 w-3" />
                     Limite de Horas
                   </Label>
                   <Input
+                    id="edit-agent-bh-limit"
                     type="number"
                     value={formData.bh_limit}
                     onChange={(e) => setFormData({ ...formData, bh_limit: e.target.value })}
@@ -314,11 +321,12 @@ export function EditAgentDialog({ agent, open, onOpenChange, onSuccess }: EditAg
                 </div>
                 
                 <div className="space-y-2">
-                  <Label className="flex items-center gap-1 text-sm">
+                  <Label htmlFor="edit-agent-bh-rate" className="flex items-center gap-1 text-sm">
                     <DollarSign className="h-3 w-3" />
                     Valor/Hora (R$)
                   </Label>
                   <Input
+                    id="edit-agent-bh-rate"
                     type="number"
                     value={formData.bh_hourly_rate}
                     onChange={(e) => setFormData({ ...formData, bh_hourly_rate: e.target.value })}

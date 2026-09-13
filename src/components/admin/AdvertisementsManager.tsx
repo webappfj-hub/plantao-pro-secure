@@ -637,6 +637,7 @@ export function AdvertisementsManager() {
                                   onClick={() => handlePreviewMedia(ad)}
                                   className="h-8 w-8 border-rose-500/50 text-rose-400 hover:bg-rose-500/20 hover:text-rose-300"
                                   title="Assistir Vídeo"
+                                  aria-label="Assistir vídeo do anúncio"
                                 >
                                   <Play className="h-4 w-4" />
                                 </Button>
@@ -647,6 +648,7 @@ export function AdvertisementsManager() {
                                   onClick={() => handlePreviewMedia(ad)}
                                   className="h-8 w-8"
                                   title="Visualizar"
+                                  aria-label="Visualizar anúncio"
                                 >
                                   <Eye className="h-4 w-4" />
                                 </Button>
@@ -656,6 +658,7 @@ export function AdvertisementsManager() {
                           <Button
                             variant="ghost"
                             size="icon"
+                            aria-label="Editar anúncio"
                             onClick={() => handleOpenDialog(ad)}
                             className="h-8 w-8"
                           >
@@ -664,6 +667,7 @@ export function AdvertisementsManager() {
                           <Button
                             variant="ghost"
                             size="icon"
+                            aria-label="Excluir anúncio"
                             className="h-8 w-8 text-red-400 hover:text-red-300 hover:bg-red-500/20"
                             onClick={() => handleDelete(ad.id)}
                           >

@@ -306,6 +306,7 @@ export function DynamicScreensManager() {
                       <Button
                         variant="ghost"
                         size="icon"
+                        aria-label="Editar tela"
                         onClick={() => handleOpenDialog(screen)}
                       >
                         <Pencil className="h-4 w-4" />
@@ -313,6 +314,7 @@ export function DynamicScreensManager() {
                       <Button
                         variant="ghost"
                         size="icon"
+                        aria-label="Excluir tela"
                         className="text-red-400 hover:text-red-300"
                         onClick={() => handleDelete(screen.id)}
                       >
