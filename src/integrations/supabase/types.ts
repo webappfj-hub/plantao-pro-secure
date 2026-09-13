@@ -476,6 +476,7 @@ export type Database = {
           approval_status: string
           approved_at: string | null
           avatar_url: string | null
+          bh_future_months_allowed: number
           bh_hourly_rate: number | null
           bh_limit: number | null
           birth_date: string | null
@@ -514,6 +515,7 @@ export type Database = {
           approval_status?: string
           approved_at?: string | null
           avatar_url?: string | null
+          bh_future_months_allowed?: number
           bh_hourly_rate?: number | null
           bh_limit?: number | null
           birth_date?: string | null
@@ -552,6 +554,7 @@ export type Database = {
           approval_status?: string
           approved_at?: string | null
           avatar_url?: string | null
+          bh_future_months_allowed?: number
           bh_hourly_rate?: number | null
           bh_limit?: number | null
           birth_date?: string | null
@@ -2129,6 +2132,9 @@ export type Database = {
       units: {
         Row: {
           address: string | null
+          bh_hourly_rate_default: number
+          bh_limit_default: number
+          bh_lock_agent_edit: boolean
           coordinator_name: string | null
           created_at: string
           director_name: string | null
@@ -2140,6 +2146,9 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          bh_hourly_rate_default?: number
+          bh_limit_default?: number
+          bh_lock_agent_edit?: boolean
           coordinator_name?: string | null
           created_at?: string
           director_name?: string | null
@@ -2151,6 +2160,9 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          bh_hourly_rate_default?: number
+          bh_limit_default?: number
+          bh_lock_agent_edit?: boolean
           coordinator_name?: string | null
           created_at?: string
           director_name?: string | null

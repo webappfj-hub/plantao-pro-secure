@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { format, startOfDay, endOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Clock, AlertTriangle } from 'lucide-react';
+import { getBHPayPeriod } from './useServerTime';
 
 interface UseBHReminderOptions {
   agentId: string;
@@ -142,18 +143,16 @@ export function useBHReminder({
     return true;
   }, [isEnabled, showNotification, saveNotified]);
 
-  // Get fortnight info helper
+  // Get current pay-period (ciclo 16→15) info helper
   const getFortnightInfo = () => {
     const today = new Date();
-    const todayDay = today.getDate();
-    const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
-    const isFirstFortnight = todayDay <= 15;
+    const period = getBHPayPeriod(today);
+    const daysRemaining = Math.round((period.end.getTime() - today.getTime()) / (24 * 60 * 60 * 1000));
 
     return {
-      label: isFirstFortnight ? '1ª Quinzena' : '2ª Quinzena',
-      startDay: isFirstFortnight ? 1 : 16,
-      endDay: isFirstFortnight ? 15 : lastDayOfMonth,
-      daysRemaining: isFirstFortnight ? 15 - todayDay : lastDayOfMonth - todayDay,
+      label: `Ciclo ${period.startLabel}–${period.endLabel}`,
+      payoutLabel: period.payoutLabel,
+      daysRemaining,
     };
   };
 

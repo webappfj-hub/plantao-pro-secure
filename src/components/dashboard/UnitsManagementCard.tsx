@@ -30,9 +30,6 @@ interface Unit {
   coordinator_name: string | null;
   president_name: string | null;
   security_coordinator_name: string | null;
-  bh_hourly_rate_default: number | null;
-  bh_limit_1st_default: number | null;
-  bh_limit_2nd_default: number | null;
 }
 
 export function UnitsManagementCard() {

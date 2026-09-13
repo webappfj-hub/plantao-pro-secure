@@ -16,8 +16,7 @@ interface Unit {
   name: string;
   municipality: string;
   bh_hourly_rate_default: number | null;
-  bh_limit_1st_default: number | null;
-  bh_limit_2nd_default: number | null;
+  bh_limit_default: number | null;
   bh_lock_agent_edit: boolean | null;
 }
 
@@ -34,7 +33,7 @@ export function BHControlCard() {
     try {
       const { data, error } = await supabase
         .from('units')
-        .select('id, name, municipality, bh_hourly_rate_default, bh_limit_1st_default, bh_limit_2nd_default, bh_lock_agent_edit')
+        .select('id, name, municipality, bh_hourly_rate_default, bh_limit_default, bh_lock_agent_edit')
         .order('name');
 
       if (error) throw error;
@@ -188,7 +187,7 @@ export function BHControlCard() {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-3 gap-3">
+                    <div className="grid grid-cols-2 gap-3">
                       <div className="space-y-1">
                         <Label className="text-[10px] text-muted-foreground flex items-center gap-1">
                           <DollarSign className="h-3 w-3" />
@@ -206,25 +205,12 @@ export function BHControlCard() {
 
                       <div className="space-y-1">
                         <Label className="text-[10px] text-muted-foreground">
-                          Limite 1ª Quinzena (h)
+                          Limite por Ciclo (h)
                         </Label>
                         <Input
                           type="number"
-                          value={String(getValue(unit, 'bh_limit_1st_default') ?? '')}
-                          onChange={(e) => handleChange(unit.id, 'bh_limit_1st_default', parseInt(e.target.value) || null)}
-                          className="h-8 text-sm"
-                          placeholder="70"
-                        />
-                      </div>
-
-                      <div className="space-y-1">
-                        <Label className="text-[10px] text-muted-foreground">
-                          Limite 2ª Quinzena (h)
-                        </Label>
-                        <Input
-                          type="number"
-                          value={String(getValue(unit, 'bh_limit_2nd_default') ?? '')}
-                          onChange={(e) => handleChange(unit.id, 'bh_limit_2nd_default', parseInt(e.target.value) || null)}
+                          value={String(getValue(unit, 'bh_limit_default') ?? '')}
+                          onChange={(e) => handleChange(unit.id, 'bh_limit_default', parseInt(e.target.value) || null)}
                           className="h-8 text-sm"
                           placeholder="70"
                         />

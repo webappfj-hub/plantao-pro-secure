@@ -44,6 +44,7 @@ import {
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
+import { getBHPayPeriod } from '@/hooks/useServerTime';
 
 interface Agent {
   id: string;
@@ -54,8 +55,6 @@ interface Agent {
   unit_name: string | null;
   bh_hourly_rate: number | null;
   bh_limit: number | null;
-  bh_limit_1st: number | null;
-  bh_limit_2nd: number | null;
   bh_future_months_allowed: number | null;
 }
 
@@ -76,7 +75,11 @@ interface AgentBHSummary {
   totalDebits: number;
   lastEntry: string | null;
   estimatedValue: number;
-  daysWithBH: number[];
+  /** Saldo e valor do ciclo de pagamento em aberto (16→15) — o que o agente vai receber no próximo pagamento. */
+  currentPeriodBalance: number;
+  currentPeriodValue: number;
+  payoutLabel: string;
+  daysWithBH: string[];
 }
 
 interface Props {
@@ -103,15 +106,12 @@ export function AgentBHManagement({ onDataChange }: Props) {
   // Agent config states
   const [editHourlyRate, setEditHourlyRate] = useState('');
   const [editBhLimit, setEditBhLimit] = useState('');
-  const [editBhLimit1st, setEditBhLimit1st] = useState('');
-  const [editBhLimit2nd, setEditBhLimit2nd] = useState('');
   const [editFutureMonths, setEditFutureMonths] = useState('0');
 
   // Bulk update states
   const [bulkDialogOpen, setBulkDialogOpen] = useState(false);
   const [bulkTeam, setBulkTeam] = useState('');
-  const [bulkLimit1st, setBulkLimit1st] = useState('');
-  const [bulkLimit2nd, setBulkLimit2nd] = useState('');
+  const [bulkLimit, setBulkLimit] = useState('');
   const [isBulkSaving, setIsBulkSaving] = useState(false);
 
   useEffect(() => {
@@ -123,10 +123,11 @@ export function AgentBHManagement({ onDataChange }: Props) {
       setIsLoading(true);
       
       const [agentsRes, unitsRes, bhRes] = await Promise.all([
-        (supabase as any).from('agents').select('id, name, matricula, team, unit_id, bh_hourly_rate, bh_limit, bh_limit_1st, bh_limit_2nd, bh_future_months_allowed').eq('is_active', true),
+        supabase.from('agents').select('id, name, matricula, team, unit_id, bh_hourly_rate, bh_limit, bh_future_months_allowed').eq('is_active', true),
         supabase.from('units').select('id, name'),
         supabase.from('overtime_bank').select('*').order('created_at', { ascending: false }),
       ]);
+      if (agentsRes.error) console.error('Error fetching agents BH config:', agentsRes.error);
 
       const agentsWithUnits: Agent[] = (agentsRes.data || []).map(agent => ({
         ...agent,
@@ -142,8 +143,7 @@ export function AgentBHManagement({ onDataChange }: Props) {
 
       // Calculate summaries
       const today = new Date();
-      const currentMonth = today.getMonth();
-      const currentYear = today.getFullYear();
+      const currentPeriod = getBHPayPeriod(today);
 
       const agentSummaries: AgentBHSummary[] = agentsWithUnits.map(agent => {
         const agentEntries = entriesWithNames.filter(e => e.agent_id === agent.id);
@@ -151,25 +151,24 @@ export function AgentBHManagement({ onDataChange }: Props) {
         const debits = agentEntries.filter(e => e.operation_type === 'debit').reduce((sum, e) => sum + Math.abs(Number(e.hours)), 0);
         const balance = credits - debits;
         const lastEntry = agentEntries[0]?.created_at || null;
-        const rate = agent.bh_hourly_rate || 15;
-        
-        // Extract days with BH in current month
-        const daysWithBH: number[] = [];
+        const rate = agent.bh_hourly_rate || 15.75;
+
+        // Entries that fall inside the current pay period (16→15).
+        const daysWithBH: string[] = [];
+        let currentPeriodBalance = 0;
         agentEntries.forEach(entry => {
-          if (entry.description) {
-            const match = entry.description.match(/BH - (\d{2})\/(\d{2})\/(\d{4})/);
-            if (match) {
-              const [, day, month, year] = match;
-              if (parseInt(month) - 1 === currentMonth && parseInt(year) === currentYear) {
-                const dayNum = parseInt(day);
-                if (!daysWithBH.includes(dayNum)) {
-                  daysWithBH.push(dayNum);
-                }
-              }
-            }
-          }
+          if (!entry.description) return;
+          const match = entry.description.match(/BH - (\d{2})\/(\d{2})\/(\d{4})/);
+          if (!match) return;
+          const [, day, month, year] = match;
+          const entryDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+          if (entryDate.getTime() < currentPeriod.start.getTime() || entryDate.getTime() > currentPeriod.end.getTime()) return;
+
+          currentPeriodBalance += entry.operation_type === 'credit' ? Number(entry.hours) : -Number(entry.hours);
+          const label = `${day}/${month}`;
+          if (!daysWithBH.includes(label)) daysWithBH.push(label);
         });
-        
+
         return {
           agent,
           balance,
@@ -177,10 +176,13 @@ export function AgentBHManagement({ onDataChange }: Props) {
           totalDebits: debits,
           lastEntry,
           estimatedValue: balance * rate,
-          daysWithBH: daysWithBH.sort((a, b) => a - b),
+          currentPeriodBalance,
+          currentPeriodValue: currentPeriodBalance * rate,
+          payoutLabel: currentPeriod.payoutLabel,
+          daysWithBH,
         };
       });
-      
+
       setSummaries(agentSummaries);
     } catch (error) {
       console.error('Error fetching BH data:', error);
@@ -194,11 +196,8 @@ export function AgentBHManagement({ onDataChange }: Props) {
     setSelectedAgent(agent);
     setNewBalance(currentBalance.toFixed(1));
     setAdjustmentReason('');
-    setEditHourlyRate((agent.bh_hourly_rate || 15).toString());
+    setEditHourlyRate((agent.bh_hourly_rate || 15.75).toString());
     setEditBhLimit((agent.bh_limit || 70).toString());
-    const legacyLimit = agent.bh_limit || 70;
-    setEditBhLimit1st((agent.bh_limit_1st !== null && agent.bh_limit_1st !== undefined ? agent.bh_limit_1st : legacyLimit).toString());
-    setEditBhLimit2nd((agent.bh_limit_2nd !== null && agent.bh_limit_2nd !== undefined ? agent.bh_limit_2nd : legacyLimit).toString());
     setEditFutureMonths((agent.bh_future_months_allowed || 0).toString());
     setDialogOpen(true);
   };
@@ -228,27 +227,13 @@ export function AgentBHManagement({ onDataChange }: Props) {
         toast.error('Limite de horas inválido');
         return;
       }
-      
-      const limit1stValue = parseFloat(editBhLimit1st);
-      const limit2ndValue = parseFloat(editBhLimit2nd);
 
-      if (isNaN(limit1stValue) || limit1stValue < 0) {
-        toast.error('Limite 1ª Quinzena inválido');
-        return;
-      }
-      if (isNaN(limit2ndValue) || limit2ndValue < 0) {
-        toast.error('Limite 2ª Quinzena inválido');
-        return;
-      }
-      
-      // Update agent's config including per-fortnight limits
-      const { error: updateError } = await (supabase as any)
+      // Update agent's config
+      const { error: updateError } = await supabase
         .from('agents')
         .update({
           bh_hourly_rate: hourlyRateValue,
-          bh_limit: bhLimitValue, // legacy fallback
-          bh_limit_1st: limit1stValue,
-          bh_limit_2nd: limit2ndValue,
+          bh_limit: bhLimitValue,
           bh_future_months_allowed: futureMonthsValue
         })
         .eq('id', selectedAgent.id);
@@ -306,41 +291,28 @@ export function AgentBHManagement({ onDataChange }: Props) {
   const teams = [...new Set(agents.map(a => a.team).filter(Boolean))];
 
   const handleBulkUpdate = async () => {
-    if (!bulkTeam || (!bulkLimit1st && !bulkLimit2nd)) {
-      toast.error('Selecione uma equipe e informe pelo menos um limite');
+    if (!bulkTeam || !bulkLimit) {
+      toast.error('Selecione uma equipe e informe o limite');
+      return;
+    }
+    const val = parseFloat(bulkLimit);
+    if (isNaN(val) || val < 0) {
+      toast.error('Limite inválido');
       return;
     }
     try {
       setIsBulkSaving(true);
-      const updates: Record<string, number> = {};
-      if (bulkLimit1st) {
-        const val = parseFloat(bulkLimit1st);
-        if (isNaN(val) || val < 0) {
-          toast.error('Limite 1ª Quinzena inválido');
-          return;
-        }
-        updates.bh_limit_1st = val;
-      }
-      if (bulkLimit2nd) {
-        const val = parseFloat(bulkLimit2nd);
-        if (isNaN(val) || val < 0) {
-          toast.error('Limite 2ª Quinzena inválido');
-          return;
-        }
-        updates.bh_limit_2nd = val;
-      }
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from('agents')
-        .update(updates)
+        .update({ bh_limit: val })
         .eq('team', bulkTeam);
       if (error) throw error;
 
       const affectedCount = agents.filter(a => a.team === bulkTeam).length;
-      toast.success(`Limites atualizados para ${affectedCount} agentes da equipe ${bulkTeam}`);
+      toast.success(`Limite atualizado para ${affectedCount} agentes da equipe ${bulkTeam}`);
       setBulkDialogOpen(false);
       setBulkTeam('');
-      setBulkLimit1st('');
-      setBulkLimit2nd('');
+      setBulkLimit('');
       fetchData();
       onDataChange?.();
     } catch (err) {
@@ -464,9 +436,10 @@ export function AgentBHManagement({ onDataChange }: Props) {
                 <TableRow className="border-slate-700/50 hover:bg-transparent">
                   <TableHead className="text-slate-400">Agente</TableHead>
                   <TableHead className="text-slate-400">Equipe</TableHead>
-                  <TableHead className="text-slate-400 text-center">Saldo Atual</TableHead>
-                  <TableHead className="text-slate-400 text-center">Valor Est.</TableHead>
-                  <TableHead className="text-slate-400 text-center">Dias c/ BH (Mês)</TableHead>
+                  <TableHead className="text-slate-400 text-center">Saldo Total</TableHead>
+                  <TableHead className="text-slate-400 text-center">Valor Total Est.</TableHead>
+                  <TableHead className="text-slate-400 text-center">A Receber (Ciclo Atual)</TableHead>
+                  <TableHead className="text-slate-400 text-center">Dias no Ciclo</TableHead>
                   <TableHead className="text-slate-400 text-right">Editar</TableHead>
                 </TableRow>
               </TableHeader>
@@ -508,18 +481,24 @@ export function AgentBHManagement({ onDataChange }: Props) {
                     </TableCell>
                     <TableCell className="text-center">
                       <span className={`font-medium ${
-                        summary.estimatedValue > 0 ? 'text-cyan-400' : 
+                        summary.estimatedValue > 0 ? 'text-cyan-400' :
                         summary.estimatedValue < 0 ? 'text-red-400' : 'text-slate-400'
                       }`}>
                         R$ {summary.estimatedValue.toFixed(0)}
                       </span>
                     </TableCell>
                     <TableCell className="text-center">
+                      <div className={`font-semibold ${summary.currentPeriodValue > 0 ? 'text-emerald-400' : 'text-slate-500'}`}>
+                        R$ {summary.currentPeriodValue.toFixed(2)}
+                      </div>
+                      <div className="text-[10px] text-slate-500">{summary.currentPeriodBalance.toFixed(1)}h · pago em {summary.payoutLabel}</div>
+                    </TableCell>
+                    <TableCell className="text-center">
                       {summary.daysWithBH.length > 0 ? (
                         <div className="flex flex-wrap gap-0.5 justify-center max-w-[120px] mx-auto">
                           {summary.daysWithBH.slice(0, 8).map(day => (
-                            <span 
-                              key={day} 
+                            <span
+                              key={day}
                               className="px-1 py-0.5 text-[9px] font-bold bg-green-500/30 text-green-300 rounded"
                             >
                               {day}
@@ -665,7 +644,7 @@ export function AgentBHManagement({ onDataChange }: Props) {
               <div className="space-y-2">
                 <Label className="text-slate-300 flex items-center gap-2">
                   <Clock className="h-3 w-3 text-cyan-400" />
-                  Limite Legado (fallback)
+                  Limite por Ciclo (h)
                 </Label>
                 <Input
                   type="text"
@@ -681,47 +660,6 @@ export function AgentBHManagement({ onDataChange }: Props) {
               </div>
             </div>
 
-            {/* Per-Fortnight Limits */}
-            <div className="p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg space-y-3">
-              <p className="text-sm font-medium text-blue-300">Limites por Quinzena</p>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label className="text-slate-300 flex items-center gap-2 text-xs">
-                    <Clock className="h-3 w-3 text-blue-400" />
-                    1ª Quinzena (1-15)
-                  </Label>
-                  <Input
-                    type="text"
-                    inputMode="numeric"
-                    placeholder="Ex: 70"
-                    value={editBhLimit1st}
-                    onChange={(e) => {
-                      const value = e.target.value.replace(/[^0-9]/g, '');
-                      setEditBhLimit1st(value);
-                    }}
-                    className="bg-slate-700/50 border-slate-600 font-mono"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-slate-300 flex items-center gap-2 text-xs">
-                    <Clock className="h-3 w-3 text-purple-400" />
-                    2ª Quinzena (16+)
-                  </Label>
-                  <Input
-                    type="text"
-                    inputMode="numeric"
-                    placeholder="Ex: 70"
-                    value={editBhLimit2nd}
-                    onChange={(e) => {
-                      const value = e.target.value.replace(/[^0-9]/g, '');
-                      setEditBhLimit2nd(value);
-                    }}
-                    className="bg-slate-700/50 border-slate-600 font-mono"
-                  />
-                </div>
-              </div>
-            </div>
-            
             <div className="space-y-2">
               <Label className="text-slate-300 flex items-center gap-2">
                 <Calendar className="h-3 w-3 text-purple-400" />
@@ -786,7 +724,7 @@ export function AgentBHManagement({ onDataChange }: Props) {
               Alterar Limites em Lote
             </DialogTitle>
             <DialogDescription>
-              Defina os limites de BH por quinzena para toda uma equipe.
+              Defina o limite de BH por ciclo de pagamento para toda uma equipe.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
@@ -803,38 +741,22 @@ export function AgentBHManagement({ onDataChange }: Props) {
                 </SelectContent>
               </Select>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label className="text-slate-300 text-xs flex items-center gap-1">
-                  <Clock className="h-3 w-3 text-blue-400" />
-                  Limite 1ª Quinzena
-                </Label>
-                <Input
-                  type="text"
-                  inputMode="numeric"
-                  placeholder="Ex: 70"
-                  value={bulkLimit1st}
-                  onChange={(e) => setBulkLimit1st(e.target.value.replace(/[^0-9]/g, ''))}
-                  className="bg-slate-700/50 border-slate-600 font-mono"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-slate-300 text-xs flex items-center gap-1">
-                  <Clock className="h-3 w-3 text-purple-400" />
-                  Limite 2ª Quinzena
-                </Label>
-                <Input
-                  type="text"
-                  inputMode="numeric"
-                  placeholder="Ex: 70"
-                  value={bulkLimit2nd}
-                  onChange={(e) => setBulkLimit2nd(e.target.value.replace(/[^0-9]/g, ''))}
-                  className="bg-slate-700/50 border-slate-600 font-mono"
-                />
-              </div>
+            <div className="space-y-2">
+              <Label className="text-slate-300 text-xs flex items-center gap-1">
+                <Clock className="h-3 w-3 text-blue-400" />
+                Limite por Ciclo (h)
+              </Label>
+              <Input
+                type="text"
+                inputMode="numeric"
+                placeholder="Ex: 70"
+                value={bulkLimit}
+                onChange={(e) => setBulkLimit(e.target.value.replace(/[^0-9]/g, ''))}
+                className="bg-slate-700/50 border-slate-600 font-mono"
+              />
             </div>
             <p className="text-xs text-slate-500">
-              Deixe em branco para manter o valor atual. Serão alterados {agents.filter(a => a.team === bulkTeam).length} agente(s).
+              Serão alterados {agents.filter(a => a.team === bulkTeam).length} agente(s).
             </p>
           </div>
           <DialogFooter>

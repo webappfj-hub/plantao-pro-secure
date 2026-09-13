@@ -184,6 +184,87 @@ export function formatAcreDateTimeLocal(d: Date): string {
   return `${get('year')}-${get('month')}-${get('day')}T${hour}:${get('minute')}`;
 }
 
+/** Ano/mês/dia (1-indexado) da hora de PAREDE do Acre para um instante — a
+ * mesma leitura que `formatAcreDateTimeLocal` usa, exposta separadamente
+ * para quem só precisa dos componentes de data (ex.: bucketing por período). */
+export function getAcreDateParts(d: Date): { year: number; month: number; day: number } {
+  const fmt = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'America/Rio_Branco', year: 'numeric', month: '2-digit', day: '2-digit',
+  });
+  const parts = fmt.formatToParts(d);
+  const get = (t: string) => Number(parts.find((p) => p.type === t)?.value ?? '0');
+  return { year: get('year'), month: get('month'), day: get('day') };
+}
+
+const MONTH_NAMES_PT = [
+  'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+  'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro',
+];
+
+export interface BHPayPeriod {
+  /** Início do período: dia 16 às 00:00 (hora do Acre), como instante UTC. */
+  start: Date;
+  /** Fim do período: dia 15 do mês seguinte às 23:59:59.999 (hora do Acre). */
+  end: Date;
+  /** Mês/ano em que o valor deste período é efetivamente pago (1-indexado). */
+  payoutMonth: number;
+  payoutYear: number;
+  /** "16/08" — início do período. */
+  startLabel: string;
+  /** "15/09" — fim do período (mês de pagamento). */
+  endLabel: string;
+  /** "Setembro/2026" — mês em que o valor cai. */
+  payoutLabel: string;
+}
+
+/**
+ * Política de Banco de Horas da unidade: o mês é dividido em ciclos de
+ * pagamento que NÃO coincidem com o mês calendário — cada ciclo vai do dia
+ * 16 de um mês até o dia 15 do mês seguinte, e o valor acumulado nesse
+ * ciclo é pago dentro do mesmo mês em que ele termina (ex.: 16/08–15/09 é
+ * pago em setembro; 16/09–15/10 é pago em outubro).
+ *
+ * Isso é diferente da "quinzena calendário" (dias 1-15 / 16-fim do mês)
+ * usada em outras partes do sistema (ex. rondas) — aqui o corte é sempre no
+ * dia 16, nunca dentro do mesmo mês.
+ */
+export function getBHPayPeriod(date: Date): BHPayPeriod {
+  const { year, month, day } = getAcreDateParts(date);
+
+  // Se estamos no dia 16 em diante, o período corrente começou neste mês.
+  // Do contrário (dia 1-15), o período corrente começou no mês anterior.
+  let startMonth = day >= 16 ? month : month - 1;
+  let startYear = year;
+  if (startMonth === 0) { startMonth = 12; startYear -= 1; }
+
+  let endMonth = startMonth + 1;
+  let endYear = startYear;
+  if (endMonth === 13) { endMonth = 1; endYear += 1; }
+
+  const start = new Date(Date.UTC(startYear, startMonth - 1, 16, ACRE_UTC_OFFSET_HOURS, 0, 0, 0));
+  const end = new Date(Date.UTC(endYear, endMonth - 1, 15, 23 + ACRE_UTC_OFFSET_HOURS, 59, 59, 999));
+
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return {
+    start,
+    end,
+    payoutMonth: endMonth,
+    payoutYear: endYear,
+    startLabel: `${pad(16)}/${pad(startMonth)}`,
+    endLabel: `${pad(15)}/${pad(endMonth)}`,
+    payoutLabel: `${MONTH_NAMES_PT[endMonth - 1]}/${endYear}`,
+  };
+}
+
+/** Período anterior ao de `date` — útil para mostrar "o ciclo que acabou de
+ * fechar, ainda aguardando pagamento" ao lado do período em andamento. */
+export function getPreviousBHPayPeriod(date: Date): BHPayPeriod {
+  const current = getBHPayPeriod(date);
+  // Um dia antes do início do período atual cai no meio do período anterior.
+  const dayBeforeStart = new Date(current.start.getTime() - 24 * 60 * 60 * 1000);
+  return getBHPayPeriod(dayBeforeStart);
+}
+
 /**
  * Retorna horas/minutos/segundos da hora do servidor em um fuso específico.
  * Uso padrão para todos os relógios do app: `useServerClockParts()` = Rio Branco.

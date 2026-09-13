@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { getBHPayPeriod, getPreviousBHPayPeriod } from '@/hooks/useServerTime';
 
 interface BHReminderSettingsProps {
   agentId: string;
@@ -62,23 +63,23 @@ const STORAGE_KEY = 'bh_reminder_period';
 const GOAL_STORAGE_KEY = 'bh_monthly_goal';
 
 interface FortnightStats {
-  first: { entries: number; totalHours: number };
-  second: { entries: number; totalHours: number };
+  current: { entries: number; totalHours: number };
+  previous: { entries: number; totalHours: number };
 }
 
 export function BHReminderSettings({ agentId, onReminderHourChange }: BHReminderSettingsProps) {
   const [selectedPeriod, setSelectedPeriod] = useState<ReminderPeriod>('night');
-  const [stats, setStats] = useState<FortnightStats>({ 
-    first: { entries: 0, totalHours: 0 }, 
-    second: { entries: 0, totalHours: 0 } 
+  const [stats, setStats] = useState<FortnightStats>({
+    current: { entries: 0, totalHours: 0 },
+    previous: { entries: 0, totalHours: 0 }
   });
   const [isLoading, setIsLoading] = useState(true);
   const [monthlyGoal, setMonthlyGoal] = useState<number>(20);
   const [isEditingGoal, setIsEditingGoal] = useState(false);
   const [goalInput, setGoalInput] = useState('20');
 
-  // Calculate total monthly hours and progress
-  const totalMonthlyHours = stats.first.totalHours + stats.second.totalHours;
+  // Meta é medida no ciclo de pagamento atual (não no mês calendário).
+  const totalMonthlyHours = stats.current.totalHours;
   const progressPercentage = monthlyGoal > 0 ? Math.min((totalMonthlyHours / monthlyGoal) * 100, 100) : 0;
   const isGoalReached = totalMonthlyHours >= monthlyGoal;
 
@@ -115,7 +116,9 @@ export function BHReminderSettings({ agentId, onReminderHourChange }: BHReminder
     setIsLoading(true);
     try {
       const now = new Date();
-      
+      const currentPeriod = getBHPayPeriod(now);
+      const previousPeriod = getPreviousBHPayPeriod(now);
+
       const { data: entries, error } = await supabase
         .from('overtime_bank')
         .select('hours, description, created_at')
@@ -123,32 +126,26 @@ export function BHReminderSettings({ agentId, onReminderHourChange }: BHReminder
 
       if (error) throw error;
 
-      const currentMonthStr = format(now, 'MM/yyyy');
-      const firstFortnight = { entries: 0, totalHours: 0 };
-      const secondFortnight = { entries: 0, totalHours: 0 };
+      const current = { entries: 0, totalHours: 0 };
+      const previous = { entries: 0, totalHours: 0 };
 
       (entries || []).forEach((entry) => {
-        if (entry.description) {
-          // Match pattern "BH - DD/MM/YYYY"
-          const match = entry.description.match(/BH - (\d{2})\/(\d{2}\/\d{4})/);
-          if (match) {
-            const day = parseInt(match[1], 10);
-            const monthYear = match[2];
-            
-            if (monthYear === currentMonthStr) {
-              if (day <= 15) {
-                firstFortnight.entries++;
-                firstFortnight.totalHours += entry.hours || 0;
-              } else {
-                secondFortnight.entries++;
-                secondFortnight.totalHours += entry.hours || 0;
-              }
-            }
-          }
+        if (!entry.description) return;
+        const match = entry.description.match(/BH - (\d{2})\/(\d{2})\/(\d{4})/);
+        if (!match) return;
+        const [, day, month, year] = match;
+        const entryDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+
+        if (entryDate.getTime() >= currentPeriod.start.getTime() && entryDate.getTime() <= currentPeriod.end.getTime()) {
+          current.entries++;
+          current.totalHours += entry.hours || 0;
+        } else if (entryDate.getTime() >= previousPeriod.start.getTime() && entryDate.getTime() <= previousPeriod.end.getTime()) {
+          previous.entries++;
+          previous.totalHours += entry.hours || 0;
         }
       });
 
-      setStats({ first: firstFortnight, second: secondFortnight });
+      setStats({ current, previous });
     } catch (error) {
       console.error('Error fetching BH stats:', error);
     } finally {
@@ -258,7 +255,7 @@ export function BHReminderSettings({ agentId, onReminderHourChange }: BHReminder
             <div className="flex items-center gap-2">
               <Target className={`h-3.5 w-3.5 ${isGoalReached ? 'text-emerald-500' : 'text-violet-500'}`} />
               <span className="text-xs font-medium text-slate-300">
-                Meta Mensal de BH
+                Meta do Ciclo de BH
               </span>
             </div>
             {!isEditingGoal ? (
@@ -325,15 +322,15 @@ export function BHReminderSettings({ agentId, onReminderHourChange }: BHReminder
           </div>
         </div>
 
-        {/* Fortnight Stats */}
+        {/* Pay-period Stats */}
         <div className="mt-4 pt-3 border-t border-slate-600/30">
           <div className="flex items-center gap-2 mb-2">
             <TrendingUp className="h-3.5 w-3.5 text-emerald-500" />
             <span className="text-xs font-medium text-slate-300">
-              Estatísticas do Mês ({format(new Date(), 'MMMM', { locale: ptBR })})
+              Ciclos de Pagamento
             </span>
           </div>
-          
+
           {isLoading ? (
             <div className="grid grid-cols-2 gap-2">
               <div className="h-14 bg-slate-700/30 rounded-lg animate-pulse" />
@@ -341,38 +338,38 @@ export function BHReminderSettings({ agentId, onReminderHourChange }: BHReminder
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-2">
-              {/* First Fortnight */}
+              {/* Current pay period */}
               <div className="p-2 bg-slate-700/30 rounded-lg border border-slate-600/30">
                 <div className="flex items-center gap-1.5 mb-1">
                   <Calendar className="h-3 w-3 text-blue-400" />
-                  <span className="text-[10px] font-medium text-slate-400">1ª Quinzena</span>
+                  <span className="text-[10px] font-medium text-slate-400">Ciclo atual</span>
                 </div>
                 <div className="flex items-baseline gap-1">
-                  <span className="text-lg font-bold text-white">{stats.first.entries}</span>
+                  <span className="text-lg font-bold text-white">{stats.current.entries}</span>
                   <span className="text-[10px] text-slate-500">registros</span>
                 </div>
                 <div className="flex items-center gap-1 mt-0.5">
                   <Clock className="h-2.5 w-2.5 text-slate-500" />
                   <span className="text-[10px] text-slate-400">
-                    {stats.first.totalHours > 0 ? '+' : ''}{stats.first.totalHours.toFixed(1)}h
+                    {stats.current.totalHours > 0 ? '+' : ''}{stats.current.totalHours.toFixed(1)}h
                   </span>
                 </div>
               </div>
-              
-              {/* Second Fortnight */}
+
+              {/* Previous (closed) pay period */}
               <div className="p-2 bg-slate-700/30 rounded-lg border border-slate-600/30">
                 <div className="flex items-center gap-1.5 mb-1">
                   <Calendar className="h-3 w-3 text-purple-400" />
-                  <span className="text-[10px] font-medium text-slate-400">2ª Quinzena</span>
+                  <span className="text-[10px] font-medium text-slate-400">Ciclo anterior</span>
                 </div>
                 <div className="flex items-baseline gap-1">
-                  <span className="text-lg font-bold text-white">{stats.second.entries}</span>
+                  <span className="text-lg font-bold text-white">{stats.previous.entries}</span>
                   <span className="text-[10px] text-slate-500">registros</span>
                 </div>
                 <div className="flex items-center gap-1 mt-0.5">
                   <Clock className="h-2.5 w-2.5 text-slate-500" />
                   <span className="text-[10px] text-slate-400">
-                    {stats.second.totalHours > 0 ? '+' : ''}{stats.second.totalHours.toFixed(1)}h
+                    {stats.previous.totalHours > 0 ? '+' : ''}{stats.previous.totalHours.toFixed(1)}h
                   </span>
                 </div>
               </div>

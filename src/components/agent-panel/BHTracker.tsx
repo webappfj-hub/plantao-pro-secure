@@ -19,6 +19,7 @@ import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip as RechartsTooltip, Legend } from 'recharts';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
+import { getBHPayPeriod, getPreviousBHPayPeriod, type BHPayPeriod } from '@/hooks/useServerTime';
 
 interface BHTrackerProps {
   agentId: string;
@@ -47,20 +48,21 @@ const DEFAULT_SHIFT_OPTIONS = [
   { value: 'full', label: 'Dia Inteiro', icon: Clock, startTime: '07:00', endTime: '07:00', hours: 24, color: 'text-green-400' },
 ];
 
-// Monthly Summary by Fortnight Component - INDEPENDENT VALUES
-function MonthlySummary({ 
-  entries, 
-  selectedMonth, 
-  hourlyRate 
-}: { 
-  entries: OvertimeEntry[]; 
-  selectedMonth: Date; 
+// Resumo do ciclo de pagamento (16→15) cujo pagamento cai no mês navegado
+function MonthlySummary({
+  entries,
+  selectedMonth,
+  hourlyRate
+}: {
+  entries: OvertimeEntry[];
+  selectedMonth: Date;
   hourlyRate: number;
 }) {
-  const monthStart = startOfMonth(selectedMonth);
-  const monthEnd = endOfMonth(selectedMonth);
-  
-  // Parse BH date from description
+  // O dia 15 do mês navegado pertence exatamente ao ciclo que é PAGO nesse
+  // mês — usar isso pra achar o ciclo certo sem reimplementar a regra.
+  const paidThisMonth = getBHPayPeriod(new Date(selectedMonth.getFullYear(), selectedMonth.getMonth(), 15));
+  const priorCycle = getPreviousBHPayPeriod(paidThisMonth.start);
+
   const parseEntryDate = (entry: OvertimeEntry): Date | null => {
     if (entry.description) {
       const match = entry.description.match(/BH - (\d{2})\/(\d{2})\/(\d{4})/);
@@ -72,61 +74,46 @@ function MonthlySummary({
     return null;
   };
 
-  // Filter entries for selected month
-  const monthEntries = entries.filter(entry => {
-    const entryDate = parseEntryDate(entry);
-    if (!entryDate) return false;
-    return entryDate >= monthStart && entryDate <= monthEnd;
+  const entriesInPeriod = (period: BHPayPeriod) => entries.filter((entry) => {
+    const d = parseEntryDate(entry);
+    return d && d.getTime() >= period.start.getTime() && d.getTime() <= period.end.getTime();
   });
 
-  // Split by fortnight - INDEPENDENT calculations
-  const firstFortnight = monthEntries.filter(entry => {
-    const entryDate = parseEntryDate(entry);
-    return entryDate && entryDate.getDate() <= 15;
-  });
-
-  const secondFortnight = monthEntries.filter(entry => {
-    const entryDate = parseEntryDate(entry);
-    return entryDate && entryDate.getDate() >= 16;
-  });
-
-  // Calculate totals INDEPENDENTLY - each fortnight has its own balance
-  const calcTotal = (list: OvertimeEntry[]) => 
+  const calcTotal = (list: OvertimeEntry[]) =>
     list.reduce((acc, e) => e.operation_type === 'credit' ? acc + Number(e.hours) : acc - Number(e.hours), 0);
 
-  const firstTotal = calcTotal(firstFortnight);
-  const secondTotal = calcTotal(secondFortnight);
-  
-  // Note: We show them independently, NOT summed
+  const currentList = entriesInPeriod(paidThisMonth);
+  const priorList = entriesInPeriod(priorCycle);
+  const currentTotal = calcTotal(currentList);
+  const priorTotal = calcTotal(priorList);
+
   const monthName = format(selectedMonth, 'MMMM yyyy', { locale: ptBR });
 
   return (
     <div className="p-4 bg-slate-800/50 border border-slate-600/40 rounded-xl space-y-3">
       <div className="flex items-center gap-2">
         <History className="h-4 w-4 text-emerald-400" />
-        <span className="text-sm font-semibold text-slate-200 capitalize">Resumo de {monthName}</span>
+        <span className="text-sm font-semibold text-slate-200 capitalize">Pagamentos de {monthName}</span>
       </div>
       <div className="grid grid-cols-2 gap-3 text-center">
-        {/* First Fortnight - INDEPENDENT */}
         <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl">
-          <p className="text-xs text-emerald-400 mb-1 font-bold">1ª Quinzena</p>
-          <p className="text-[10px] text-slate-500 mb-2">Dias 01-15</p>
-          <p className="text-2xl font-black text-emerald-300">{firstTotal.toFixed(1)}h</p>
-          <p className="text-sm font-semibold text-emerald-400/80 mt-1">R$ {(firstTotal * hourlyRate).toFixed(2)}</p>
-          <p className="text-xs text-slate-400 mt-2 font-medium">{firstFortnight.length} registro(s)</p>
+          <p className="text-xs text-emerald-400 mb-1 font-bold">Ciclo {paidThisMonth.startLabel}–{paidThisMonth.endLabel}</p>
+          <p className="text-[10px] text-slate-500 mb-2">Pago em {paidThisMonth.payoutLabel}</p>
+          <p className="text-2xl font-black text-emerald-300">{currentTotal.toFixed(1)}h</p>
+          <p className="text-sm font-semibold text-emerald-400/80 mt-1">R$ {(currentTotal * hourlyRate).toFixed(2)}</p>
+          <p className="text-xs text-slate-400 mt-2 font-medium">{currentList.length} registro(s)</p>
         </div>
-        {/* Second Fortnight - INDEPENDENT */}
         <div className="p-3 bg-cyan-500/10 border border-cyan-500/30 rounded-xl">
-          <p className="text-xs text-cyan-400 mb-1 font-bold">2ª Quinzena</p>
-          <p className="text-[10px] text-slate-500 mb-2">Dias 16-31</p>
-          <p className="text-2xl font-black text-cyan-300">{secondTotal.toFixed(1)}h</p>
-          <p className="text-sm font-semibold text-cyan-400/80 mt-1">R$ {(secondTotal * hourlyRate).toFixed(2)}</p>
-          <p className="text-xs text-slate-400 mt-2 font-medium">{secondFortnight.length} registro(s)</p>
+          <p className="text-xs text-cyan-400 mb-1 font-bold">Ciclo {priorCycle.startLabel}–{priorCycle.endLabel}</p>
+          <p className="text-[10px] text-slate-500 mb-2">Pago em {priorCycle.payoutLabel}</p>
+          <p className="text-2xl font-black text-cyan-300">{priorTotal.toFixed(1)}h</p>
+          <p className="text-sm font-semibold text-cyan-400/80 mt-1">R$ {(priorTotal * hourlyRate).toFixed(2)}</p>
+          <p className="text-xs text-slate-400 mt-2 font-medium">{priorList.length} registro(s)</p>
         </div>
       </div>
       <div className="pt-3 border-t border-slate-600/30">
         <p className="text-xs text-center text-slate-400">
-          ℹ️ Cada quinzena é independente - os valores não são somados entre si
+          Cada ciclo é pago separadamente — os valores não são somados entre si
         </p>
       </div>
     </div>
@@ -149,35 +136,34 @@ function BHEvolutionChart({ entries, hourlyRate }: { entries: OvertimeEntry[]; h
     return new Date(entry.created_at);
   };
 
-  // Generate last 6 months data
+  // Últimos 6 ciclos de pagamento (16→15), rotulados pelo mês em que pagam
   const chartData = React.useMemo(() => {
     const today = new Date();
-    const months: { month: string; horas: number; valor: number }[] = [];
+    const cycles: { month: string; horas: number; valor: number }[] = [];
 
     for (let i = 5; i >= 0; i--) {
-      const monthDate = subMonths(today, i);
-      const monthStart = startOfMonth(monthDate);
-      const monthEnd = endOfMonth(monthDate);
-      const monthLabel = format(monthDate, 'MMM', { locale: ptBR });
+      // O dia 15 do mês i-atrás cai exatamente no ciclo pago naquele mês.
+      const anchor = new Date(today.getFullYear(), today.getMonth() - i, 15);
+      const period = getBHPayPeriod(anchor);
 
-      const monthEntries = entries.filter(entry => {
+      const periodEntries = entries.filter(entry => {
         const entryDate = parseEntryDate(entry);
         if (!entryDate) return false;
-        return entryDate >= monthStart && entryDate <= monthEnd;
+        return entryDate.getTime() >= period.start.getTime() && entryDate.getTime() <= period.end.getTime();
       });
 
-      const total = monthEntries.reduce((acc, e) => 
+      const total = periodEntries.reduce((acc, e) =>
         e.operation_type === 'credit' ? acc + Number(e.hours) : acc - Number(e.hours), 0
       );
 
-      months.push({
-        month: monthLabel.charAt(0).toUpperCase() + monthLabel.slice(1),
+      cycles.push({
+        month: period.payoutLabel.slice(0, 3),
         horas: Math.round(total * 10) / 10,
         valor: Math.round(total * hourlyRate * 100) / 100
       });
     }
 
-    return months;
+    return cycles;
   }, [entries, hourlyRate]);
 
   const hasData = chartData.some(d => d.horas !== 0);
@@ -259,12 +245,12 @@ function BHEvolutionChart({ entries, hourlyRate }: { entries: OvertimeEntry[]; h
 import React from 'react';
 
 export function BHTracker({ agentId, compact = false, isAdmin = false }: BHTrackerProps) {
-  // NOTE: `balance` keeps the historical total (all-time). UI + limits are now per-fortnight (quinzena).
+  // NOTE: `balance` keeps the historical total (all-time). UI + limits are per
+  // ciclo de pagamento (16 de um mês a 15 do mês seguinte) — não mais por
+  // quinzena-calendário, que não corresponde à política real da unidade.
   const [balance, setBalance] = useState(0);
   const [hourlyRate, setHourlyRate] = useState(15.75);
-  const [bhLimitLegacy, setBhLimitLegacy] = useState(70);
-  const [bhLimit1st, setBhLimit1st] = useState<number>(70);
-  const [bhLimit2nd, setBhLimit2nd] = useState<number>(70);
+  const [bhLimit, setBhLimit] = useState(70);
   const [entries, setEntries] = useState<OvertimeEntry[]>([]);
   
   // Track if limits are from agent-specific config or unit defaults
@@ -301,8 +287,8 @@ export function BHTracker({ agentId, compact = false, isAdmin = false }: BHTrack
   // State for expanded view in compact mode
   const [isExpanded, setIsExpanded] = useState(false);
 
-  // Fortnight quick view / edit dialog (current month)
-  const [fortnightDialog, setFortnightDialog] = useState<1 | 2 | null>(null);
+  // Period quick view / edit dialog — 'current' or 'previous' pay period
+  const [fortnightDialog, setFortnightDialog] = useState<'current' | 'previous' | null>(null);
   
   // Push notifications hook
   const { isEnabled: pushEnabled, isSupported: pushSupported, requestPermission, showNotification } = usePushNotifications();
@@ -312,57 +298,49 @@ export function BHTracker({ agentId, compact = false, isAdmin = false }: BHTrack
     loadAlertSettings();
   }, [agentId]);
 
-  // Check fortnight closing and send notification
+  // Check pay-period closing (dia 15) and send notification
   const checkFortnightClosingAlert = useCallback(() => {
     const today = new Date();
-    const todayDay = today.getDate();
-    const isFirstFortnight = todayDay <= 15;
-    const fortnightEndDay = isFirstFortnight ? 15 : new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
-    const daysRemaining = fortnightEndDay - todayDay;
-    
+    const period = getBHPayPeriod(today);
+    const msPerDay = 24 * 60 * 60 * 1000;
+    const daysRemaining = Math.round((period.end.getTime() - today.getTime()) / msPerDay);
+
     // Check if we should show alert (within alertDaysBefore days)
     if (daysRemaining <= alertDaysBefore && alertsEnabled) {
-      const alertKey = `bh_fortnight_alert_${agentId}_${today.getFullYear()}_${today.getMonth()}_${isFirstFortnight ? '1' : '2'}`;
+      const alertKey = `bh_period_alert_${agentId}_${period.payoutYear}_${period.payoutMonth}`;
       const alreadyAlerted = localStorage.getItem(alertKey);
-      
+
       if (!alreadyAlerted && !fortnightAlertShown) {
-        // Count days without BH in current fortnight
-        const fortnightStart = isFirstFortnight ? 1 : 16;
-        const daysInFortnight: number[] = [];
-        for (let d = fortnightStart; d <= todayDay; d++) {
-          daysInFortnight.push(d);
-        }
-        
-        const daysWithBH = bhDates.filter(bhDate => {
-          const bhDay = bhDate.getDate();
-          const bhMonth = bhDate.getMonth();
-          const bhYear = bhDate.getFullYear();
-          return bhMonth === today.getMonth() && bhYear === today.getFullYear() && bhDay >= fortnightStart && bhDay <= todayDay;
-        }).map(d => d.getDate());
-        
-        const daysWithoutBH = daysInFortnight.filter(d => !daysWithBH.includes(d));
-        
-        if (daysWithoutBH.length > 0) {
-          const message = daysRemaining === 0 
-            ? `Último dia para lançar BH! ${daysWithoutBH.length} dia(s) sem registro.`
-            : `Faltam ${daysRemaining} dia(s) para fechar a quinzena. ${daysWithoutBH.length} dia(s) sem BH registrado.`;
-          
+        // Days elapsed so far in the current period without a BH entry.
+        const daysElapsed = Math.max(0, Math.round((today.getTime() - period.start.getTime()) / msPerDay) + 1);
+        const daysWithBH = new Set(
+          bhDates
+            .filter((d) => d.getTime() >= period.start.getTime() && d.getTime() <= today.getTime())
+            .map((d) => format(d, 'yyyy-MM-dd'))
+        ).size;
+        const daysWithoutBH = Math.max(0, daysElapsed - daysWithBH);
+
+        if (daysWithoutBH > 0) {
+          const message = daysRemaining === 0
+            ? `Último dia do ciclo (${period.startLabel}–${period.endLabel})! ${daysWithoutBH} dia(s) sem registro.`
+            : `Faltam ${daysRemaining} dia(s) para fechar o ciclo ${period.startLabel}–${period.endLabel}. ${daysWithoutBH} dia(s) sem BH registrado.`;
+
           // Show toast
           toast.warning(message, {
             duration: 8000,
             icon: <Timer className="h-4 w-4 text-primary" />
           });
-          
+
           // Show push notification if enabled
           if (pushEnabled) {
             showNotification({
-              title: '⏰ Quinzena fechando!',
+              title: '⏰ Ciclo de BH fechando!',
               body: message,
               tag: 'bh-fortnight-alert',
               requireInteraction: true
             });
           }
-          
+
           localStorage.setItem(alertKey, 'true');
           setFortnightAlertShown(true);
         }
@@ -396,7 +374,7 @@ export function BHTracker({ agentId, compact = false, isAdmin = false }: BHTrack
     setAlertDaysBefore(daysBefore);
     
     if (enabled) {
-      toast.success(`Alertas ativados! Você será notificado ${daysBefore} dia(s) antes do fechamento da quinzena.`);
+      toast.success(`Alertas ativados! Você será notificado ${daysBefore} dia(s) antes do fechamento do ciclo.`);
     } else {
       toast.info('Alertas desativados');
     }
@@ -407,80 +385,55 @@ export function BHTracker({ agentId, compact = false, isAdmin = false }: BHTrack
   const fetchBHData = async () => {
     try {
       setIsLoading(true);
-      
-      // Default limit is 70h per fortnight
-      const DEFAULT_FORTNIGHT_LIMIT = 70;
+
+      const DEFAULT_LIMIT = 70;
       const DEFAULT_HOURLY_RATE = 15.75;
-      
-      // Fetch agent's hourly rate, limits (per fortnight), future months config, and unit_id
-      const { data: agentData } = await (supabase as any)
+
+      // Fetch agent's hourly rate, limit, future-months config, and unit_id.
+      const { data: agentData, error: agentError } = await supabase
         .from('agents')
-        .select('bh_hourly_rate, bh_limit, bh_limit_1st, bh_limit_2nd, bh_future_months_allowed, unit_id')
+        .select('bh_hourly_rate, bh_limit, bh_future_months_allowed, unit_id')
         .eq('id', agentId)
         .maybeSingle();
+      if (agentError) console.error('Error fetching agent BH config:', agentError);
 
-      // Fetch unit defaults if agent has a unit
-      let unitDefaults = {
-        bh_limit_1st_default: DEFAULT_FORTNIGHT_LIMIT,
-        bh_limit_2nd_default: DEFAULT_FORTNIGHT_LIMIT,
-        bh_hourly_rate_default: DEFAULT_HOURLY_RATE,
-      };
-      
+      // Fetch unit defaults if the agent has a unit and no agent-specific value is set.
+      let unitDefaults = { bh_hourly_rate_default: DEFAULT_HOURLY_RATE, bh_limit_default: DEFAULT_LIMIT };
       if (agentData?.unit_id) {
-        const { data: unitData } = await (supabase as any)
+        const { data: unitData, error: unitError } = await supabase
           .from('units')
-          .select('bh_limit_1st_default, bh_limit_2nd_default, bh_hourly_rate_default')
+          .select('bh_hourly_rate_default, bh_limit_default')
           .eq('id', agentData.unit_id)
           .maybeSingle();
-        
+        if (unitError) console.error('Error fetching unit BH defaults:', unitError);
         if (unitData) {
           unitDefaults = {
-            bh_limit_1st_default: unitData.bh_limit_1st_default ?? DEFAULT_FORTNIGHT_LIMIT,
-            bh_limit_2nd_default: unitData.bh_limit_2nd_default ?? DEFAULT_FORTNIGHT_LIMIT,
             bh_hourly_rate_default: unitData.bh_hourly_rate_default ?? DEFAULT_HOURLY_RATE,
+            bh_limit_default: unitData.bh_limit_default ?? DEFAULT_LIMIT,
           };
         }
       }
 
-      const legacyLimit = agentData?.bh_limit ? Number(agentData.bh_limit) : unitDefaults.bh_limit_1st_default;
-
-      // Set hourly rate: agent > unit default > system default
-      const effectiveHourlyRate = agentData?.bh_hourly_rate 
-        ? Number(agentData.bh_hourly_rate) 
+      // Precedence: agent-specific > unit default > system default.
+      const effectiveHourlyRate = agentData?.bh_hourly_rate
+        ? Number(agentData.bh_hourly_rate)
         : unitDefaults.bh_hourly_rate_default;
       setHourlyRate(effectiveHourlyRate);
 
-      setBhLimitLegacy(legacyLimit > 0 ? legacyLimit : unitDefaults.bh_limit_1st_default);
-      
-      // Determine limit source and values
-      const hasAgentSpecificLimit = (agentData?.bh_limit_1st != null && Number(agentData.bh_limit_1st) > 0) ||
-                                    (agentData?.bh_limit_2nd != null && Number(agentData.bh_limit_2nd) > 0);
-      const hasUnitDefaults = unitDefaults.bh_limit_1st_default !== DEFAULT_FORTNIGHT_LIMIT ||
-                              unitDefaults.bh_limit_2nd_default !== DEFAULT_FORTNIGHT_LIMIT;
-      
-      // Use agent values if set and > 0, otherwise unit defaults, then system defaults
-      const limit1st = agentData?.bh_limit_1st != null && Number(agentData.bh_limit_1st) > 0 
-        ? Number(agentData.bh_limit_1st) 
-        : (legacyLimit > 0 ? legacyLimit : unitDefaults.bh_limit_1st_default);
-      const limit2nd = agentData?.bh_limit_2nd != null && Number(agentData.bh_limit_2nd) > 0 
-        ? Number(agentData.bh_limit_2nd) 
-        : (legacyLimit > 0 ? legacyLimit : unitDefaults.bh_limit_2nd_default);
-      
-      setBhLimit1st(limit1st);
-      setBhLimit2nd(limit2nd);
-      
-      // Set limit source for visual indicator
-      if (hasAgentSpecificLimit) {
-        setLimitSource('agent');
-      } else if (hasUnitDefaults) {
-        setLimitSource('unit');
-      } else {
-        setLimitSource('system');
-      }
+      const effectiveLimit = agentData?.bh_limit && Number(agentData.bh_limit) > 0
+        ? Number(agentData.bh_limit)
+        : unitDefaults.bh_limit_default;
+      setBhLimit(effectiveLimit);
 
-      if (agentData?.bh_future_months_allowed !== undefined) {
-        setBhFutureMonthsAllowed(Number(agentData.bh_future_months_allowed) || 0);
-      }
+      setLimitSource(
+        agentData?.bh_limit && Number(agentData.bh_limit) > 0
+          ? 'agent'
+          : unitDefaults.bh_limit_default !== DEFAULT_LIMIT
+            ? 'unit'
+            : 'system'
+      );
+
+      setBhFutureMonthsAllowed(Number(agentData?.bh_future_months_allowed) || 0);
 
       // Fetch overtime entries — limita a 24 meses e explicita colunas para
       // reduzir payload; agentes com muitos anos retornavam SELECT * ilimitado.
@@ -538,13 +491,7 @@ export function BHTracker({ agentId, compact = false, isAdmin = false }: BHTrack
     }
   };
 
-  const getFortnightLimitForDate = (date: Date) => {
-    const DEFAULT_LIMIT = 70;
-    const fortnight = date.getDate() <= 15 ? 1 : 2;
-    const l1 = (bhLimit1st && bhLimit1st > 0) ? bhLimit1st : (bhLimitLegacy > 0 ? bhLimitLegacy : DEFAULT_LIMIT);
-    const l2 = (bhLimit2nd && bhLimit2nd > 0) ? bhLimit2nd : (bhLimitLegacy > 0 ? bhLimitLegacy : DEFAULT_LIMIT);
-    return fortnight === 1 ? l1 : l2;
-  };
+  const getFortnightLimitForDate = (_date: Date) => bhLimit || 70;
 
   const checkAlerts = (entries: OvertimeEntry[]) => {
     if (!alertsEnabled) return;
@@ -556,7 +503,7 @@ export function BHTracker({ agentId, compact = false, isAdmin = false }: BHTrack
 
     if (limit > 0 && currentFortnightBalance >= limit * 0.9) {
       toast.warning(
-        `Atenção: Sua quinzena está em ${currentFortnightBalance.toFixed(1)}h (${((currentFortnightBalance / limit) * 100).toFixed(0)}% do limite)`,
+        `Atenção: Seu ciclo atual está em ${currentFortnightBalance.toFixed(1)}h (${((currentFortnightBalance / limit) * 100).toFixed(0)}% do limite)`,
         {
           duration: 5000,
           icon: <Bell className="h-4 w-4 text-primary" />,
@@ -565,7 +512,7 @@ export function BHTracker({ agentId, compact = false, isAdmin = false }: BHTrack
     }
   };
 
-  // Parse BH date from description (source of truth for quinzenas)
+  // Parse BH date from description (source of truth for o ciclo de pagamento)
   const parseBHDate = (entry: OvertimeEntry): Date | null => {
     if (!entry.description) return null;
     const match = entry.description.match(/BH - (\d{2})\/(\d{2})\/(\d{4})/);
@@ -575,23 +522,20 @@ export function BHTracker({ agentId, compact = false, isAdmin = false }: BHTrack
     return isNaN(d.getTime()) ? null : d;
   };
 
-  const getFortnightNumber = (date: Date) => (date.getDate() <= 15 ? 1 : 2);
-
+  /** Soma independente do ciclo de pagamento (16 de um mês a 15 do
+   * seguinte) que contém `date` — não mistura com o ciclo anterior/seguinte. */
   const getFortnightBalanceForDate = (date: Date) => {
-    // Independent per-month/per-fortnight balance (does NOT mix quinzenas)
-    const targetMonth = date.getMonth();
-    const targetYear = date.getFullYear();
-    const fortnight = getFortnightNumber(date);
-
+    const { start, end } = getBHPayPeriod(date);
     return entries
       .filter((e) => {
         const d = parseBHDate(e);
         if (!d) return false;
-        if (d.getMonth() !== targetMonth || d.getFullYear() !== targetYear) return false;
-        return fortnight === 1 ? d.getDate() <= 15 : d.getDate() >= 16;
+        return d.getTime() >= start.getTime() && d.getTime() <= end.getTime();
       })
       .reduce((acc, e) => (e.operation_type === 'credit' ? acc + Number(e.hours) : acc - Number(e.hours)), 0);
   };
+
+  const getPeriodBalance = (period: BHPayPeriod) => getFortnightBalanceForDate(period.start);
 
   // Check if a date is in a closed fortnight (quinzena)
   // UPDATED: Allow editing any day of the current month (both fortnights)
@@ -611,38 +555,21 @@ export function BHTracker({ agentId, compact = false, isAdmin = false }: BHTrack
     return !isInClosedFortnight(d);
   };
 
-  // Get current fortnight info
-  const getCurrentFortnightInfo = () => {
-    const today = new Date();
-    const day = today.getDate();
-    const month = today.toLocaleString('pt-BR', { month: 'long' });
-    const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
-
-    if (day <= 15) {
-      return {
-        label: '1ª Quinzena',
-        range: `01 a 15 de ${month}`,
-        startDay: 1,
-        endDay: 15,
-      };
-    } else {
-      return {
-        label: '2ª Quinzena',
-        range: `16 a ${lastDay} de ${month}`,
-        startDay: 16,
-        endDay: lastDay,
-      };
-    }
+  // Ciclo de pagamento atual (16 de um mês a 15 do seguinte) e o anterior
+  // (fechado, aguardando ou já pago).
+  const currentPeriod = getBHPayPeriod(new Date());
+  const previousPeriod = getPreviousBHPayPeriod(new Date());
+  const fortnightInfo = {
+    label: 'Ciclo atual',
+    range: `${currentPeriod.startLabel} a ${currentPeriod.endLabel}`,
   };
-
-  const fortnightInfo = getCurrentFortnightInfo();
 
   const handleDateClick = (date: Date | undefined) => {
     if (!date) return;
     
     // Check if date is in a closed fortnight (only block non-admins)
     if (!isAdmin && isInClosedFortnight(date)) {
-      toast.error('Esta data pertence a uma quinzena fechada. Apenas visualização permitida.');
+      toast.error('Esta data pertence a um ciclo fechado. Apenas visualização permitida.');
       return;
     }
     
@@ -693,7 +620,7 @@ export function BHTracker({ agentId, compact = false, isAdmin = false }: BHTrack
     if (!canAddHours(selectedDate, hours)) {
       const fortnightBalance = getFortnightBalanceForDate(selectedDate);
       const limit = getFortnightLimitForDate(selectedDate);
-      toast.error(`Adicionar ${hours}h excederia o limite de ${limit}h desta quinzena (atual: ${fortnightBalance.toFixed(1)}h)`);
+      toast.error(`Adicionar ${hours}h excederia o limite de ${limit}h deste ciclo (atual: ${fortnightBalance.toFixed(1)}h)`);
       return;
     }
 
@@ -747,7 +674,7 @@ export function BHTracker({ agentId, compact = false, isAdmin = false }: BHTrack
     const hoursDiff = newHours - editingEntry.hours;
     if (editingEntry.operation_type === 'credit' && !canAddHours(parseBHDate(editingEntry) ?? new Date(editingEntry.created_at), hoursDiff)) {
       const limit = getFortnightLimitForDate(parseBHDate(editingEntry) ?? new Date(editingEntry.created_at));
-      toast.error(`Esta alteração excederia o limite de ${limit}h desta quinzena`);
+      toast.error(`Esta alteração excederia o limite de ${limit}h deste ciclo`);
       return;
     }
 
@@ -832,17 +759,13 @@ export function BHTracker({ agentId, compact = false, isAdmin = false }: BHTrack
     }
   };
 
-  // Calculate value and progress (CURRENT fortnight only)
-  const currentFortnightBalance = getFortnightBalanceForDate(new Date());
+  // Calculate value and progress (ciclo de pagamento atual)
+  const currentFortnightBalance = getPeriodBalance(currentPeriod);
   const currentFortnightLimit = getFortnightLimitForDate(new Date());
-  
-  // Calculate BOTH fortnight balances for display
-  const today = new Date();
-  const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-  const sixteenthOfMonth = new Date(today.getFullYear(), today.getMonth(), 16);
-  const firstFortnightBalance = getFortnightBalanceForDate(firstDayOfMonth);
-  const secondFortnightBalance = getFortnightBalanceForDate(sixteenthOfMonth);
-  
+
+  // Ciclo anterior — já fechado, valor a receber (ou já pago) no mês de pagamento dele.
+  const previousPeriodBalance = getPeriodBalance(previousPeriod);
+
   const totalValue = currentFortnightBalance * hourlyRate;
   const progressPercent = currentFortnightLimit > 0 ? Math.min((currentFortnightBalance / currentFortnightLimit) * 100, 100) : 0;
   const isNearLimit = currentFortnightLimit > 0 && currentFortnightBalance >= currentFortnightLimit * 0.8;
@@ -861,9 +784,6 @@ export function BHTracker({ agentId, compact = false, isAdmin = false }: BHTrack
 
   if (compact && !isExpanded) {
     const today = new Date();
-    const todayDay = today.getDate();
-    const isFirstFortnight = todayDay <= 15;
-    const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
 
     // Check if today already has BH
     const todayStr = format(today, 'dd/MM/yyyy');
@@ -962,28 +882,20 @@ export function BHTracker({ agentId, compact = false, isAdmin = false }: BHTrack
             {todayHasBH ? `Editar BH de Hoje (${todayStr})` : `Registrar HOJE (${todayStr})`}
           </Button>
 
-          {/* Compact Fortnight Indicators */}
+          {/* Compact Period Indicator */}
           <div className="flex items-center justify-between pt-2 border-t border-slate-700/50">
-            <div className="flex items-center gap-1.5">
-              <Shield className="h-3 w-3 text-primary" />
-              <span className="text-[10px] font-semibold text-slate-400">Quinzenas</span>
+            <div className="flex items-center gap-1.5 min-w-0">
+              <Shield className="h-3 w-3 text-primary shrink-0" />
+              <span className="text-[10px] font-semibold text-slate-400 truncate">
+                Ciclo {currentPeriod.startLabel}–{currentPeriod.endLabel} · a receber em {currentPeriod.payoutLabel}
+              </span>
             </div>
-            <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1.5">
-                <Badge className={`text-[9px] py-0 px-1.5 ${isFirstFortnight ? 'bg-blue-500/20 text-blue-300 border-blue-500/30' : 'bg-slate-700/50 text-slate-500 border-slate-600/30'}`}>
-                  1ª
-                </Badge>
-                <Badge className={`text-[9px] py-0 px-1.5 ${!isFirstFortnight ? 'bg-purple-500/20 text-purple-300 border-purple-500/30' : 'bg-slate-700/50 text-slate-500 border-slate-600/30'}`}>
-                  2ª
-                </Badge>
-              </div>
-              <Badge 
-                className="text-[8px] py-0 px-1.5 bg-slate-700/50 text-slate-400 border-slate-600/30 cursor-pointer hover:bg-slate-600/50"
-                onClick={() => setIsExpanded(true)}
-              >
-                Ver calendário
-              </Badge>
-            </div>
+            <Badge
+              className="text-[8px] py-0 px-1.5 bg-slate-700/50 text-slate-400 border-slate-600/30 cursor-pointer hover:bg-slate-600/50 shrink-0"
+              onClick={() => setIsExpanded(true)}
+            >
+              Ver calendário
+            </Badge>
           </div>
         </CardContent>
       </Card>
@@ -1030,7 +942,7 @@ export function BHTracker({ agentId, compact = false, isAdmin = false }: BHTrack
             <div className="flex items-center gap-2">
               <Bell className="h-3.5 w-3.5 text-primary" />
               <div>
-                <span className="text-xs text-primary">Alertas de quinzena ativados</span>
+                <span className="text-xs text-primary">Alertas de ciclo ativados</span>
                 {pushEnabled && (
                   <span className="text-[10px] text-slate-500 block leading-tight">Push notifications ativo</span>
                 )}
@@ -1054,67 +966,61 @@ export function BHTracker({ agentId, compact = false, isAdmin = false }: BHTrack
           </div>
         )}
 
-        {/* Fortnight Summary with Independent Bars */}
+        {/* Pay-period summary — ciclo atual + ciclo anterior (a receber) */}
         <div className="space-y-2">
           <div className="flex items-center gap-2 mb-1">
             <Shield className="h-3.5 w-3.5 text-primary" />
-            <span className="text-xs font-semibold text-slate-200 uppercase tracking-wide">Resumo por Quinzena</span>
+            <span className="text-xs font-semibold text-slate-200 uppercase tracking-wide">Ciclos de Pagamento</span>
           </div>
-          
-          {/* First Fortnight Bar */}
-          <div 
-            onClick={() => setFortnightDialog(1)}
+
+          {/* Current period bar */}
+          <div
+            onClick={() => setFortnightDialog('current')}
             className="p-2.5 rounded-lg bg-blue-500/10 border border-blue-500/30 cursor-pointer hover:bg-blue-500/20 transition-all"
           >
             <div className="flex items-center justify-between mb-1.5">
-              <div className="flex items-center gap-1.5">
-                <span className="text-[11px] font-bold text-blue-300">1ª Quinzena</span>
-                <span className="text-[10px] text-slate-500">(01-15)</span>
+              <div className="flex items-center gap-1.5 min-w-0">
+                <span className="text-[11px] font-bold text-blue-300">Ciclo atual</span>
+                <span className="text-[10px] text-slate-500 truncate">({currentPeriod.startLabel}–{currentPeriod.endLabel})</span>
               </div>
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-bold text-blue-300 tabular-nums">{firstFortnightBalance.toFixed(1)}h</span>
-                <span className="text-[11px] text-blue-400/70 tabular-nums">R$ {(firstFortnightBalance * hourlyRate).toFixed(2)}</span>
-              </div>
-            </div>
-            <div className="h-1.5 bg-slate-700/50 rounded-full overflow-hidden">
-              <div 
-                className="h-full bg-gradient-to-r from-blue-500 to-blue-400 rounded-full transition-all"
-                style={{ width: `${Math.min((firstFortnightBalance / (bhLimit1st || bhLimitLegacy)) * 100, 100)}%` }}
-              />
-            </div>
-            <div className="flex justify-between text-[10px] text-slate-500 mt-1">
-              <span>{firstFortnightBalance.toFixed(1)} / {bhLimit1st || bhLimitLegacy}h</span>
-              <span>Toque para editar</span>
-            </div>
-          </div>
-          
-          {/* Second Fortnight Bar */}
-          <div 
-            onClick={() => setFortnightDialog(2)}
-            className="p-2.5 rounded-lg bg-purple-500/10 border border-purple-500/30 cursor-pointer hover:bg-purple-500/20 transition-all"
-          >
-            <div className="flex items-center justify-between mb-1.5">
-              <div className="flex items-center gap-1.5">
-                <span className="text-[11px] font-bold text-primary">2ª Quinzena</span>
-                <span className="text-[10px] text-slate-500">(16-31)</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-bold text-primary tabular-nums">{secondFortnightBalance.toFixed(1)}h</span>
-                <span className="text-[11px] text-primary/70 tabular-nums">R$ {(secondFortnightBalance * hourlyRate).toFixed(2)}</span>
+              <div className="flex items-center gap-2 shrink-0">
+                <span className="text-sm font-bold text-blue-300 tabular-nums">{currentFortnightBalance.toFixed(1)}h</span>
+                <span className="text-[11px] text-blue-400/70 tabular-nums">R$ {(currentFortnightBalance * hourlyRate).toFixed(2)}</span>
               </div>
             </div>
             <div className="h-1.5 bg-slate-700/50 rounded-full overflow-hidden">
               <div
-                className="h-full bg-gradient-to-r from-primary to-primary/70 rounded-full transition-all"
-                style={{ width: `${Math.min((secondFortnightBalance / (bhLimit2nd || bhLimitLegacy)) * 100, 100)}%` }}
+                className="h-full bg-gradient-to-r from-blue-500 to-blue-400 rounded-full transition-all"
+                style={{ width: `${Math.min((currentFortnightBalance / (bhLimit || 70)) * 100, 100)}%` }}
               />
             </div>
             <div className="flex justify-between text-[10px] text-slate-500 mt-1">
-              <span>{secondFortnightBalance.toFixed(1)} / {bhLimit2nd || bhLimitLegacy}h</span>
-              <span>Toque para editar</span>
+              <span>{currentFortnightBalance.toFixed(1)} / {bhLimit || 70}h</span>
+              <span>A receber em {currentPeriod.payoutLabel} · toque para editar</span>
             </div>
           </div>
-          
+
+          {/* Previous (closed) period bar */}
+          <div
+            onClick={() => setFortnightDialog('previous')}
+            className="p-2.5 rounded-lg bg-purple-500/10 border border-purple-500/30 cursor-pointer hover:bg-purple-500/20 transition-all"
+          >
+            <div className="flex items-center justify-between mb-1.5">
+              <div className="flex items-center gap-1.5 min-w-0">
+                <span className="text-[11px] font-bold text-primary">Ciclo anterior</span>
+                <span className="text-[10px] text-slate-500 truncate">({previousPeriod.startLabel}–{previousPeriod.endLabel})</span>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <span className="text-sm font-bold text-primary tabular-nums">{previousPeriodBalance.toFixed(1)}h</span>
+                <span className="text-[11px] text-primary/70 tabular-nums">R$ {(previousPeriodBalance * hourlyRate).toFixed(2)}</span>
+              </div>
+            </div>
+            <div className="flex justify-between text-[10px] text-slate-500 mt-1">
+              <span>Fechado</span>
+              <span>Recebido/a receber em {previousPeriod.payoutLabel}</span>
+            </div>
+          </div>
+
           {/* Hourly Rate Info */}
           <div className="flex items-center justify-between px-2 py-1.5 bg-slate-700/30 rounded-md">
             <span className="text-[11px] text-slate-400">Valor por hora:</span>
@@ -1156,7 +1062,7 @@ export function BHTracker({ agentId, compact = false, isAdmin = false }: BHTrack
                     ? 'Configuração específica para este agente' 
                     : limitSource === 'unit'
                       ? 'Configuração definida pela unidade'
-                      : 'Limites padrão: 70h por quinzena'}
+                      : 'Limite padrão: 70h por ciclo de pagamento'}
                 </p>
               </div>
             </div>
@@ -1177,7 +1083,7 @@ export function BHTracker({ agentId, compact = false, isAdmin = false }: BHTrack
                       ? 'O administrador configurou limites específicos para você que são diferentes dos limites padrão da unidade.' 
                       : limitSource === 'unit'
                         ? 'Você está usando os limites de BH definidos para toda a sua unidade pelo administrador.'
-                        : 'Nenhum limite personalizado foi configurado. Usando o padrão do sistema: 70h por quinzena.'}
+                        : 'Nenhum limite personalizado foi configurado. Usando o padrão do sistema: 70h por ciclo de pagamento.'}
                   </p>
                 </TooltipContent>
               </Tooltip>
@@ -1185,57 +1091,49 @@ export function BHTracker({ agentId, compact = false, isAdmin = false }: BHTrack
           </div>
         </div>
 
-        {/* Fortnight Scale Visual */}
+        {/* Period Scale Visual — dias registrados dentro do ciclo 16→15 */}
         <div className="space-y-2">
           <div className="flex items-center gap-2 mb-2">
             <Shield className="h-4 w-4 text-primary" />
             <span className="text-sm font-medium text-slate-300">Dias com BH Registrado</span>
           </div>
-          
-          {/* Visual Scale - Only days with BH */}
+
+          {/* Visual Scale - Only days with BH, split by ciclo atual/anterior */}
           <div className="grid grid-cols-2 gap-2">
-            {/* First Fortnight - Only programmed days - CLICKABLE */}
             {(() => {
               const today = new Date();
-              const firstFortnightDays = bhDates
-                .filter(d => 
-                  d.getDate() <= 15 && 
-                  d.getMonth() === today.getMonth() && 
-                  d.getFullYear() === today.getFullYear()
-                )
-                .map(d => d.getDate())
-                .sort((a, b) => a - b);
+              const currentPeriodDays = bhDates
+                .filter(d => d.getTime() >= currentPeriod.start.getTime() && d.getTime() <= currentPeriod.end.getTime())
+                .sort((a, b) => a.getTime() - b.getTime());
 
               return (
                 <div
-                   onClick={() => {
-                     setFortnightDialog(1);
-                   }}
+                  onClick={() => setFortnightDialog('current')}
                   className="p-3 rounded-lg border-2 transition-all cursor-pointer bg-blue-500/20 border-blue-500/50 ring-2 ring-blue-500/30 hover:bg-blue-500/30 hover:scale-[1.02] active:scale-[0.98]"
                 >
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-1.5 min-w-0">
                       <Unlock className="h-3.5 w-3.5 text-blue-400 shrink-0" />
-                      <span className="text-xs font-semibold truncate text-blue-400">1ª Quinz.</span>
+                      <span className="text-xs font-semibold truncate text-blue-400">Ciclo atual</span>
                     </div>
                     <Badge className="text-[9px] bg-blue-500/30 text-blue-300 border-blue-500/50 px-1.5 py-0 shrink-0">
                       Toque p/ editar
                     </Badge>
                   </div>
 
-                  {firstFortnightDays.length > 0 ? (
+                  {currentPeriodDays.length > 0 ? (
                     <div className="flex flex-wrap gap-1 justify-center">
-                      {firstFortnightDays.map(day => {
-                        const isToday = today.getDate() === day;
+                      {currentPeriodDays.map(d => {
+                        const isToday = d.toDateString() === today.toDateString();
                         return (
                           <div
-                            key={day}
+                            key={d.getTime()}
                             className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
                               isToday ? 'bg-blue-500 text-white ring-1 ring-blue-300' : 'bg-green-500/50 text-green-200'
                             }`}
-                            title={`Dia ${day}${isToday ? ' (Hoje)' : ''} - BH registrado`}
+                            title={`${format(d, 'dd/MM', { locale: ptBR })}${isToday ? ' (Hoje)' : ''} - BH registrado`}
                           >
-                            {day}
+                            {format(d, 'dd/MM')}
                           </div>
                         );
                       })}
@@ -1245,64 +1143,50 @@ export function BHTracker({ agentId, compact = false, isAdmin = false }: BHTrack
                   )}
 
                   <p className="text-[10px] text-center mt-1.5 text-slate-500">
-                    {firstFortnightDays.length} dia{firstFortnightDays.length !== 1 ? 's' : ''}
+                    {currentPeriodDays.length} dia{currentPeriodDays.length !== 1 ? 's' : ''}
                   </p>
                 </div>
               );
             })()}
 
-            {/* Second Fortnight - Only programmed days - CLICKABLE */}
             {(() => {
-              const today = new Date();
-              const secondFortnightDays = bhDates
-                .filter(d => 
-                  d.getDate() >= 16 && 
-                  d.getMonth() === today.getMonth() && 
-                  d.getFullYear() === today.getFullYear()
-                )
-                .map(d => d.getDate())
-                .sort((a, b) => a - b);
+              const previousPeriodDays = bhDates
+                .filter(d => d.getTime() >= previousPeriod.start.getTime() && d.getTime() <= previousPeriod.end.getTime())
+                .sort((a, b) => a.getTime() - b.getTime());
 
               return (
                 <div
-                   onClick={() => {
-                     setFortnightDialog(2);
-                   }}
+                  onClick={() => setFortnightDialog('previous')}
                   className="p-3 rounded-lg border-2 transition-all cursor-pointer bg-purple-500/20 border-purple-500/50 ring-2 ring-purple-500/30 hover:bg-purple-500/30 hover:scale-[1.02] active:scale-[0.98]"
                 >
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-1.5 min-w-0">
                       <Unlock className="h-3.5 w-3.5 text-purple-400 shrink-0" />
-                      <span className="text-xs font-semibold truncate text-purple-400">2ª Quinz.</span>
+                      <span className="text-xs font-semibold truncate text-purple-400">Ciclo anterior</span>
                     </div>
                     <Badge className="text-[9px] bg-purple-500/30 text-purple-300 border-purple-500/50 px-1.5 py-0 shrink-0">
                       Toque p/ editar
                     </Badge>
                   </div>
 
-                  {secondFortnightDays.length > 0 ? (
+                  {previousPeriodDays.length > 0 ? (
                     <div className="flex flex-wrap gap-1 justify-center">
-                      {secondFortnightDays.map(day => {
-                        const isToday = today.getDate() === day;
-                        return (
-                          <div
-                            key={day}
-                            className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
-                              isToday ? 'bg-purple-500 text-white ring-1 ring-purple-300' : 'bg-green-500/50 text-green-200'
-                            }`}
-                            title={`Dia ${day}${isToday ? ' (Hoje)' : ''} - BH registrado`}
-                          >
-                            {day}
-                          </div>
-                        );
-                      })}
+                      {previousPeriodDays.map(d => (
+                        <div
+                          key={d.getTime()}
+                          className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-green-500/50 text-green-200"
+                          title={`${format(d, 'dd/MM', { locale: ptBR })} - BH registrado`}
+                        >
+                          {format(d, 'dd/MM')}
+                        </div>
+                      ))}
                     </div>
                   ) : (
                     <p className="text-[10px] text-center text-slate-500 italic">Sem registros</p>
                   )}
 
                   <p className="text-[10px] text-center mt-1.5 text-slate-500">
-                    {secondFortnightDays.length} dia{secondFortnightDays.length !== 1 ? 's' : ''}
+                    {previousPeriodDays.length} dia{previousPeriodDays.length !== 1 ? 's' : ''}
                   </p>
                 </div>
               );
@@ -1326,7 +1210,7 @@ export function BHTracker({ agentId, compact = false, isAdmin = false }: BHTrack
           </div>
         </div>
 
-        {/* Active Fortnight Alert */}
+        {/* Active Period Alert */}
         <div className="p-3 bg-gradient-to-r from-primary/20 to-primary/10 border border-primary/30 rounded-lg">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -1334,8 +1218,8 @@ export function BHTracker({ agentId, compact = false, isAdmin = false }: BHTrack
                 <CalendarPlus className="h-4 w-4 text-primary" />
               </div>
               <div>
-                <p className="text-sm font-medium text-primary">{fortnightInfo.label} Ativa</p>
-                <p className="text-xs text-slate-400">{fortnightInfo.range}</p>
+                <p className="text-sm font-medium text-primary">Ciclo Ativo</p>
+                <p className="text-xs text-slate-400">{currentPeriod.startLabel} a {currentPeriod.endLabel} · a receber em {currentPeriod.payoutLabel}</p>
               </div>
             </div>
             <Badge className="bg-primary/20 text-primary border-primary/30">
@@ -1345,58 +1229,48 @@ export function BHTracker({ agentId, compact = false, isAdmin = false }: BHTrack
           <div className="mt-2 pt-2 border-t border-primary/20">
             <p className="text-[10px] text-slate-400 flex items-center gap-1">
               <Lock className="h-3 w-3" />
-              Quinzenas anteriores estão bloqueadas para edição
+              Ciclos anteriores ficam disponíveis apenas para visualização
             </p>
           </div>
         </div>
 
-        {/* Days without BH in current fortnight */}
+        {/* Days without BH in current pay period */}
         {(() => {
           const today = new Date();
-          const todayDay = today.getDate();
-          const isFirstFortnight = todayDay <= 15;
-          const fortnightStart = isFirstFortnight ? 1 : 16;
-          
-          // Get all days from fortnightStart to today
-          const daysInFortnight: number[] = [];
-          for (let d = fortnightStart; d <= todayDay; d++) {
-            daysInFortnight.push(d);
+          const msPerDay = 24 * 60 * 60 * 1000;
+          const daysElapsed = Math.max(0, Math.round((today.getTime() - currentPeriod.start.getTime()) / msPerDay) + 1);
+
+          const daysWithBH = new Set(
+            bhDates
+              .filter(d => d.getTime() >= currentPeriod.start.getTime() && d.getTime() <= today.getTime())
+              .map(d => format(d, 'yyyy-MM-dd'))
+          );
+
+          const missingDates: Date[] = [];
+          for (let i = 0; i < daysElapsed; i++) {
+            const d = new Date(currentPeriod.start.getTime() + i * msPerDay);
+            if (!daysWithBH.has(format(d, 'yyyy-MM-dd'))) missingDates.push(d);
           }
-          
-          // Find which days have BH registered
-          const daysWithBH = bhDates
-            .filter(bhDate => {
-              const bhDay = bhDate.getDate();
-              const bhMonth = bhDate.getMonth();
-              const bhYear = bhDate.getFullYear();
-              return bhMonth === today.getMonth() && bhYear === today.getFullYear() && bhDay >= fortnightStart && bhDay <= todayDay;
-            })
-            .map(d => d.getDate());
-          
-          const daysWithoutBH = daysInFortnight.filter(d => !daysWithBH.includes(d));
-          
-          if (daysWithoutBH.length === 0) return null;
-          
+
+          if (missingDates.length === 0) return null;
+
           return (
             <div className="p-3 bg-slate-700/30 border border-slate-600/50 rounded-lg">
               <div className="flex items-center gap-2 mb-2">
                 <AlertTriangle className="h-4 w-4 text-amber-400" />
                 <span className="text-sm font-medium text-amber-400">
-                  {daysWithoutBH.length} dia{daysWithoutBH.length > 1 ? 's' : ''} sem BH na quinzena
+                  {missingDates.length} dia{missingDates.length > 1 ? 's' : ''} sem BH no ciclo atual
                 </span>
               </div>
               <div className="flex flex-wrap gap-1.5">
-                {daysWithoutBH.map(day => (
+                {missingDates.map(d => (
                   <button
-                    key={day}
-                    onClick={() => {
-                      const dateToClick = new Date(today.getFullYear(), today.getMonth(), day);
-                      handleDateClick(dateToClick);
-                    }}
+                    key={d.getTime()}
+                    onClick={() => handleDateClick(d)}
                     disabled={isAtLimit}
                     className="px-2 py-1 text-xs font-medium bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded hover:bg-amber-500/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Dia {day}
+                    {format(d, 'dd/MM')}
                   </button>
                 ))}
               </div>
@@ -1407,13 +1281,15 @@ export function BHTracker({ agentId, compact = false, isAdmin = false }: BHTrack
           );
         })()}
 
-        {/* Fortnight Quick View / Edit */}
+        {/* Period Quick View / Edit */}
         <Dialog open={fortnightDialog !== null} onOpenChange={(open) => !open && setFortnightDialog(null)}>
           <DialogContent className="bg-slate-900 border-slate-700">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <Shield className="h-4 w-4 text-primary" />
-                {fortnightDialog === 1 ? '1ª Quinzena (01-15)' : '2ª Quinzena (16+)' }
+                {fortnightDialog === 'current'
+                  ? `Ciclo atual (${currentPeriod.startLabel}–${currentPeriod.endLabel})`
+                  : `Ciclo anterior (${previousPeriod.startLabel}–${previousPeriod.endLabel})`}
               </DialogTitle>
               <DialogDescription>
                 Toque em um dia para editar; para registrar, use o calendário abaixo.
@@ -1421,13 +1297,10 @@ export function BHTracker({ agentId, compact = false, isAdmin = false }: BHTrack
             </DialogHeader>
 
             {(() => {
-              const base = selectedMonth;
-              const monthStart = startOfMonth(base);
-              const monthLabel = format(base, 'MMMM yyyy', { locale: ptBR });
+              const period = fortnightDialog === 'current' ? currentPeriod : previousPeriod;
               const list = entries
                 .map((e) => ({ e, d: parseBHDate(e) }))
-                .filter(({ d }) => d && isSameMonth(d, monthStart))
-                .filter(({ d }) => (fortnightDialog === 1 ? (d!.getDate() <= 15) : (d!.getDate() >= 16)))
+                .filter(({ d }) => d && d.getTime() >= period.start.getTime() && d.getTime() <= period.end.getTime())
                 .sort((a, b) => (a.d!.getTime() - b.d!.getTime()));
 
               const total = list.reduce((acc, { e }) => (e.operation_type === 'credit' ? acc + Number(e.hours) : acc - Number(e.hours)), 0);
@@ -1436,18 +1309,18 @@ export function BHTracker({ agentId, compact = false, isAdmin = false }: BHTrack
                 <div className="space-y-3">
                   <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4">
                     <p className="text-xs text-slate-400 mb-1">
-                      Resumo de <span className="font-semibold capitalize text-slate-300">{monthLabel}</span>
+                      Ciclo <span className="font-semibold text-slate-300">{period.startLabel}–{period.endLabel}</span>
                     </p>
                     <div className="flex items-baseline gap-2">
                       <p className="text-3xl font-black text-emerald-300">{total.toFixed(1)}h</p>
                       <span className="text-lg font-semibold text-emerald-400/70">= R$ {(total * hourlyRate).toFixed(2)}</span>
                     </div>
-                    <p className="text-xs text-slate-500 mt-2">ℹ️ Quinzena independente (não soma com a outra)</p>
+                    <p className="text-xs text-slate-500 mt-2">A receber em {period.payoutLabel}</p>
                   </div>
 
                   <div className="space-y-2 max-h-[40vh] overflow-auto pr-1">
                     {list.length === 0 ? (
-                      <p className="text-sm text-slate-500 text-center py-6">Sem registros nesta quinzena.</p>
+                      <p className="text-sm text-slate-500 text-center py-6">Sem registros neste ciclo.</p>
                     ) : (
                       list.map(({ e, d }) => (
                         <button
@@ -1481,7 +1354,7 @@ export function BHTracker({ agentId, compact = false, isAdmin = false }: BHTrack
           </DialogContent>
         </Dialog>
 
-        {/* Monthly Summary by Fortnight */}
+        {/* Monthly Summary by Pay Period */}
         <MonthlySummary entries={entries} selectedMonth={selectedMonth} hourlyRate={hourlyRate} />
 
         {/* BH Evolution Chart */}
@@ -1492,16 +1365,14 @@ export function BHTracker({ agentId, compact = false, isAdmin = false }: BHTrack
           {/* Today's date banner with countdown */}
           {(() => {
             const today = new Date();
-            const todayDay = today.getDate();
-            const isFirstFortnight = todayDay <= 15;
-            const fortnightEndDay = isFirstFortnight ? 15 : new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
-            const daysRemaining = fortnightEndDay - todayDay;
+            const msPerDay = 24 * 60 * 60 * 1000;
+            const daysRemaining = Math.round((currentPeriod.end.getTime() - today.getTime()) / msPerDay);
             const isUrgent = daysRemaining <= 2;
-            
+
             return (
               <div className={`p-3 border rounded-lg ${
-                isUrgent 
-                  ? 'bg-gradient-to-r from-amber-500/20 via-red-500/10 to-amber-500/20 border-amber-500/50' 
+                isUrgent
+                  ? 'bg-gradient-to-r from-amber-500/20 via-red-500/10 to-amber-500/20 border-amber-500/50'
                   : 'bg-gradient-to-r from-blue-500/10 via-slate-700/20 to-purple-500/10 border-slate-600/50'
               }`}>
                 <div className="flex items-center justify-between flex-wrap gap-2">
@@ -1511,28 +1382,24 @@ export function BHTracker({ agentId, compact = false, isAdmin = false }: BHTrack
                     </div>
                     <div>
                       <p className="text-sm font-medium text-slate-200">
-                        Hoje é dia <span className={`font-bold ${isFirstFortnight ? 'text-blue-400' : 'text-purple-400'}`}>{todayDay}</span>
+                        Ciclo atual: <span className="font-bold text-blue-400">{currentPeriod.startLabel}</span> a <span className="font-bold text-blue-400">{currentPeriod.endLabel}</span>
                       </p>
                       <p className="text-xs text-slate-400">
-                        {isFirstFortnight ? (
-                          <>Você pode lançar BH do dia <span className="text-blue-400 font-medium">1</span> até <span className="text-blue-400 font-medium">hoje (dia {todayDay})</span></>
-                        ) : (
-                          <>Você pode lançar BH do dia <span className="text-purple-400 font-medium">16</span> até <span className="text-purple-400 font-medium">hoje (dia {todayDay})</span></>
-                        )}
+                        Você pode lançar BH de qualquer dia dentro deste intervalo — o valor é pago em <span className="text-blue-400 font-medium">{currentPeriod.payoutLabel}</span>
                       </p>
                     </div>
                   </div>
                   <div className="flex flex-col items-end gap-1">
-                    <Badge className={isFirstFortnight ? "bg-blue-500/20 text-blue-400 border-blue-500/30" : "bg-purple-500/20 text-purple-400 border-purple-500/30"}>
-                      {isFirstFortnight ? "1ª Quinzena" : "2ª Quinzena"}
+                    <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30">
+                      Ciclo atual
                     </Badge>
                     <div className={`flex items-center gap-1 text-xs ${isUrgent ? 'text-amber-400 font-semibold' : 'text-slate-400'}`}>
                       {isUrgent && <AlertTriangle className="h-3 w-3" />}
                       <span>
-                        {daysRemaining === 0 
-                          ? 'Último dia!' 
-                          : daysRemaining === 1 
-                            ? 'Falta 1 dia para fechar' 
+                        {daysRemaining === 0
+                          ? 'Último dia!'
+                          : daysRemaining === 1
+                            ? 'Falta 1 dia para fechar'
                             : `Faltam ${daysRemaining} dias para fechar`
                         }
                       </span>
@@ -1568,61 +1435,36 @@ export function BHTracker({ agentId, compact = false, isAdmin = false }: BHTrack
               modifiers={{
                 bh: bhDates,
                 closed: (date) => {
-                  // Mark as closed if in closed fortnight and not a BH date
-                  const isBhDate = bhDates.some(d => 
-                    d.getDate() === date.getDate() && 
-                    d.getMonth() === date.getMonth() && 
+                  const isBhDate = bhDates.some(d =>
+                    d.getDate() === date.getDate() &&
+                    d.getMonth() === date.getMonth() &&
                     d.getFullYear() === date.getFullYear()
                   );
                   return isInClosedFortnight(date) && !isBhDate;
                 },
-                openFirstFortnight: (date) => {
-                  const day = date.getDate();
-                  const isSameMonth = date.getMonth() === selectedMonth.getMonth() && date.getFullYear() === selectedMonth.getFullYear();
-                  const isBhDate = bhDates.some(d => 
+                openCurrentPeriod: (date) => {
+                  const isBhDate = bhDates.some(d =>
                     d.getDate() === date.getDate() && d.getMonth() === date.getMonth() && d.getFullYear() === date.getFullYear()
                   );
-                  // Open first fortnight: days 1-15, not closed, not a BH date, not future
                   return (
-                    isSameMonth &&
-                    day >= 1 &&
-                    day <= 15 &&
+                    date.getTime() >= currentPeriod.start.getTime() &&
+                    date.getTime() <= currentPeriod.end.getTime() &&
                     !isInClosedFortnight(date) &&
                     !isBhDate &&
                     !isAfter(startOfDay(date), startOfDay(new Date()))
                   );
                 },
-                openSecondFortnight: (date) => {
-                  const day = date.getDate();
-                  const isSameMonth = date.getMonth() === selectedMonth.getMonth() && date.getFullYear() === selectedMonth.getFullYear();
-                  const isBhDate = bhDates.some(d => 
+                openPreviousPeriod: (date) => {
+                  const isBhDate = bhDates.some(d =>
                     d.getDate() === date.getDate() && d.getMonth() === date.getMonth() && d.getFullYear() === date.getFullYear()
                   );
-                  // Open second fortnight: days 16+, not closed, not a BH date, not future
                   return (
-                    isSameMonth &&
-                    day >= 16 &&
+                    date.getTime() >= previousPeriod.start.getTime() &&
+                    date.getTime() <= previousPeriod.end.getTime() &&
                     !isInClosedFortnight(date) &&
-                    !isBhDate &&
-                    !isAfter(startOfDay(date), startOfDay(new Date()))
+                    !isBhDate
                   );
                 },
-                closedFirstFortnight: (date) => {
-                  const day = date.getDate();
-                  const isSameMonth = date.getMonth() === selectedMonth.getMonth() && date.getFullYear() === selectedMonth.getFullYear();
-                  const isBhDate = bhDates.some(d => 
-                    d.getDate() === date.getDate() && d.getMonth() === date.getMonth() && d.getFullYear() === date.getFullYear()
-                  );
-                  return isSameMonth && day >= 1 && day <= 15 && isInClosedFortnight(date) && !isBhDate;
-                },
-                closedSecondFortnight: (date) => {
-                  const day = date.getDate();
-                  const isSameMonth = date.getMonth() === selectedMonth.getMonth() && date.getFullYear() === selectedMonth.getFullYear();
-                  const isBhDate = bhDates.some(d => 
-                    d.getDate() === date.getDate() && d.getMonth() === date.getMonth() && d.getFullYear() === date.getFullYear()
-                  );
-                  return isSameMonth && day >= 16 && isInClosedFortnight(date) && !isBhDate;
-                }
               }}
               modifiersStyles={{
                 bh: {
@@ -1639,24 +1481,15 @@ export function BHTracker({ agentId, compact = false, isAdmin = false }: BHTrack
                   color: 'hsl(215 20% 50%)',
                   opacity: 0.6
                 },
-                openFirstFortnight: {
+                openCurrentPeriod: {
                   backgroundColor: 'hsl(217 91% 60% / 0.2)',
                   borderLeft: '3px solid hsl(217 91% 60%)'
                 },
-                openSecondFortnight: {
-                  backgroundColor: 'hsl(271 91% 65% / 0.2)',
-                  borderLeft: '3px solid hsl(271 91% 65%)'
-                },
-                closedFirstFortnight: {
-                  backgroundColor: 'hsl(217 30% 40% / 0.15)',
-                  borderLeft: '3px solid hsl(217 30% 50% / 0.4)',
-                  opacity: 0.5
-                },
-                closedSecondFortnight: {
+                openPreviousPeriod: {
                   backgroundColor: 'hsl(271 30% 40% / 0.15)',
                   borderLeft: '3px solid hsl(271 30% 50% / 0.4)',
                   opacity: 0.5
-                }
+                },
               }}
               className="rounded-md pointer-events-auto"
             />
@@ -1683,17 +1516,7 @@ export function BHTracker({ agentId, compact = false, isAdmin = false }: BHTrack
                   borderLeft: '3px solid hsl(217 91% 60%)'
                 }}
               />
-              <span className="text-blue-400">1ª Quinzena (Aberta)</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <div
-                className="w-3 h-3 rounded"
-                style={{
-                  backgroundColor: 'hsl(271 91% 65% / 0.2)',
-                  borderLeft: '3px solid hsl(271 91% 65%)'
-                }}
-              />
-              <span className="text-purple-400">2ª Quinzena (Aberta)</span>
+              <span className="text-blue-400">Ciclo atual</span>
             </div>
             <div className="flex items-center gap-1.5">
               <div
@@ -1716,17 +1539,12 @@ export function BHTracker({ agentId, compact = false, isAdmin = false }: BHTrack
                     className="max-w-xs bg-slate-900 border-slate-700 text-slate-200 p-3"
                   >
                     <div className="space-y-2">
-                      <p className="font-semibold text-primary">Sistema de Quinzenas</p>
+                      <p className="font-semibold text-primary">Ciclos de Pagamento</p>
                       <p className="text-xs leading-relaxed">
-                        O mês é dividido em duas quinzenas:
+                        Cada ciclo de BH vai do dia <strong className="text-blue-400">16</strong> de um mês até o dia <strong className="text-blue-400">15</strong> do mês seguinte — o valor acumulado é pago dentro do mês em que o ciclo termina.
                       </p>
-                      <ul className="text-xs space-y-1 ml-2">
-                        <li>• <strong className="text-blue-400">1ª Quinzena:</strong> Dias 1 a 15</li>
-                        <li>• <strong className="text-purple-400">2ª Quinzena:</strong> Dias 16 ao final do mês</li>
-                      </ul>
                       <p className="text-xs leading-relaxed pt-1 border-t border-slate-700">
-                        <strong className="text-primary">Regra:</strong> Você só pode registrar e editar BH na quinzena atual. 
-                        Quinzenas anteriores ficam bloqueadas para edição, permitindo apenas visualização.
+                        Ex.: o ciclo de 16/08 a 15/09 é pago em Setembro.
                       </p>
                     </div>
                   </TooltipContent>
@@ -1983,7 +1801,7 @@ export function BHTracker({ agentId, compact = false, isAdmin = false }: BHTrack
                       Turno: <span className="text-primary font-medium">{DEFAULT_SHIFT_OPTIONS.find(p => p.value === selectedPeriod)?.label}</span>
                     </p>
                     <p className="text-sm text-slate-400">
-                      Novo saldo (na quinzena):{' '}
+                      Novo saldo (no ciclo):{' '}
                       <span className="text-green-400 font-bold">
                         {(getFortnightBalanceForDate(selectedDate ?? new Date()) + getEffectiveHours()).toFixed(1)}h
                       </span>

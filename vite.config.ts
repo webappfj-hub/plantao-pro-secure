@@ -48,8 +48,15 @@ export default defineConfig(({ mode }) => ({
     },
   },
   optimizeDeps: {
-    // Lazy-loaded charts should not be pre-bundled — smaller dev boot.
-    exclude: ["three", "@react-three/fiber", "@react-three/drei", "recharts", "jspdf", "html2canvas"],
+    // recharts used to be excluded here for a smaller dev boot, but that
+    // stops Vite's dependency scanner from crawling into it — so it never
+    // discovers (and never CJS→ESM-converts) recharts' own CJS-only
+    // dependencies (lodash subpaths, react-is, etc.). The browser's native
+    // ESM loader then fails on those raw node_modules files the moment any
+    // recharts-based screen renders ("does not provide an export named
+    // 'default'"). Pre-bundling recharts fixes that; the dev-boot cost is a
+    // one-time hit, not worth the breakage.
+    exclude: ["three", "@react-three/fiber", "@react-three/drei", "jspdf", "html2canvas"],
   },
 
 }));
