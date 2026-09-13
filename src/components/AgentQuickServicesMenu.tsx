@@ -122,8 +122,9 @@ export function AgentQuickServicesMenu({ className, variant = 'floating' }: { cl
           aria-label="Abrir ferramentas do operador"
           title="Ferramentas do operador"
           className={cn(
+            'relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background',
             variant === 'header'
-              ? 'flex h-9 w-9 items-center justify-center rounded-full border border-border bg-card/60 text-foreground shadow-sm transition-colors hover:border-primary/50 hover:bg-muted'
+              ? "flex h-9 w-9 items-center justify-center rounded-full border border-border bg-card/60 text-foreground shadow-sm transition-colors before:absolute before:-inset-1.5 before:content-[''] hover:border-primary/50 hover:bg-muted"
               : 'flex h-11 w-11 items-center justify-center rounded-full border border-border bg-card text-foreground shadow-md transition-colors hover:bg-muted',
             className,
           )}

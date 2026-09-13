@@ -125,8 +125,9 @@ export function RadioPlayerWidget({
         aria-label={`${DEFAULT_STATION.name} — ${action}`}
         aria-pressed={isPlaying}
         className={cn(
+          'relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background',
           variant === 'header'
-            ? 'group flex h-9 items-center gap-2 rounded-full border border-border bg-card/60 pl-2.5 pr-3 text-foreground shadow-sm transition-colors hover:border-primary/50 hover:bg-muted'
+            ? "group flex h-9 items-center gap-2 rounded-full border border-border bg-card/60 pl-2.5 pr-3 text-foreground shadow-sm transition-colors before:absolute before:-inset-y-1.5 before:content-[''] hover:border-primary/50 hover:bg-muted"
             : 'flex h-11 w-11 items-center justify-center rounded-full border border-border bg-card text-foreground shadow-md transition-colors hover:bg-muted',
           isPlaying && 'border-primary/60 text-primary',
           className,
