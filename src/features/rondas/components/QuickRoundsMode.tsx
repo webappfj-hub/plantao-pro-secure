@@ -15,6 +15,8 @@ import {
 import { useAuth } from '@/contexts/AuthContext';
 import { getServerDate, acreWallTimeToServerMs, syncServerTime } from '@/hooks/useServerTime';
 import * as api from '../api';
+import { AgentScheduleTimeline, buildQuickModeWindows } from './AgentScheduleTimeline';
+import { ShareScheduleButton } from './ShareScheduleButton';
 
 /** Início/fim em "HH:mm" → duração em minutos. Vira o dia (fim < início) soma 24h. */
 function diffMinutes(start: string, end: string): number {
@@ -471,9 +473,19 @@ export function QuickRoundsMode({ unitId, team }: QuickRoundsModeProps) {
             </span>
             Rodízio em andamento
           </h3>
-          <Button variant="ghost" size="sm" className="h-7 gap-1.5 text-xs text-muted-foreground" onClick={handleCancelClick}>
-            <Square className="h-3 w-3" /> Encerrar
-          </Button>
+          <div className="flex items-center gap-1.5">
+            {team && (
+              <ShareScheduleButton
+                team={team}
+                rangeStart={new Date(triggerMs)}
+                rangeEnd={new Date(triggerMs + totalMs)}
+                windows={buildQuickModeWindows(sessionNames, new Date(triggerMs), perAgentMs)}
+              />
+            )}
+            <Button variant="ghost" size="sm" className="h-7 gap-1.5 text-xs text-muted-foreground" onClick={handleCancelClick}>
+              <Square className="h-3 w-3" /> Encerrar
+            </Button>
+          </div>
         </div>
 
         {/* Anel de progresso — o agente atual, com contagem regressiva embutida */}
@@ -516,25 +528,15 @@ export function QuickRoundsMode({ unitId, team }: QuickRoundsModeProps) {
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-1.5 border-t border-border px-4 py-2.5">
-          {sessionNames.map((name, i) => {
-            const status = i < currentIndex ? 'done' : i === currentIndex ? 'current' : 'pending';
-            return (
-              <div
-                key={`${name}-${i}`}
-                className={cn(
-                  'flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium transition-all duration-500',
-                  status === 'done' && 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400',
-                  status === 'current' && 'border-primary/40 bg-primary/10 text-primary scale-105 shadow-[0_0_0_3px_hsl(var(--primary)/0.12)]',
-                  status === 'pending' && 'border-border bg-muted/30 text-muted-foreground',
-                )}
-              >
-                {status === 'done' ? <CheckCircle2 className="h-3 w-3" /> : <span className={cn('h-1.5 w-1.5 rounded-full bg-current', status === 'current' && 'animate-pulse')} />}
-                <span className="opacity-60">{i + 1}.</span>
-                <span className={status === 'done' ? 'line-through opacity-70' : undefined}>{name}</span>
-              </div>
-            );
-          })}
+        <div className="border-t border-border p-3">
+          <AgentScheduleTimeline
+            rangeStart={new Date(triggerMs)}
+            rangeEnd={new Date(triggerMs + totalMs)}
+            windows={buildQuickModeWindows(sessionNames, new Date(triggerMs), perAgentMs)}
+            live
+            highlightKey={currentIndex >= 0 ? `${sessionNames[currentIndex]}-${currentIndex}` : null}
+            title="Escala do rodízio"
+          />
         </div>
         {cancelDialog}
       </section>
@@ -583,13 +585,14 @@ export function QuickRoundsMode({ unitId, team }: QuickRoundsModeProps) {
             className="flex h-8 w-full rounded-md border border-input bg-background px-2.5 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" />
         </div>
 
-        {/* Barra visual proporcional — mostra o pedaço de cada agente */}
-        {activeNames.length > 0 && (
-          <div className="flex h-2 w-full overflow-hidden rounded-full">
-            {activeNames.map((n, i) => (
-              <div key={i} style={{ width: `${100 / activeNames.length}%`, background: CHIP_COLORS[i % CHIP_COLORS.length] }} className="h-full first:rounded-l-full last:rounded-r-full" />
-            ))}
-          </div>
+        {/* Prévia com hora de início/fim de cada agente — não só a fração igual */}
+        {activeNames.length > 0 && durationMinutes > 0 && (
+          <AgentScheduleTimeline
+            rangeStart={todayAt(startTime)}
+            rangeEnd={new Date(todayAt(startTime).getTime() + durationMinutes * 60_000)}
+            windows={buildQuickModeWindows(activeNames, todayAt(startTime), (durationMinutes * 60_000) / activeNames.length)}
+            title="Prévia da divisão"
+          />
         )}
 
         <div className="grid grid-cols-2 gap-2">

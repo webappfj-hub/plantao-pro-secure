@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { generateSlotPreview } from '../api';
 import type { DistributionStrategy, PatrolAgentAssignment, PatrolSector } from '../types';
+import { AgentScheduleTimeline, buildAgentWindows } from './AgentScheduleTimeline';
 
 interface ShiftDividerProps {
   open: boolean;
@@ -43,6 +44,15 @@ export function ShiftDivider({ open, onOpenChange, startAt, endAt, intervalMinut
   const preview = useMemo(
     () => generateSlotPreview({ shiftId: '', startAt, endAt, intervalMinutes, sectorIds: selectedSectors, agentIds: selectedAgents, strategy }),
     [startAt, endAt, intervalMinutes, selectedSectors, selectedAgents, strategy],
+  );
+
+  const agentMetaById = useMemo(
+    () => new Map(agents.map((a) => [a.agent_id, { name: a.agent?.name ?? 'Agente', avatarUrl: a.agent?.avatar_url }])),
+    [agents],
+  );
+  const previewWindows = useMemo(
+    () => buildAgentWindows(preview, (id) => (id ? agentMetaById.get(id) ?? { name: 'Agente' } : { name: 'Sem agente' })),
+    [preview, agentMetaById],
   );
 
   const toggle = (list: string[], setList: (v: string[]) => void, id: string) => {
@@ -121,6 +131,18 @@ export function ShiftDivider({ open, onOpenChange, startAt, endAt, intervalMinut
               </span>
             )}
           </div>
+
+          {previewWindows.length > 0 && (
+            <div className="space-y-1.5">
+              <Label>Prévia — tempo de cada agente</Label>
+              <AgentScheduleTimeline
+                rangeStart={startAt}
+                rangeEnd={endAt}
+                windows={previewWindows}
+                title="Divisão prevista"
+              />
+            </div>
+          )}
         </div>
 
         <DialogFooter>

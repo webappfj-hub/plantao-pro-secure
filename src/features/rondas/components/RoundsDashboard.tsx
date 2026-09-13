@@ -22,6 +22,8 @@ import { RoundTimer } from './RoundTimer';
 import { RoundControls } from './RoundControls';
 import { RoundMetrics } from './RoundMetrics';
 import { RoundTimeline } from './RoundTimeline';
+import { AgentScheduleTimeline, buildAgentWindows } from './AgentScheduleTimeline';
+import { ShareScheduleButton } from './ShareScheduleButton';
 import { NextRounds } from './NextRounds';
 import { RoundAgentList } from './RoundAgentList';
 import { IncidentDialog } from './IncidentDialog';
@@ -228,6 +230,15 @@ export function RoundsDashboard({ onShiftActiveChange }: RoundsDashboardProps = 
     }, 30_000);
     return () => window.clearInterval(iv);
   }, [shift?.id, queryClient]);
+
+  const agentMetaById = useMemo(
+    () => new Map(shiftAgents.map((a) => [a.agent_id, { name: a.agent?.name ?? 'Agente', avatarUrl: a.agent?.avatar_url }])),
+    [shiftAgents],
+  );
+  const agentWindows = useMemo(
+    () => buildAgentWindows(slots, (id) => (id ? agentMetaById.get(id) ?? { name: 'Agente' } : { name: 'Sem agente' })),
+    [slots, agentMetaById],
+  );
 
   const currentAgentSlot = useMemo(
     () => slots.find((s) => s.agent_id === agent?.id && (s.status === 'active' || s.status === 'late' || s.status === 'incident')) ?? null,
@@ -568,6 +579,16 @@ export function RoundsDashboard({ onShiftActiveChange }: RoundsDashboardProps = 
             <SplitSquareHorizontal className="h-3.5 w-3.5" />
             Dividir / reprogramar rondas
           </Button>
+          {agentWindows.length > 0 && (
+            <ShareScheduleButton
+              team={shift.team}
+              unitName={agent?.unit?.name}
+              rangeStart={shiftStart}
+              rangeEnd={shiftEnd}
+              windows={agentWindows}
+              stats={{ coveragePct: metrics.coverage_pct, openIncidents: metrics.open_incidents }}
+            />
+          )}
         </div>
 
         <LiveClock />
@@ -685,6 +706,20 @@ export function RoundsDashboard({ onShiftActiveChange }: RoundsDashboardProps = 
         </div>
         <RoundTimeline slots={slots} activeSlotId={currentAgentSlot?.id} />
       </section>
+
+      {/* Tempo de cada agente — hora de início, hora de término e duração,
+          lado a lado, com cursor "agora" ao vivo. Pensado pro agente sozinho
+          (turno noturno) saber de relance quando começa/termina cada um. */}
+      {agentWindows.length > 0 && (
+        <AgentScheduleTimeline
+          rangeStart={shiftStart}
+          rangeEnd={shiftEnd}
+          windows={agentWindows}
+          live
+          highlightKey={currentAgentSlot?.agent_id ?? null}
+          title="Tempo de cada agente"
+        />
+      )}
 
       {/* Equipe + histórico/ocorrências lado a lado */}
       <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
