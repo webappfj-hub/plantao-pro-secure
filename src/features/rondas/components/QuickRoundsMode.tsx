@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { useAuth } from '@/contexts/AuthContext';
 import { getServerDate, acreWallTimeToServerMs, syncServerTime } from '@/hooks/useServerTime';
+import { getTeamColors, getTeamEmblem } from '@/lib/teamAssets';
 import * as api from '../api';
 import { AgentScheduleTimeline, buildQuickModeWindows } from './AgentScheduleTimeline';
 import { ShareScheduleButton } from './ShareScheduleButton';
@@ -457,29 +458,35 @@ export function QuickRoundsMode({ unitId, team, onSessionActiveChange }: QuickRo
 
   // ---------- Aguardando horário programado: janela compacta e arrastável ----------
   if (session && isWaiting) {
+    const waitColors = getTeamColors(team);
+    const waitEmblem = getTeamEmblem(team);
     return (
       <>
         <div
-          className="fixed z-40 w-64 animate-in fade-in-0 zoom-in-95 select-none overflow-hidden rounded-2xl border border-primary/30 bg-card shadow-xl duration-300"
-          style={{ left: pos.x, top: pos.y }}
+          className="fixed z-40 w-64 animate-in fade-in-0 zoom-in-95 select-none overflow-hidden rounded-2xl border bg-card shadow-xl duration-300"
+          style={{ left: pos.x, top: pos.y, borderColor: `${waitColors.primary}4d` }}
         >
           <div
             onPointerDown={onDragPointerDown}
             onPointerMove={onDragPointerMove}
             onPointerUp={onDragPointerUp}
-            className="flex cursor-grab items-center justify-between gap-2 border-b border-primary/25 bg-primary/[0.09] px-3 py-1.5 active:cursor-grabbing"
+            className="flex cursor-grab items-center justify-between gap-2 border-b px-3 py-1.5 active:cursor-grabbing"
+            style={{ borderColor: `${waitColors.primary}40`, background: `${waitColors.primary}17` }}
           >
-            <span className="flex items-center gap-1.5 text-[10.5px] font-semibold uppercase tracking-wide text-primary">
+            <span className="flex items-center gap-1.5 text-[10.5px] font-semibold uppercase tracking-wide" style={{ color: waitColors.primary }}>
               <GripVertical className="h-3.5 w-3.5" /> Aguardando · {team}
             </span>
             <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground" onClick={handleCancelClick}>
               <Square className="h-3 w-3" />
             </Button>
           </div>
-          <div className="flex flex-col items-center gap-1 px-4 py-4 text-center">
-            <p className="text-[10.5px] uppercase tracking-wide text-muted-foreground">Inicia às {session.startTime}</p>
-            <p className="font-mono text-2xl font-bold tabular-nums text-primary">{fmtClock(triggerMs - now)}</p>
-            <p className="truncate text-[11px] text-muted-foreground">{sessionNames.join(' · ')}</p>
+          <div className="relative flex flex-col items-center gap-1 overflow-hidden px-4 py-4 text-center">
+            {waitEmblem && (
+              <img src={waitEmblem} alt="" aria-hidden loading="lazy" className="pointer-events-none absolute -right-4 -top-4 h-20 w-20 opacity-[0.08] grayscale" />
+            )}
+            <p className="relative text-[10.5px] uppercase tracking-wide text-muted-foreground">Inicia às {session.startTime}</p>
+            <p className="relative font-mono text-2xl font-bold tabular-nums" style={{ color: waitColors.primary }}>{fmtClock(triggerMs - now)}</p>
+            <p className="relative truncate text-[11px] text-muted-foreground">{sessionNames.join(' · ')}</p>
           </div>
         </div>
         {cancelDialog}
@@ -521,9 +528,17 @@ export function QuickRoundsMode({ unitId, team, onSessionActiveChange }: QuickRo
     const overallProgressPct = Math.min(100, (elapsedMs / totalMs) * 100);
     const urgent = remainingInSlice < 60_000;
     const ringOffset = RING_C * (1 - sliceProgressPct / 100);
+    const runColors = getTeamColors(team);
+    const runEmblem = getTeamEmblem(team);
+    const ringColor = urgent ? 'hsl(var(--destructive))' : runColors.primary;
 
     return (
-      <section className="animate-in fade-in-0 slide-in-from-bottom-2 duration-500 overflow-hidden rounded-2xl border border-primary/25 bg-card">
+      <section className="relative animate-in fade-in-0 slide-in-from-bottom-2 duration-500 overflow-hidden rounded-2xl border bg-card" style={{ borderColor: `${runColors.primary}40` }}>
+        {/* Emblema da equipe ao fundo — leve (ícone vetorial, não foto), dá
+            identidade visual à ronda sem pesar. */}
+        {runEmblem && (
+          <img src={runEmblem} alt="" aria-hidden loading="lazy" className="pointer-events-none absolute -right-8 -top-8 z-0 h-40 w-40 opacity-[0.06] grayscale" />
+        )}
         <StatusStrip team={team} agentCount={sessionNames.length} perAgentMs={perAgentMs} />
 
         <div className="flex items-center justify-between gap-3 px-4 py-2">
@@ -559,16 +574,16 @@ export function QuickRoundsMode({ unitId, team, onSessionActiveChange }: QuickRo
               <circle cx="50" cy="50" r={RING_R} fill="none" stroke="hsl(var(--muted))" strokeWidth="7" />
               <circle
                 cx="50" cy="50" r={RING_R} fill="none"
-                stroke={urgent ? 'hsl(var(--destructive))' : 'hsl(var(--primary))'}
+                stroke={ringColor}
                 strokeWidth="7" strokeLinecap="round"
                 strokeDasharray={RING_C}
                 strokeDashoffset={ringOffset}
                 className={cn('transition-[stroke-dashoffset] duration-1000 ease-linear', urgent && 'animate-pulse')}
-                style={{ filter: `drop-shadow(0 0 8px ${urgent ? 'hsl(var(--destructive)/0.55)' : 'hsl(var(--primary)/0.5)'})` }}
+                style={{ filter: `drop-shadow(0 0 8px ${ringColor}88)` }}
               />
             </svg>
             <div className="absolute inset-0 flex flex-col items-center justify-center">
-              <span className={cn('font-mono text-2xl font-bold tabular-nums transition-colors', urgent ? 'text-destructive' : 'text-primary')}>
+              <span className="font-mono text-2xl font-bold tabular-nums transition-colors" style={{ color: ringColor }}>
                 {fmtClock(remainingInSlice)}
               </span>
               <span className="text-[9px] uppercase tracking-wide text-muted-foreground">restante</span>

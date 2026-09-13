@@ -3099,21 +3099,21 @@ body.rm-low-motion > #root { filter: none !important; }
    Mobile: desvanece a partir do topo. Desktop (sm+/lg+): a partir da
    esquerda, onde encontra o painel de texto. */
 .hero-fade-overlay {
-  background-image: linear-gradient(180deg, transparent 0%, var(--hero-fade-color, hsl(222 20% 6%)) 26%);
+  background-image: linear-gradient(180deg, var(--hero-fade-color, hsl(222 20% 6%)) 0%, transparent 26%);
 }
 @media (min-width: 640px) {
   .hero-fade-overlay {
-    background-image: linear-gradient(90deg, transparent 0%, var(--hero-fade-color, hsl(222 20% 6%)) 24%);
+    background-image: linear-gradient(90deg, var(--hero-fade-color, hsl(222 20% 6%)) 0%, transparent 24%);
   }
 }
 /* Mesma ideia, mas pro banner cuja coluna de imagem só vira lateral a
    partir do breakpoint lg (a de cima muda em sm). */
 .hero-fade-overlay-lg {
-  background-image: linear-gradient(180deg, transparent 0%, var(--hero-fade-color, hsl(222 20% 6%)) 22%);
+  background-image: linear-gradient(180deg, var(--hero-fade-color, hsl(222 20% 6%)) 0%, transparent 22%);
 }
 @media (min-width: 1024px) {
   .hero-fade-overlay-lg {
-    background-image: linear-gradient(90deg, transparent 0%, var(--hero-fade-color, hsl(222 20% 6%)) 22%);
+    background-image: linear-gradient(90deg, var(--hero-fade-color, hsl(222 20% 6%)) 0%, transparent 22%);
   }
 }
 
