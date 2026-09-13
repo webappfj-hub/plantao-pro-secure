@@ -1,5 +1,17 @@
 import { parseISO } from 'date-fns';
 
+// ⚠️ CRÍTICO: Use getServerDate() para sincronização de hora
+// Não use new Date() local pois pode não sincronizar com servidor!
+let serverDateGetter: (() => Date) | null = null;
+
+export function setServerDateGetter(getter: () => Date) {
+  serverDateGetter = getter;
+}
+
+export function getServerDate(): Date {
+  return serverDateGetter ? serverDateGetter() : new Date();
+}
+
 export interface ShiftLike {
   shift_date: string;
   start_time: string;
@@ -31,8 +43,8 @@ export function getShiftBounds(shift: ShiftLike): { start: Date; end: Date } {
   return { start, end };
 }
 
-export function isShiftActive(shift: ShiftLike, now: Date = new Date()): boolean {
+export function isShiftActive(shift: ShiftLike, now?: Date): boolean {
   const { start, end } = getShiftBounds(shift);
-  const t = now.getTime();
+  const t = (now || getServerDate()).getTime();
   return t >= start.getTime() && t < end.getTime();
 }

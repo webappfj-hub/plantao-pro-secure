@@ -484,10 +484,13 @@ export type Database = {
           created_at: string
           department: string | null
           email: string | null
+          emergency_contact_name: string | null
+          emergency_contact_phone: string | null
           first_shift_date: string | null
           frozen_at: string | null
           frozen_by: string | null
           id: string
+          important_notes: string | null
           is_active: boolean | null
           is_frozen: boolean | null
           license_expires_at: string | null
@@ -519,10 +522,13 @@ export type Database = {
           created_at?: string
           department?: string | null
           email?: string | null
+          emergency_contact_name?: string | null
+          emergency_contact_phone?: string | null
           first_shift_date?: string | null
           frozen_at?: string | null
           frozen_by?: string | null
           id?: string
+          important_notes?: string | null
           is_active?: boolean | null
           is_frozen?: boolean | null
           license_expires_at?: string | null
@@ -554,10 +560,13 @@ export type Database = {
           created_at?: string
           department?: string | null
           email?: string | null
+          emergency_contact_name?: string | null
+          emergency_contact_phone?: string | null
           first_shift_date?: string | null
           frozen_at?: string | null
           frozen_by?: string | null
           id?: string
+          important_notes?: string | null
           is_active?: boolean | null
           is_frozen?: boolean | null
           license_expires_at?: string | null
