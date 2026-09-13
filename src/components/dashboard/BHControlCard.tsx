@@ -199,7 +199,7 @@ export function BHControlCard() {
                           value={String(getValue(unit, 'bh_hourly_rate_default') ?? '')}
                           onChange={(e) => handleChange(unit.id, 'bh_hourly_rate_default', parseFloat(e.target.value) || null)}
                           className="h-8 text-sm"
-                          placeholder="15.75"
+                          placeholder="2"
                         />
                       </div>
 

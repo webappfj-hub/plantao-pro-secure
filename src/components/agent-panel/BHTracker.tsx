@@ -249,7 +249,7 @@ export function BHTracker({ agentId, compact = false, isAdmin = false }: BHTrack
   // ciclo de pagamento (16 de um mês a 15 do mês seguinte) — não mais por
   // quinzena-calendário, que não corresponde à política real da unidade.
   const [balance, setBalance] = useState(0);
-  const [hourlyRate, setHourlyRate] = useState(15.75);
+  const [hourlyRate, setHourlyRate] = useState(2);
   const [bhLimit, setBhLimit] = useState(70);
   const [entries, setEntries] = useState<OvertimeEntry[]>([]);
   
@@ -388,7 +388,7 @@ export function BHTracker({ agentId, compact = false, isAdmin = false }: BHTrack
       setIsLoading(true);
 
       const DEFAULT_LIMIT = 70;
-      const DEFAULT_HOURLY_RATE = 15.75;
+      const DEFAULT_HOURLY_RATE = 2;
 
       // Fetch agent's hourly rate, limit, future-months config, and unit_id.
       const { data: agentData, error: agentError } = await supabase

@@ -139,7 +139,7 @@ export function NextShiftCountdown({ agentId, agentName, agentUnitId, agentTeam,
         const balance = bhResult.data || 0;
         setBhBalance(balance);
 
-        const hourlyRate = agentResult.data?.bh_hourly_rate || 15.75;
+        const hourlyRate = agentResult.data?.bh_hourly_rate || 2;
         setBhValue(balance * hourlyRate);
 
       } catch (error) {

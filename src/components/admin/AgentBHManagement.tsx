@@ -151,7 +151,7 @@ export function AgentBHManagement({ onDataChange }: Props) {
         const debits = agentEntries.filter(e => e.operation_type === 'debit').reduce((sum, e) => sum + Math.abs(Number(e.hours)), 0);
         const balance = credits - debits;
         const lastEntry = agentEntries[0]?.created_at || null;
-        const rate = agent.bh_hourly_rate || 15.75;
+        const rate = agent.bh_hourly_rate || 2;
 
         // Entries that fall inside the current pay period (16→15).
         const daysWithBH: string[] = [];
@@ -196,7 +196,7 @@ export function AgentBHManagement({ onDataChange }: Props) {
     setSelectedAgent(agent);
     setNewBalance(currentBalance.toFixed(1));
     setAdjustmentReason('');
-    setEditHourlyRate((agent.bh_hourly_rate || 15.75).toString());
+    setEditHourlyRate((agent.bh_hourly_rate || 2).toString());
     setEditBhLimit((agent.bh_limit || 70).toString());
     setEditFutureMonths((agent.bh_future_months_allowed || 0).toString());
     setDialogOpen(true);
@@ -632,7 +632,7 @@ export function AgentBHManagement({ onDataChange }: Props) {
                 <Input
                   type="text"
                   inputMode="decimal"
-                  placeholder="Ex: 15.75"
+                  placeholder="Ex: 2"
                   value={editHourlyRate}
                   onChange={(e) => {
                     const value = e.target.value.replace(/[^0-9.,]/g, '').replace(',', '.');

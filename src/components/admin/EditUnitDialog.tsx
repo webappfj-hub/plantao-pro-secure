@@ -56,7 +56,7 @@ export function EditUnitDialog({ unit, open, onOpenChange, onSuccess }: EditUnit
     phone: '',
     bh_limit_1st_default: '70',
     bh_limit_2nd_default: '70',
-    bh_hourly_rate_default: '15.75',
+    bh_hourly_rate_default: '2',
   });
   const [agents, setAgents] = useState<UnitAgent[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -78,7 +78,7 @@ export function EditUnitDialog({ unit, open, onOpenChange, onSuccess }: EditUnit
         phone: unit.phone || '',
         bh_limit_1st_default: String(unit.bh_limit_1st_default ?? 70),
         bh_limit_2nd_default: String(unit.bh_limit_2nd_default ?? 70),
-        bh_hourly_rate_default: String(unit.bh_hourly_rate_default ?? 15.75),
+        bh_hourly_rate_default: String(unit.bh_hourly_rate_default ?? 2),
       };
       setFormData(data);
       initialDataRef.current = JSON.stringify(data);
@@ -138,7 +138,7 @@ export function EditUnitDialog({ unit, open, onOpenChange, onSuccess }: EditUnit
           phone: formData.phone.trim() || null,
           bh_limit_1st_default: parseInt(formData.bh_limit_1st_default) || 70,
           bh_limit_2nd_default: parseInt(formData.bh_limit_2nd_default) || 70,
-          bh_hourly_rate_default: parseFloat(formData.bh_hourly_rate_default) || 15.75,
+          bh_hourly_rate_default: parseFloat(formData.bh_hourly_rate_default) || 2,
         },
       });
 

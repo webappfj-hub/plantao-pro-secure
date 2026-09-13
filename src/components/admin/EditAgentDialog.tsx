@@ -65,7 +65,7 @@ export function EditAgentDialog({ agent, open, onOpenChange, onSuccess }: EditAg
     unit_id: '',
     is_active: true,
     bh_limit: '70',
-    bh_hourly_rate: '15.75',
+    bh_hourly_rate: '2',
   });
   const [units, setUnits] = useState<Unit[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -91,7 +91,7 @@ export function EditAgentDialog({ agent, open, onOpenChange, onSuccess }: EditAg
         unit_id: agent.unit_id || '',
         is_active: agent.is_active ?? true,
         bh_limit: String(agent.bh_limit ?? 70),
-        bh_hourly_rate: String(agent.bh_hourly_rate ?? 15.75),
+        bh_hourly_rate: String(agent.bh_hourly_rate ?? 2),
       };
       setFormData(data);
       initialDataRef.current = JSON.stringify(data);
@@ -147,7 +147,7 @@ export function EditAgentDialog({ agent, open, onOpenChange, onSuccess }: EditAg
           unit_id: formData.unit_id,
           is_active: formData.is_active,
           bh_limit: parseFloat(formData.bh_limit) || 70,
-          bh_hourly_rate: parseFloat(formData.bh_hourly_rate) || 15.75,
+          bh_hourly_rate: parseFloat(formData.bh_hourly_rate) || 2,
         })
         .eq('id', agent.id);
 
@@ -330,7 +330,7 @@ export function EditAgentDialog({ agent, open, onOpenChange, onSuccess }: EditAg
                     type="number"
                     value={formData.bh_hourly_rate}
                     onChange={(e) => setFormData({ ...formData, bh_hourly_rate: e.target.value })}
-                    placeholder="15.75"
+                    placeholder="2"
                     min={0.01}
                     step={0.01}
                     className="bg-input"
