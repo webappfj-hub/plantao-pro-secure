@@ -180,6 +180,13 @@ export function QuickRoundsMode({ unitId, team }: QuickRoundsModeProps) {
 
   const durationMinutes = diffMinutes(startTime, endTime);
   const activeNames = useMemo(() => names.map((n) => n.trim()).filter(Boolean), [names]);
+  // Início e fim iguais viram 24h inteiras via diffMinutes (regra de "virou
+  // o dia") — provavelmente um esquecimento de trocar o horário de término,
+  // não uma escolha real. Avisa em vez de deixar passar quieto.
+  const sameStartEnd = startTime === endTime;
+  // Se "programar para HH:mm" já passou hoje, o rodízio só entra amanhã —
+  // detecta isso ANTES de travar a programação (Seção "sem desfazer depois").
+  const scheduleResolvesTomorrow = nextOccurrence(startTime).getTime() - todayAt(startTime).getTime() > 60_000;
 
   const historyQuery = useQuery({
     queryKey: ['quick-round-history', unitId, team],
@@ -585,6 +592,13 @@ export function QuickRoundsMode({ unitId, team }: QuickRoundsModeProps) {
             className="flex h-8 w-full rounded-md border border-input bg-background px-2.5 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" />
         </div>
 
+        {sameStartEnd && (
+          <p className="flex items-center gap-1.5 text-[11px] text-warning">
+            <Clock3 className="h-3 w-3 shrink-0" />
+            Início e término iguais — o rodízio vai durar 24h. Confira se não esqueceu de ajustar o término.
+          </p>
+        )}
+
         {/* Prévia com hora de início/fim de cada agente — não só a fração igual */}
         {activeNames.length > 0 && durationMinutes > 0 && (
           <AgentScheduleTimeline
@@ -614,8 +628,14 @@ export function QuickRoundsMode({ unitId, team }: QuickRoundsModeProps) {
             </AlertDialogTitle>
             <AlertDialogDescription className="space-y-2 text-left">
               <span className="block">
-                Ao confirmar, o rodízio de <strong className="text-foreground">{activeNames.length} agente{activeNames.length > 1 ? 's' : ''}</strong> fica travado para iniciar às <strong className="text-foreground">{startTime}</strong> e rodar sozinho até {endTime}.
+                Ao confirmar, o rodízio de <strong className="text-foreground">{activeNames.length} agente{activeNames.length > 1 ? 's' : ''}</strong> fica travado para iniciar{' '}
+                <strong className="text-foreground">{scheduleResolvesTomorrow ? 'amanhã' : 'hoje'} às {startTime}</strong> e rodar sozinho até {endTime}.
               </span>
+              {scheduleResolvesTomorrow && (
+                <span className="block text-warning">
+                  As {startTime} de hoje já passaram — por isso a programação só entra amanhã. Se não era essa a intenção, ajuste o horário antes de confirmar.
+                </span>
+              )}
               <span className="block font-medium text-destructive">
                 Não será possível desfazer ou editar essa programação depois de confirmada — só cancelar o rodízio inteiro.
               </span>

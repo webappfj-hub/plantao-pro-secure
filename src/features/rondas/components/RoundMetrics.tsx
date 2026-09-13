@@ -79,33 +79,30 @@ export function RoundMetrics({ metrics }: { metrics: PatrolMetrics }) {
   ];
 
   return (
-    <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 xl:grid-cols-5">
+    <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
       {items.map((it) => (
         <div
           key={it.label}
-          className="rounded-xl border border-border bg-card p-3 ring-1 ring-inset ring-transparent transition-colors hover:border-border/80"
+          className="rounded-lg border border-border bg-card px-2.5 py-2 ring-1 ring-inset ring-transparent transition-colors hover:border-border/80"
         >
-          <div className="flex items-start gap-2.5">
-            <span className={cn('flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ring-1', it.chip, it.ring)}>
-              <it.icon className={cn('h-4 w-4', it.text)} strokeWidth={2.3} />
+          <div className="flex items-center gap-2">
+            <span className={cn('flex h-7 w-7 shrink-0 items-center justify-center rounded-md ring-1', it.chip, it.ring)}>
+              <it.icon className={cn('h-3.5 w-3.5', it.text)} strokeWidth={2.3} />
             </span>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-[11px] font-medium leading-tight text-muted-foreground">{it.label}</p>
-              <p className="mt-0.5 flex items-baseline gap-1.5">
-                <span className="text-2xl font-bold leading-none tabular-nums text-foreground">{it.value}</span>
-                {it.suffix && <span className="text-[11px] text-muted-foreground">{it.suffix}</span>}
+              <p className="truncate text-[9.5px] font-medium leading-tight text-muted-foreground">{it.label}</p>
+              <p className="flex items-baseline gap-1">
+                <span className="text-base font-bold leading-none tabular-nums text-foreground">{it.value}</span>
+                {it.suffix && <span className="text-[9.5px] text-muted-foreground">{it.suffix}</span>}
               </p>
             </div>
           </div>
 
-          <div className="mt-2.5 flex items-center gap-2">
-            <div className="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-muted">
-              <div
-                className={cn('h-full rounded-full transition-[width] duration-500', it.bar)}
-                style={{ width: `${Math.min(100, Math.max(0, it.pct))}%` }}
-              />
-            </div>
-            <span className="shrink-0 text-[10px] font-semibold tabular-nums text-muted-foreground">{it.pct}%</span>
+          <div className="mt-1.5 h-1 w-full overflow-hidden rounded-full bg-muted">
+            <div
+              className={cn('h-full rounded-full transition-[width] duration-500', it.bar)}
+              style={{ width: `${Math.min(100, Math.max(0, it.pct))}%` }}
+            />
           </div>
         </div>
       ))}

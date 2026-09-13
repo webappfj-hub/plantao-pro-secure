@@ -150,6 +150,41 @@ export function acreWallTimeToServerMs(hour: number, minute: number, dayOffset =
 }
 
 /**
+ * Converte o valor de um <input type="datetime-local"> ("YYYY-MM-DDTHH:mm")
+ * pro instante correto, tratando os números digitados como hora de PAREDE
+ * do Acre — nunca como hora local do dispositivo. `new Date(string)` faria
+ * o parse no fuso do aparelho: um celular configurado em outro fuso (ou só
+ * com a região errada) criaria o turno deslocado por horas sem nenhum aviso
+ * (Seção 41 — nunca confiar no relógio/fuso do dispositivo). Como o Acre
+ * não tem horário de verão, o offset fixo (-05:00) resolve sem depender do
+ * relógio do servidor.
+ */
+export function parseAcreDateTimeLocal(value: string): Date {
+  const [datePart, timePart] = value.split('T');
+  const [y, m, d] = datePart.split('-').map(Number);
+  const [h, min] = (timePart ?? '00:00').split(':').map(Number);
+  return new Date(Date.UTC(y, m - 1, d, h + ACRE_UTC_OFFSET_HOURS, min, 0, 0));
+}
+
+/**
+ * Contrapartida de `parseAcreDateTimeLocal`: formata um instante pro valor
+ * de um <input type="datetime-local"> exibindo a hora de PAREDE do Acre —
+ * nunca `d.getHours()`/`getDate()` (que leem no fuso do dispositivo). Sem
+ * isso, o valor inicial do campo já nasce errado em qualquer aparelho fora
+ * do fuso do Acre, antes mesmo do usuário tocar nele.
+ */
+export function formatAcreDateTimeLocal(d: Date): string {
+  const fmt = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'America/Rio_Branco',
+    year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false,
+  });
+  const parts = fmt.formatToParts(d);
+  const get = (t: string) => parts.find((p) => p.type === t)?.value ?? '00';
+  const hour = get('hour') === '24' ? '00' : get('hour');
+  return `${get('year')}-${get('month')}-${get('day')}T${hour}:${get('minute')}`;
+}
+
+/**
  * Retorna horas/minutos/segundos da hora do servidor em um fuso específico.
  * Uso padrão para todos os relógios do app: `useServerClockParts()` = Rio Branco.
  * Se a sync com o servidor falhar, `useServerTime` já retorna a Date local

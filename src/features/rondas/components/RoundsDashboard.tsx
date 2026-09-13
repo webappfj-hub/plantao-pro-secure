@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import { WifiOff, Clock3, Sun, Moon, Users, Building2, MapPin, UserCheck, SplitSquareHorizontal, ShieldOff, CalendarPlus, CalendarClock, CalendarDays, Hourglass, UserPlus, Search, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -13,8 +13,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label';
 import { BrasaoSentinela } from '@/components/BrasaoSentinela';
 import { LiveClock } from '@/components/LiveClock';
-import { getServerDate } from '@/hooks/useServerTime';
-import { teamPosters } from '@/lib/teamAssets';
+import { getServerDate, parseAcreDateTimeLocal, formatAcreDateTimeLocal } from '@/hooks/useServerTime';
+import { teamPosters, getTeamPoster, getTeamColors } from '@/lib/teamAssets';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { QuickRoundsMode } from './QuickRoundsMode';
 import * as api from '../api';
 import { useRoundTimer } from '../useRoundTimer';
@@ -33,39 +34,50 @@ import { enqueuePatrolAction, flushPatrolQueue, getQueueLength } from '../offlin
 import type { PatrolSlot } from '../types';
 import roundsHeroImage from '@/assets/midias/hero-agentes-viatura.webp';
 
-/** Cabeçalho institucional do Gestor de Rondas — foto profissional dos
- * agentes em operação (viatura da Socioeducação do Acre) com degradê para
- * garantir contraste do título em qualquer tema. */
-function RondasHero() {
+/**
+ * Cabeçalho institucional do Gestor de Rondas — a foto de fundo agora é o
+ * pôster real da equipe selecionada (o mesmo usado nos cards de seleção),
+ * com o degradê tingido na cor daquela equipe, em vez de uma foto genérica
+ * igual pra todo mundo. Quando há turno ativo, a faixa de operação (turno,
+ * equipe, unidade, relógio e ações) fica embutida aqui mesmo — substitui o
+ * bloco de cabeçalho separado de antes, economizando uma seção inteira de
+ * altura de página.
+ */
+function RondasHero({ team, children }: { team?: string | null; children?: ReactNode }) {
+  const poster = getTeamPoster(team ?? null) ?? roundsHeroImage;
+  const colors = getTeamColors(team ?? null);
   return (
-    <div className="relative h-36 overflow-hidden rounded-2xl sm:h-44">
+    <div className="relative overflow-hidden rounded-2xl">
       <img
-        src={roundsHeroImage}
-        alt="Agentes da Socioeducação do Acre em viatura operacional"
+        src={poster}
+        alt={team ? `Equipe ${team} — PlantãoPro AC` : 'Agentes da Socioeducação do Acre em viatura operacional'}
         loading="eager"
         decoding="async"
-        className="absolute inset-0 h-full w-full object-cover object-[50%_35%]"
+        className="absolute inset-0 h-full w-full object-cover object-[50%_25%]"
         draggable={false}
       />
       <div
         aria-hidden
         className="absolute inset-0"
-        style={{ background: 'linear-gradient(180deg, hsl(222 47% 8% / 0.1) 0%, hsl(222 47% 6% / 0.55) 55%, hsl(222 47% 5% / 0.92) 100%)' }}
+        style={{ background: `linear-gradient(180deg, hsl(222 47% 6% / 0.35) 0%, hsl(222 47% 5% / 0.72) 55%, hsl(222 47% 4% / 0.95) 100%), linear-gradient(90deg, ${colors.secondary}55 0%, transparent 60%)` }}
       />
-      <div className="relative flex h-full items-end gap-3 px-4 pb-3 sm:px-5 sm:pb-4">
-        <BrasaoSentinela size={36} title="Gestor de Rondas — PlantãoPro AC" />
-        <div>
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/20 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-primary-foreground ring-1 ring-primary/40 backdrop-blur-sm">
+      <div className="relative flex items-end gap-3 px-4 pb-2.5 pt-6 sm:px-5">
+        <BrasaoSentinela size={30} title="Gestor de Rondas — PlantãoPro AC" />
+        <div className="min-w-0 flex-1">
+          <span
+            className="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-white ring-1 backdrop-blur-sm"
+            style={{ background: `${colors.primary}26`, borderColor: colors.primary, boxShadow: `inset 0 0 0 1px ${colors.primary}55` }}
+          >
             <span className="relative flex h-1.5 w-1.5">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-70" />
-              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-400" />
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full opacity-70" style={{ background: colors.primary }} />
+              <span className="relative inline-flex h-1.5 w-1.5 rounded-full" style={{ background: colors.primary }} />
             </span>
-            Operação em tempo real
+            {team ? `Equipe ${team} · em operação` : 'Operação em tempo real'}
           </span>
-          <h2 className="mt-1 text-xl font-bold leading-tight text-white drop-shadow-sm sm:text-2xl">Gestor de Rondas</h2>
-          <p className="mt-0.5 text-xs text-white/80">Controle, acompanhamento e segurança em tempo real</p>
+          <h2 className="mt-1 truncate text-lg font-bold leading-tight text-white drop-shadow-sm sm:text-xl">Gestor de Rondas</h2>
         </div>
       </div>
+      {children && <div className="relative border-t border-white/10 bg-black/30 px-3 py-2 backdrop-blur-md sm:px-4">{children}</div>}
     </div>
   );
 }
@@ -338,7 +350,7 @@ export function RoundsDashboard({ onShiftActiveChange }: RoundsDashboardProps = 
   if (shiftQuery.isLoading) {
     return (
       <div className="space-y-3 p-3">
-        <RondasHero />
+        <RondasHero team={team} />
         <Skeleton className="h-40 w-full rounded-xl" />
         <Skeleton className="h-24 w-full rounded-xl" />
       </div>
@@ -348,7 +360,7 @@ export function RoundsDashboard({ onShiftActiveChange }: RoundsDashboardProps = 
   if (!shift) {
     return (
       <div className="space-y-3 p-3">
-        <RondasHero />
+        <RondasHero team={team} />
 
         {!user && (
           <div className="space-y-2.5 rounded-xl border border-primary/25 bg-primary/[0.06] p-3.5 animate-in fade-in-0 slide-in-from-bottom-2 duration-500">
@@ -485,7 +497,40 @@ export function RoundsDashboard({ onShiftActiveChange }: RoundsDashboardProps = 
           o mesmo elemento de imagem ao trocar de equipe — sem isso, a troca
           desmontava e remontava a foto, gerando o "flash" branco e o atraso
           percebido na transição. */}
-      <RondasHero />
+      <RondasHero team={team}>
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+          <span className="flex items-center gap-1.5 text-[11px] font-semibold text-white/90">
+            {isNightShift ? <Moon className="h-3.5 w-3.5 text-primary" strokeWidth={2.2} /> : <Sun className="h-3.5 w-3.5 text-primary" strokeWidth={2.2} />}
+            {fmtHm(shiftStart)}–{fmtHm(shiftEnd)}
+          </span>
+          <span className="hidden h-3 w-px bg-white/20 sm:block" />
+          <span className="flex items-center gap-1.5 text-[11px] font-semibold text-white/90">
+            <Building2 className="h-3.5 w-3.5 shrink-0 text-primary" strokeWidth={2.2} /> <span className="max-w-[9rem] truncate">{agent?.unit?.name ?? 'Minha unidade'}</span>
+          </span>
+
+          <div className="ml-auto flex items-center gap-1.5">
+            <LiveClock />
+            <Button
+              variant="outline" size="sm"
+              className="h-7 gap-1.5 border-white/15 bg-white/[0.06] px-2 text-[11px] text-white hover:bg-white/10 hover:text-white"
+              onClick={() => setDividerOpen(true)}
+            >
+              <SplitSquareHorizontal className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Dividir / reprogramar</span>
+            </Button>
+            {agentWindows.length > 0 && (
+              <ShareScheduleButton
+                team={shift.team}
+                unitName={agent?.unit?.name}
+                rangeStart={shiftStart}
+                rangeEnd={shiftEnd}
+                windows={agentWindows}
+                stats={{ coveragePct: metrics.coverage_pct, openIncidents: metrics.open_incidents }}
+              />
+            )}
+          </div>
+        </div>
+      </RondasHero>
 
       {!isOnline && (
         <div className="flex items-center gap-2 rounded-lg border border-warning/40 bg-warning/10 px-3 py-2 text-sm text-warning">
@@ -550,49 +595,6 @@ export function RoundsDashboard({ onShiftActiveChange }: RoundsDashboardProps = 
           <p className="text-xs text-muted-foreground">Ou <a href="/login" className="text-primary underline hover:no-underline font-medium">faça login</a> para usar seu perfil de agente</p>
         </div>
       )}
-
-      {/* Cabeçalho operacional — contexto do turno */}
-      <header className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-
-        <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">
-          {[
-            {
-              Icon: isNightShift ? Moon : Sun,
-              label: 'Turno',
-              value: `${isNightShift ? 'Noturno' : 'Diurno'} (${fmtHm(shiftStart)} – ${fmtHm(shiftEnd)})`,
-            },
-            { Icon: Users, label: 'Equipe', value: team },
-            { Icon: Building2, label: 'Unidade', value: agent?.unit?.name ?? 'Minha unidade' },
-          ].map(({ Icon, label, value }) => (
-            <div
-              key={label}
-              className="flex items-center gap-2.5 rounded-xl border border-border bg-card px-3 py-2"
-            >
-              <Icon className="h-4 w-4 shrink-0 text-primary" strokeWidth={2.2} />
-              <div className="min-w-0 leading-tight">
-                <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</p>
-                <p className="truncate text-[13px] font-semibold text-foreground">{value}</p>
-              </div>
-            </div>
-          ))}
-          <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setDividerOpen(true)}>
-            <SplitSquareHorizontal className="h-3.5 w-3.5" />
-            Dividir / reprogramar rondas
-          </Button>
-          {agentWindows.length > 0 && (
-            <ShareScheduleButton
-              team={shift.team}
-              unitName={agent?.unit?.name}
-              rangeStart={shiftStart}
-              rangeEnd={shiftEnd}
-              windows={agentWindows}
-              stats={{ coveragePct: metrics.coverage_pct, openIncidents: metrics.open_incidents }}
-            />
-          )}
-        </div>
-
-        <LiveClock />
-      </header>
 
       <RoundMetrics metrics={metrics} />
 
@@ -683,43 +685,51 @@ export function RoundsDashboard({ onShiftActiveChange }: RoundsDashboardProps = 
         </section>
       </div>
 
-      {/* Linha do tempo do turno */}
-      <section className="rounded-xl border border-border bg-card p-4">
-        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <h3 className="text-[13px] font-semibold uppercase tracking-wide text-foreground">
-            Linha do tempo — quartos de hora
-          </h3>
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-muted-foreground">
-            {[
-              { c: 'bg-emerald-500', l: 'Concluída' },
-              { c: 'bg-sky-500', l: 'Em andamento' },
-              { c: 'bg-muted-foreground/50', l: 'Pendente' },
-              { c: 'bg-amber-500', l: 'Atraso' },
-              { c: 'bg-rose-500', l: 'Ocorrência' },
-            ].map((k) => (
-              <span key={k.l} className="inline-flex items-center gap-1.5">
-                <span className={cn('h-2 w-2 rounded-full', k.c)} />
-                {k.l}
-              </span>
-            ))}
+      {/* Linhas do tempo — por agente (padrão) e por quarto de hora, em
+          abas: as duas mostravam basicamente a mesma informação em formatos
+          diferentes, empilhadas uma embaixo da outra. Uma delas de cada vez
+          cabe bem mais fácil numa única tela. */}
+      <section className="overflow-hidden rounded-xl border border-border bg-card">
+        <Tabs defaultValue="agentes" className="w-full">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-3 pt-2.5">
+            <TabsList className="h-8 bg-muted/60 p-0.5">
+              <TabsTrigger value="agentes" className="h-7 px-2.5 text-[11px]">Tempo por agente</TabsTrigger>
+              <TabsTrigger value="quartos" className="h-7 px-2.5 text-[11px]">Quartos de hora</TabsTrigger>
+            </TabsList>
           </div>
-        </div>
-        <RoundTimeline slots={slots} activeSlotId={currentAgentSlot?.id} />
+          <TabsContent value="agentes" className="m-0 p-3">
+            {agentWindows.length > 0 ? (
+              <AgentScheduleTimeline
+                rangeStart={shiftStart}
+                rangeEnd={shiftEnd}
+                windows={agentWindows}
+                live
+                highlightKey={currentAgentSlot?.agent_id ?? null}
+                title="Tempo de cada agente"
+              />
+            ) : (
+              <p className="text-sm text-muted-foreground">Nenhum agente escalado neste turno ainda.</p>
+            )}
+          </TabsContent>
+          <TabsContent value="quartos" className="m-0 space-y-2.5 p-3">
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-muted-foreground">
+              {[
+                { c: 'bg-emerald-500', l: 'Concluída' },
+                { c: 'bg-sky-500', l: 'Em andamento' },
+                { c: 'bg-muted-foreground/50', l: 'Pendente' },
+                { c: 'bg-amber-500', l: 'Atraso' },
+                { c: 'bg-rose-500', l: 'Ocorrência' },
+              ].map((k) => (
+                <span key={k.l} className="inline-flex items-center gap-1.5">
+                  <span className={cn('h-2 w-2 rounded-full', k.c)} />
+                  {k.l}
+                </span>
+              ))}
+            </div>
+            <RoundTimeline slots={slots} activeSlotId={currentAgentSlot?.id} />
+          </TabsContent>
+        </Tabs>
       </section>
-
-      {/* Tempo de cada agente — hora de início, hora de término e duração,
-          lado a lado, com cursor "agora" ao vivo. Pensado pro agente sozinho
-          (turno noturno) saber de relance quando começa/termina cada um. */}
-      {agentWindows.length > 0 && (
-        <AgentScheduleTimeline
-          rangeStart={shiftStart}
-          rangeEnd={shiftEnd}
-          windows={agentWindows}
-          live
-          highlightKey={currentAgentSlot?.agent_id ?? null}
-          title="Tempo de cada agente"
-        />
-      )}
 
       {/* Equipe + histórico/ocorrências lado a lado */}
       <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
@@ -874,12 +884,6 @@ const INTERVAL_OPTIONS = [
   { minutes: 60, label: '60 min' },
 ];
 
-/** Formata um Date para o valor aceito por <input type="datetime-local">, em horário local. */
-function toDatetimeLocalValue(d: Date): string {
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-}
-
 /**
  * Diálogo de criação de turno (quando não há nenhum ativo). Deixa escolher
  * início, duração e o tamanho dos quartos de hora — em vez do turno fixo de
@@ -891,15 +895,31 @@ function toDatetimeLocalValue(d: Date): string {
 function CreateShiftDialog({ open, onOpenChange, unitId, team, createdBy, onCreated }: {
   open: boolean; onOpenChange: (v: boolean) => void; unitId: string; team: string; createdBy: string | null; onCreated: () => void;
 }) {
-  const [startAt, setStartAt] = useState(() => toDatetimeLocalValue(getServerDate()));
+  const [startAt, setStartAt] = useState(() => formatAcreDateTimeLocal(getServerDate()));
   const [durationMinutes, setDurationMinutes] = useState(12 * 60);
   const [intervalMinutes, setIntervalMinutes] = useState(15);
   const [saving, setSaving] = useState(false);
 
+  // Detecta automaticamente horário digitado fora do razoável — em vez de
+  // deixar o turno nascer torto e só o usuário perceber depois, no meio da
+  // ronda. `parseAcreDateTimeLocal` trata os números do campo como hora de
+  // PAREDE do Acre (nunca o fuso do aparelho — Seção 41).
+  const parsedStart = parseAcreDateTimeLocal(startAt);
+  const minutesFromNow = (parsedStart.getTime() - getServerDate().getTime()) / 60_000;
+  const isTooFarPast = minutesFromNow < -180; // mais de 3h atrás — provável engano de data
+  const isTooFarFuture = minutesFromNow > 60 * 24 * 90; // mais de 90 dias à frente
+  const isSlightlyPast = minutesFromNow < 0 && !isTooFarPast;
+  const dateError = isTooFarPast
+    ? 'Esse horário já passou há mais de 3 horas — confira o dia digitado.'
+    : isTooFarFuture
+    ? 'Esse horário está a mais de 90 dias de distância — confira o dia digitado.'
+    : null;
+
   const handleCreate = async () => {
+    if (dateError) return;
     setSaving(true);
     try {
-      const start = new Date(startAt);
+      const start = parsedStart;
       const end = new Date(start.getTime() + durationMinutes * 60_000);
       const shift = await api.createShift({
         unit_id: unitId, team, start_at: start.toISOString(), end_at: end.toISOString(),
@@ -948,8 +968,22 @@ function CreateShiftDialog({ open, onOpenChange, unitId, team, createdBy, onCrea
               type="datetime-local"
               value={startAt}
               onChange={(e) => setStartAt(e.target.value)}
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className={cn(
+                'flex h-10 w-full rounded-md border bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                dateError ? 'border-destructive focus-visible:ring-destructive' : 'border-input',
+              )}
             />
+            {dateError && (
+              <p className="flex items-center gap-1.5 text-xs font-medium text-destructive">
+                <ShieldOff className="h-3.5 w-3.5 shrink-0" /> {dateError}
+              </p>
+            )}
+            {!dateError && isSlightlyPast && (
+              <p className="flex items-center gap-1.5 text-xs text-warning">
+                <Hourglass className="h-3.5 w-3.5 shrink-0" />
+                Esse horário já passou — os quartos de hora vencidos entram automaticamente como concluídos.
+              </p>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-3">
@@ -985,7 +1019,7 @@ function CreateShiftDialog({ open, onOpenChange, unitId, team, createdBy, onCrea
 
         <DialogFooter className="border-t border-border bg-muted/20 px-6 py-4">
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button onClick={handleCreate} disabled={saving} className="gap-1.5">
+          <Button onClick={handleCreate} disabled={saving || !!dateError} className="gap-1.5">
             {saving ? 'Criando...' : <>Criar e dividir <SplitSquareHorizontal className="h-4 w-4" /></>}
           </Button>
         </DialogFooter>
