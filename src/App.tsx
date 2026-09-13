@@ -74,6 +74,30 @@ function GlobalNavigationHandler({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+// Keyboard-only "pular para o conteúdo" link (WCAG 2.4.1 Bypass Blocks).
+// Targets the page's <main> landmark directly instead of a per-page id,
+// since most routes render their own standalone <main> without going
+// through a shared layout.
+function SkipToContentLink() {
+  const handleSkip = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    e.preventDefault();
+    const main = document.querySelector('main');
+    if (!main) return;
+    if (!main.hasAttribute('tabindex')) main.setAttribute('tabindex', '-1');
+    (main as HTMLElement).focus();
+    main.scrollIntoView({ block: 'start' });
+  };
+  return (
+    <a
+      href="#main-content"
+      onClick={handleSkip}
+      className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[9999] focus:rounded-md focus:bg-primary focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-primary-foreground focus:outline-none focus:ring-2 focus:ring-primary-foreground/60"
+    >
+      Pular para o conteúdo
+    </a>
+  );
+}
+
 // Mirrors useLowMotion()'s state (OS preference + slow-device heuristic +
 // manual override) onto <body class="rm-low-motion">, so the blanket
 // .animate-pulse/.animate-ping/.animate-spin kill-switch in index.css
@@ -113,6 +137,7 @@ function RoutePrefetcher() {
 
 const App = () => (
   <>
+  <SkipToContentLink />
   <QueryClientProvider client={queryClient}>
     <FontSizeProvider>
       <ThemeProvider>
