@@ -326,8 +326,9 @@ export function SavedCredentials({ onSelectCredential, onSaveChange, saveCpf, sa
                     <button
                       type="button"
                       onClick={(e) => handleRemovePassword(cred.cpf, e)}
-                      className="text-amber-400 hover:text-destructive transition-colors"
+                      className="relative text-amber-400 hover:text-destructive transition-colors before:absolute before:-inset-2.5 before:content-['']"
                       title="Sessão expirada"
+                      aria-label="Remover senha salva — sessão expirada"
                     >
                       <Key className="h-2.5 w-2.5" />
                     </button>
@@ -335,8 +336,9 @@ export function SavedCredentials({ onSelectCredential, onSaveChange, saveCpf, sa
                   <button
                     type="button"
                     onClick={(e) => handleRemove(cred.cpf, e)}
-                    className="opacity-0 group-hover:opacity-100 text-destructive/70 hover:text-destructive transition-opacity"
+                    className="relative opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 text-destructive/70 hover:text-destructive transition-opacity before:absolute before:-inset-2.5 before:content-['']"
                     title="Remover"
+                    aria-label="Remover credencial salva"
                   >
                     <Trash2 className="h-2.5 w-2.5" />
                   </button>

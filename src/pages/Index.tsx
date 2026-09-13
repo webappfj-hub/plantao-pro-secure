@@ -1966,13 +1966,9 @@ export default function Index() {
             onKeyDown={(e) => {
               if (['e', 'E', '+', '-', '.', ','].includes(e.key)) e.preventDefault();
             }}
-            onPaste={(e) => {
-              e.preventDefault();
-              const digits = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
-              setLoginPassword(digits);
-            }}
             placeholder="••••••"
             isPassword
+            passwordContext="login"
             maxLength={6}
             inputMode="numeric"
             error={loginErrors.password}

@@ -125,8 +125,9 @@ export const ManageCredentialsDialog = ({ open, onOpenChange }: ManageCredential
                           variant="ghost"
                           size="sm"
                           onClick={() => handleRemovePassword(cred.cpf)}
-                          className="h-8 w-8 p-0 text-muted-foreground hover:text-amber-500 hover:bg-amber-500/10"
+                          className="relative h-8 w-8 p-0 text-muted-foreground hover:text-amber-500 hover:bg-amber-500/10 before:absolute before:-inset-1.5 before:content-['']"
                           title="Remover apenas a senha"
+                          aria-label="Remover apenas a senha"
                         >
                           <Key className="h-4 w-4" />
                         </Button>
@@ -135,8 +136,9 @@ export const ManageCredentialsDialog = ({ open, onOpenChange }: ManageCredential
                         variant="ghost"
                         size="sm"
                         onClick={() => handleRemove(cred.cpf)}
-                        className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                        className="relative h-8 w-8 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10 before:absolute before:-inset-1.5 before:content-['']"
                         title="Remover CPF e senha"
+                        aria-label="Remover CPF e senha"
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>

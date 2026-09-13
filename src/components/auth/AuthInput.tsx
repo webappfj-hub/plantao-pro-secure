@@ -9,18 +9,26 @@ interface AuthInputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'si
   icon?: ReactNode;
   rightIcon?: ReactNode;
   isPassword?: boolean;
+  /** Contexto do campo de senha — define o autoComplete correto (login usa
+   * "current-password", cadastro/troca usa "new-password"). Ignorado se
+   * `autoComplete` for passado explicitamente via props. */
+  passwordContext?: 'login' | 'new';
   variant?: 'default' | 'centered';
 }
 
+let authInputIdSeq = 0;
+
 export const AuthInput = forwardRef<HTMLInputElement, AuthInputProps>(
-  ({ className, label, error, icon, rightIcon, isPassword, variant = 'default', type, ...props }, ref) => {
+  ({ className, label, error, icon, rightIcon, isPassword, passwordContext = 'new', variant = 'default', type, id, ...props }, ref) => {
     const [showPassword, setShowPassword] = useState(false);
     const actualType = isPassword ? (showPassword ? 'text' : 'password') : type;
+    const [autoId] = useState(() => id ?? `auth-input-${++authInputIdSeq}`);
+    const errorId = error ? `${autoId}-error` : undefined;
 
     return (
       <div className="space-y-1.5 sm:space-y-2">
         {label && (
-          <label className="block text-[11px] sm:text-sm font-semibold text-slate-300 uppercase tracking-wider">
+          <label htmlFor={autoId} className="block text-[11px] sm:text-sm font-semibold text-slate-300 uppercase tracking-wider">
             {label}
           </label>
         )}
@@ -32,8 +40,11 @@ export const AuthInput = forwardRef<HTMLInputElement, AuthInputProps>(
           )}
           <input
             ref={ref}
+            id={autoId}
             type={actualType}
-            autoComplete={isPassword ? "new-password" : props.autoComplete}
+            autoComplete={props.autoComplete ?? (isPassword ? (passwordContext === 'login' ? 'current-password' : 'new-password') : undefined)}
+            aria-invalid={!!error}
+            aria-describedby={errorId}
             className={cn(
               "relative w-full rounded-lg sm:rounded-xl",
               "h-11 sm:h-14 px-3 sm:px-4",
@@ -56,7 +67,9 @@ export const AuthInput = forwardRef<HTMLInputElement, AuthInputProps>(
                 type="button"
                 variant="ghost"
                 size="sm"
-                className="absolute right-2 top-1/2 -translate-y-1/2 h-10 w-10 p-0 text-slate-500 hover:text-white hover:bg-slate-700/50 rounded-lg"
+                aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
+                aria-pressed={showPassword}
+                className="absolute right-2 top-1/2 -translate-y-1/2 h-10 w-10 p-0 text-slate-500 hover:text-white hover:bg-slate-700/50 rounded-lg before:absolute before:-inset-1 before:content-['']"
                 onClick={() => setShowPassword(!showPassword)}
               >
                 {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
@@ -69,7 +82,7 @@ export const AuthInput = forwardRef<HTMLInputElement, AuthInputProps>(
           )}
         </div>
         {error && (
-          <p className="text-sm text-red-400 font-medium">{error}</p>
+          <p id={errorId} className="text-sm text-red-400 font-medium">{error}</p>
         )}
 
       </div>
