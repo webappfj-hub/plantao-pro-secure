@@ -5,7 +5,6 @@ import {
   ShieldAlert, CalendarDays, Shield, Square, GripVertical, PartyPopper,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -17,6 +16,7 @@ import { getServerDate, acreWallTimeToServerMs, syncServerTime } from '@/hooks/u
 import { getTeamColors, getTeamEmblem } from '@/lib/teamAssets';
 import * as api from '../api';
 import { AgentScheduleTimeline, buildQuickModeWindows } from './AgentScheduleTimeline';
+import { TacticalChronometer } from './TacticalChronometer';
 import { ShareScheduleButton } from './ShareScheduleButton';
 
 /** Início/fim em "HH:mm" → duração em minutos. Vira o dia (fim < início) soma 24h. */
@@ -75,8 +75,6 @@ function todayLabel(): string {
 }
 
 const CHIP_COLORS = ['#2F6FED', '#D62839', '#10B981', '#F59E0B', '#8B5CF6', '#06B6D4', '#EC4899', '#84CC16'];
-const RING_R = 40;
-const RING_C = 2 * Math.PI * RING_R;
 /** Tempo que a tela de conclusão fica visível antes de fechar sozinha. */
 const AUTO_CLOSE_MS = 60_000;
 /** Frase que o agente precisa reescrever pra encerrar um rodízio ativo que
@@ -527,10 +525,8 @@ export function QuickRoundsMode({ unitId, team, onSessionActiveChange }: QuickRo
     const sliceProgressPct = Math.min(100, Math.max(0, (elapsedInSlice / perAgentMs) * 100));
     const overallProgressPct = Math.min(100, (elapsedMs / totalMs) * 100);
     const urgent = remainingInSlice < 60_000;
-    const ringOffset = RING_C * (1 - sliceProgressPct / 100);
     const runColors = getTeamColors(team);
     const runEmblem = getTeamEmblem(team);
-    const ringColor = urgent ? 'hsl(var(--destructive))' : runColors.primary;
 
     return (
       <section className="relative animate-in fade-in-0 slide-in-from-bottom-2 duration-500 overflow-hidden rounded-2xl border bg-card" style={{ borderColor: `${runColors.primary}40` }}>
@@ -564,30 +560,20 @@ export function QuickRoundsMode({ unitId, team, onSessionActiveChange }: QuickRo
           </div>
         </div>
 
-        {/* Anel de progresso — o agente atual, com contagem regressiva embutida */}
+        {/* Cronômetro tático — o agente atual, com contagem regressiva embutida */}
         <div key={currentIndex} className="flex flex-col items-center gap-2 border-t border-border px-6 py-5 text-center animate-in fade-in-0 zoom-in-95 duration-500">
           <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Agente na ronda</p>
           <p className="text-lg font-bold text-foreground">{sessionNames[currentIndex]}</p>
 
-          <div className="relative mt-1 h-32 w-32">
-            <svg viewBox="0 0 100 100" className="h-full w-full -rotate-90">
-              <circle cx="50" cy="50" r={RING_R} fill="none" stroke="hsl(var(--muted))" strokeWidth="7" />
-              <circle
-                cx="50" cy="50" r={RING_R} fill="none"
-                stroke={ringColor}
-                strokeWidth="7" strokeLinecap="round"
-                strokeDasharray={RING_C}
-                strokeDashoffset={ringOffset}
-                className={cn('transition-[stroke-dashoffset] duration-1000 ease-linear', urgent && 'animate-pulse')}
-                style={{ filter: `drop-shadow(0 0 8px ${ringColor}88)` }}
-              />
-            </svg>
-            <div className="absolute inset-0 flex flex-col items-center justify-center">
-              <span className="font-mono text-2xl font-bold tabular-nums transition-colors" style={{ color: ringColor }}>
-                {fmtClock(remainingInSlice)}
-              </span>
-              <span className="text-[9px] uppercase tracking-wide text-muted-foreground">restante</span>
-            </div>
+          <div className="mt-1">
+            <TacticalChronometer
+              size={144}
+              progressPct={sliceProgressPct}
+              color={runColors.primary}
+              urgent={urgent}
+              centerLabel={fmtClock(remainingInSlice)}
+              bottomLabel="restante"
+            />
           </div>
         </div>
 

@@ -752,7 +752,7 @@ export function RoundsDashboard({ onShiftActiveChange }: RoundsDashboardProps = 
             </div>
 
             <div className="flex flex-col items-center gap-5 lg:flex-row lg:items-center lg:gap-6">
-              <RoundTimer timer={timer} />
+              <RoundTimer timer={timer} color={getTeamColors(team).primary} />
 
               <div className="flex w-full min-w-0 flex-col gap-4">
                 <dl className="space-y-3">
