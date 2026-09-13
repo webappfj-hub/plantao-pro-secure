@@ -272,6 +272,7 @@ export function BHTracker({ agentId, compact = false, isAdmin = false }: BHTrack
   const [showEditConfirm, setShowEditConfirm] = useState(false);
   const [editHours, setEditHours] = useState('');
   const [editPeriod, setEditPeriod] = useState<string>('day');
+  const [editDate, setEditDate] = useState<Date | undefined>(undefined);
   const [isEditing, setIsEditing] = useState(false);
 
   // Delete confirmation state
@@ -537,6 +538,15 @@ export function BHTracker({ agentId, compact = false, isAdmin = false }: BHTrack
 
   const getPeriodBalance = (period: BHPayPeriod) => getFortnightBalanceForDate(period.start);
 
+  // Seeds the date picker in the edit dialog whenever a new entry is opened
+  // for editing — regardless of which of the several places in this file
+  // triggers the edit (day click, list item, fortnight dialog, etc.).
+  useEffect(() => {
+    if (editingEntry) {
+      setEditDate(parseBHDate(editingEntry) ?? new Date(editingEntry.created_at));
+    }
+  }, [editingEntry]);
+
   // Check if a date is in a closed fortnight (quinzena)
   // UPDATED: Allow editing any day of the current month (both fortnights)
   // UPDATED (2026-01-20): Keep BH calendar fully unlocked for past dates.
@@ -670,32 +680,52 @@ export function BHTracker({ agentId, compact = false, isAdmin = false }: BHTrack
       return;
     }
 
-    // Check if new value would exceed limit
-    const hoursDiff = newHours - editingEntry.hours;
-    if (editingEntry.operation_type === 'credit' && !canAddHours(parseBHDate(editingEntry) ?? new Date(editingEntry.created_at), hoursDiff)) {
-      const limit = getFortnightLimitForDate(parseBHDate(editingEntry) ?? new Date(editingEntry.created_at));
-      toast.error(`Esta alteração excederia o limite de ${limit}h deste ciclo`);
-      return;
+    const originalDate = parseBHDate(editingEntry) ?? new Date(editingEntry.created_at);
+    const targetDate = editDate ?? originalDate;
+    const dateChanged = format(targetDate, 'dd/MM/yyyy') !== format(originalDate, 'dd/MM/yyyy');
+
+    // Recompute the target cycle's balance EXCLUDING this entry's current
+    // (pre-edit) contribution, then add back the new hours — this stays
+    // correct whether the edit moves the entry to a different cycle, to a
+    // different day within the same cycle, or just changes the hours.
+    if (editingEntry.operation_type === 'credit') {
+      const { start, end } = getBHPayPeriod(targetDate);
+      const balanceExcludingThisEntry = entries
+        .filter((e) => e.id !== editingEntry.id)
+        .filter((e) => {
+          const d = parseBHDate(e);
+          return d && d.getTime() >= start.getTime() && d.getTime() <= end.getTime();
+        })
+        .reduce((acc, e) => (e.operation_type === 'credit' ? acc + Number(e.hours) : acc - Number(e.hours)), 0);
+      const limit = getFortnightLimitForDate(targetDate);
+      if (balanceExcludingThisEntry + newHours > limit) {
+        toast.error(`Esta alteração excederia o limite de ${limit}h deste ciclo`);
+        return;
+      }
     }
 
     try {
       setIsEditing(true);
 
-      // Rebuild description preserving the BH date, but applying the new period label and hours
+      // Rebuild description with the (possibly new) date, period label and hours
       const shiftOption = DEFAULT_SHIFT_OPTIONS.find(p => p.value === editPeriod);
       const periodLabel = shiftOption?.label || '';
+      const dateStr = format(targetDate, 'dd/MM/yyyy');
       let newDescription = editingEntry.description;
       const dateMatch = newDescription?.match(/BH - (\d{2}\/\d{2}\/\d{4})/);
       if (dateMatch) {
-        newDescription = `BH - ${dateMatch[1]} | ${periodLabel} (${newHours}h)`;
+        newDescription = newDescription!.replace(dateMatch[0], `BH - ${dateStr}`);
+        newDescription = newDescription.replace(/\|[^|(]+\([\d.]+h\)/, `| ${periodLabel} (${newHours}h)`);
       } else if (newDescription) {
         // Fallback: swap hours only
         newDescription = newDescription.replace(/\([\d.]+h\)/, `(${newHours}h)`);
+      } else {
+        newDescription = `BH - ${dateStr} | ${periodLabel} (${newHours}h)`;
       }
 
       const { error } = await supabase
         .from('overtime_bank')
-        .update({ 
+        .update({
           hours: newHours,
           description: newDescription
         })
@@ -703,7 +733,11 @@ export function BHTracker({ agentId, compact = false, isAdmin = false }: BHTrack
 
       if (error) throw error;
 
-      toast.success(`Registro atualizado: ${periodLabel} • ${newHours}h`);
+      toast.success(
+        dateChanged
+          ? `Registro movido para ${dateStr} • ${periodLabel} • ${newHours}h`
+          : `Registro atualizado: ${periodLabel} • ${newHours}h`
+      );
       setShowEditConfirm(false);
       setShowEditDialog(false);
       setEditingEntry(null);
@@ -1851,7 +1885,7 @@ export function BHTracker({ agentId, compact = false, isAdmin = false }: BHTrack
           <DialogHeader>
             <DialogTitle className="text-white">Editar Registro de BH</DialogTitle>
             <DialogDescription className="text-slate-400">
-              Altere o turno realizado e/ou a quantidade de horas deste registro.
+              Altere a data, o turno realizado e/ou a quantidade de horas deste registro.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 pt-4">
@@ -1860,8 +1894,27 @@ export function BHTracker({ agentId, compact = false, isAdmin = false }: BHTrack
                 <div className="p-3 bg-slate-700/30 rounded-lg">
                   <p className="text-slate-300">{editingEntry.description}</p>
                   <p className="text-xs text-slate-500 mt-1">
-                    {format(new Date(editingEntry.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                    Lançado em {format(new Date(editingEntry.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
                   </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-slate-300">Data do BH</Label>
+                  <Input
+                    type="date"
+                    value={editDate ? format(editDate, 'yyyy-MM-dd') : ''}
+                    onChange={(e) => {
+                      if (!e.target.value) return;
+                      const [y, m, d] = e.target.value.split('-').map(Number);
+                      setEditDate(new Date(y, m - 1, d));
+                    }}
+                    className="bg-slate-700/50 border-slate-600 text-white [color-scheme:dark]"
+                  />
+                  {editDate && format(editDate, 'dd/MM/yyyy') !== format(parseBHDate(editingEntry) ?? new Date(editingEntry.created_at), 'dd/MM/yyyy') && (
+                    <p className="text-xs text-amber-400">
+                      Este registro será movido para {format(editDate, 'dd/MM/yyyy', { locale: ptBR })}.
+                    </p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -1930,8 +1983,9 @@ export function BHTracker({ agentId, compact = false, isAdmin = false }: BHTrack
               disabled={
                 isEditing ||
                 (parseFloat(editHours) === editingEntry?.hours &&
-                  // also allow save when only the period changed
-                  new RegExp(DEFAULT_SHIFT_OPTIONS.find(o => o.value === editPeriod)?.label || '', 'i').test(editingEntry?.description || ''))
+                  // also allow save when only the period or date changed
+                  new RegExp(DEFAULT_SHIFT_OPTIONS.find(o => o.value === editPeriod)?.label || '', 'i').test(editingEntry?.description || '') &&
+                  (!editDate || !editingEntry || format(editDate, 'dd/MM/yyyy') === format(parseBHDate(editingEntry) ?? new Date(editingEntry.created_at), 'dd/MM/yyyy')))
               }
               className="bg-blue-500 hover:bg-blue-600 text-white"
             >
@@ -1960,9 +2014,20 @@ export function BHTracker({ agentId, compact = false, isAdmin = false }: BHTrack
                     <div className="p-3 bg-slate-700/30 rounded-lg">
                       <p className="text-slate-300 font-medium text-sm">{editingEntry.description}</p>
                       <p className="text-xs text-slate-500 mt-1">
-                        {format(new Date(editingEntry.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                        Lançado em {format(new Date(editingEntry.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
                       </p>
                     </div>
+
+                    {editDate && format(editDate, 'dd/MM/yyyy') !== format(parseBHDate(editingEntry) ?? new Date(editingEntry.created_at), 'dd/MM/yyyy') && (
+                      <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg">
+                        <p className="text-[10px] text-amber-400 uppercase font-semibold mb-1">Data</p>
+                        <p className="text-sm text-slate-300">
+                          {format(parseBHDate(editingEntry) ?? new Date(editingEntry.created_at), 'dd/MM/yyyy', { locale: ptBR })}
+                          {' → '}
+                          <span className="font-bold text-amber-400">{format(editDate, 'dd/MM/yyyy', { locale: ptBR })}</span>
+                        </p>
+                      </div>
+                    )}
 
                     {/* Changes Preview */}
                     <div className="grid grid-cols-2 gap-2">

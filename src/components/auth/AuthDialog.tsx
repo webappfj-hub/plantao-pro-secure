@@ -114,6 +114,12 @@ export function AuthDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         data-tactical-dark
+        // Login é um formulário com dados já digitados (matrícula, senha) —
+        // um clique sem querer fora do card (comum em modais grandes/tela
+        // cheia) não pode descartar tudo sem aviso. Fecha só pelo botão X,
+        // Esc ou "Fechar" explícito.
+        onPointerDownOutside={(e) => e.preventDefault()}
+        onInteractOutside={(e) => e.preventDefault()}
         className={cn(
           "w-[94vw] p-0 gap-0 overflow-hidden",
           variant === 'register' ? "max-w-[480px]" : "max-w-[440px]",
@@ -125,7 +131,7 @@ export function AuthDialog({
           // Instant open/close — no zoom/slide/fade delays
           "!duration-0 data-[state=open]:!animate-none data-[state=closed]:!animate-none",
           // Bounded height + internal flex so hero stays fixed and body scrolls
-          "flex flex-col max-h-[92dvh] sm:max-h-[88vh]"
+          "flex flex-col max-h-[94dvh] sm:max-h-[92vh]"
         )}
         style={teamBranded && teamColor ? {
           boxShadow: `0 25px 60px -12px ${teamColor.glow}`,
@@ -285,7 +291,7 @@ export function AuthDialog({
           className={cn(
             "flex-1 min-h-0 overflow-y-auto overscroll-contain",
             "[&::-webkit-scrollbar]:hidden [scrollbar-width:none] [-ms-overflow-style:none]",
-            variant === 'register' ? "px-4 py-4 sm:px-6 sm:py-5" : "px-6 py-6",
+            variant === 'register' ? "px-4 py-4 sm:px-6 sm:py-5" : "px-5 py-4 sm:px-6 sm:py-5",
             "[&_label]:text-[11px] [&_label]:tracking-[0.14em] [&_label]:uppercase [&_label]:font-semibold [&_label]:text-white/75 [&_input]:h-11 [&_input]:text-[14px]"
           )}
           style={teamBranded && teamColor ? ({

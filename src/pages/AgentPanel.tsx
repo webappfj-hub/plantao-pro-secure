@@ -738,7 +738,7 @@ export default function AgentPanel() {
               </div>
 
 
-              <TabsContent value="equipe" forceMount hidden={activeTab !== 'equipe'} className="space-y-4 md:space-y-3 mt-0 overflow-visible data-[state=inactive]:hidden">
+              <TabsContent value="equipe" forceMount hidden={activeTab !== 'equipe'} className="space-y-2 md:space-y-2.5 mt-0 overflow-visible data-[state=inactive]:hidden">
                 {mountedTabs.has('equipe') && <>
                 {/* Shift Alerts Banner */}
                 <ShiftAlertsBanner

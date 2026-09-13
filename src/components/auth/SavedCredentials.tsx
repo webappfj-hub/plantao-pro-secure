@@ -287,7 +287,7 @@ export function SavedCredentials({ onSelectCredential, onSaveChange, saveCpf, sa
               Limpar
             </Button>
           </div>
-          <div className="flex flex-wrap gap-1.5">
+          <div className="flex flex-wrap gap-1.5 max-h-20 overflow-y-auto overscroll-contain pr-0.5">
             {credentials.map((cred) => {
               const canQuick = canQuickLogin(cred);
               const timeLeft = getTimeRemaining(cred);
