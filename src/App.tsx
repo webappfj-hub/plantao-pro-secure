@@ -8,6 +8,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { FontSizeProvider } from "@/contexts/FontSizeContext";
 import { useGlobalNavigation } from "@/hooks/useGlobalNavigation";
+import { useLowMotion } from "@/hooks/useLowMotion";
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 import { GlobalUtilityDock } from "@/components/GlobalUtilityDock";
 import { GlobalOfflineBanner } from "@/components/OfflineIndicator";
@@ -73,6 +74,19 @@ function GlobalNavigationHandler({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+// Mirrors useLowMotion()'s state (OS preference + slow-device heuristic +
+// manual override) onto <body class="rm-low-motion">, so the blanket
+// .animate-pulse/.animate-ping/.animate-spin kill-switch in index.css
+// applies app-wide — not just inside the handful of components that call
+// the hook directly.
+function LowMotionSync() {
+  const { lowMotion } = useLowMotion();
+  useEffect(() => {
+    document.body.classList.toggle('rm-low-motion', lowMotion);
+  }, [lowMotion]);
+  return null;
+}
+
 // Prefetch the most likely next-routes while browser is idle,
 // so authenticated users open the panel/admin instantly on weak links.
 function RoutePrefetcher() {
@@ -111,6 +125,7 @@ const App = () => (
             <AuthProvider>
               <ConfirmProvider>
               <GlobalNavigationHandler>
+                <LowMotionSync />
                 <RoutePrefetcher />
                 <SingleDeviceGuard />
                 <InactivityGuard />

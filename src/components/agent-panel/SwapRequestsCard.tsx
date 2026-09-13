@@ -57,12 +57,12 @@ interface TeamAgent {
 
 // Template reasons for swap requests
 const REASON_TEMPLATES = [
-  { id: 'personal', label: '📋 Compromisso pessoal', text: 'Solicito permuta devido a compromisso pessoal inadiável na data do meu plantão.' },
-  { id: 'medical', label: '🏥 Consulta médica', text: 'Solicito permuta para realizar consulta médica/exame agendado previamente.' },
-  { id: 'family', label: '👨‍👩‍👧 Motivo familiar', text: 'Solicito permuta por motivo familiar que requer minha presença.' },
-  { id: 'academic', label: '📚 Compromisso acadêmico', text: 'Solicito permuta devido a compromisso acadêmico (prova, aula, apresentação).' },
-  { id: 'travel', label: '✈️ Viagem', text: 'Solicito permuta pois estarei em viagem na data do plantão.' },
-  { id: 'other', label: '📝 Outro motivo', text: '' },
+  { id: 'personal', icon: '📋', label: 'Compromisso pessoal', text: 'Solicito permuta devido a compromisso pessoal inadiável na data do meu plantão.' },
+  { id: 'medical', icon: '🏥', label: 'Consulta médica', text: 'Solicito permuta para realizar consulta médica/exame agendado previamente.' },
+  { id: 'family', icon: '👨‍👩‍👧', label: 'Motivo familiar', text: 'Solicito permuta por motivo familiar que requer minha presença.' },
+  { id: 'academic', icon: '📚', label: 'Compromisso acadêmico', text: 'Solicito permuta devido a compromisso acadêmico (prova, aula, apresentação).' },
+  { id: 'travel', icon: '✈️', label: 'Viagem', text: 'Solicito permuta pois estarei em viagem na data do plantão.' },
+  { id: 'other', icon: '📝', label: 'Outro motivo', text: '' },
 ];
 
 export function SwapRequestsCard({ agentId, unitId, team }: SwapRequestsCardProps) {
@@ -897,7 +897,7 @@ Documento gerado automaticamente pelo PlantãoPro
                       <SelectContent className="bg-slate-700 border-slate-600">
                         {REASON_TEMPLATES.map((template) => (
                           <SelectItem key={template.id} value={template.id}>
-                            {template.label}
+                            <span aria-hidden="true">{template.icon}</span> {template.label}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -1114,7 +1114,7 @@ Documento gerado automaticamente pelo PlantãoPro
                 <SelectContent className="bg-slate-700 border-slate-600">
                   {REASON_TEMPLATES.map((template) => (
                     <SelectItem key={template.id} value={template.id}>
-                      {template.label}
+                      <span aria-hidden="true">{template.icon}</span> {template.label}
                     </SelectItem>
                   ))}
                 </SelectContent>
