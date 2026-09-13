@@ -12,7 +12,7 @@ Resiliência de Cache: Manter o script de "App Version" no index.html que limpa 
 Otimização de Dependências: Forçar o optimizeDeps para bibliotecas como recharts e lodash para evitar erros de "export default" durante o carregamento do bundle.
 
 2. Sistema de Autenticação e Admin
-Administrador Master: Usuário franc / Senha franc1982.
+Administrador Master: usuário francdenisbr@gmail.com (senha cadastrada na tabela `master_admin` do Supabase — não versionar em texto puro neste arquivo).
 
 Login Seguro: Implementar a autenticação de administrador via RPC no PostgreSQL, utilizando a tabela master_session_tokens para validar sessões no lado do servidor, em vez de depender apenas de sessionStorage.
 

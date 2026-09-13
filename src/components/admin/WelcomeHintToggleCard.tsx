@@ -30,7 +30,7 @@ export function WelcomeHintToggleCard() {
           Aviso de Boas-vindas (Senha Padrão)
         </CardTitle>
         <CardDescription>
-          Controle global do modal exibido no primeiro login orientando a troca da senha padrão (CPF). Desativado por padrão.
+          Controle global do modal exibido no primeiro login orientando a troca da senha padrão (matrícula). Desativado por padrão.
         </CardDescription>
       </CardHeader>
       <CardContent>

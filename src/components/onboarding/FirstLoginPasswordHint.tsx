@@ -17,7 +17,7 @@ import { useWelcomeHintEnabled } from '@/hooks/useWelcomeHintEnabled';
 const LS_KEY = 'pp:first-login-seen';
 
 /**
- * Exibido no primeiro acesso do agente. Orienta a trocar a senha padrão (CPF).
+ * Exibido no primeiro acesso do agente. Orienta a trocar a senha padrão (6 primeiros dígitos da matrícula).
  * Critério: `profiles.password_changed_at IS NULL` OU flag local ausente.
  */
 export function FirstLoginPasswordHint() {
@@ -74,8 +74,8 @@ export function FirstLoginPasswordHint() {
             Bem-vindo, agente
           </DialogTitle>
           <DialogDescription className="pt-2 text-sm leading-relaxed">
-            Sua <strong>senha padrão</strong> de acesso é o seu <strong>CPF</strong> (apenas números, sem
-            pontos ou traços). Por segurança, <strong>troque-a imediatamente</strong> em
+            Sua <strong>senha padrão</strong> de acesso são os <strong>6 primeiros dígitos da sua matrícula</strong>.
+            Por segurança, <strong>troque-a imediatamente</strong> em
             Configurações → Segurança.
           </DialogDescription>
         </DialogHeader>
