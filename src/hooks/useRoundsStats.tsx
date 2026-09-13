@@ -1,25 +1,26 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAgentProfile } from './useAgentProfile';
 
 export interface RoundsStats {
-  active: number;   // rondas em curso do usuário logado
-  today: number;    // rondas iniciadas hoje pelo usuário logado
+  active: number;   // rondas em curso do agente logado
+  today: number;    // rondas com início previsto hoje para o agente logado
   loading: boolean;
 }
 
 /**
- * Consulta contadores reais de rondas do usuário logado.
- * A tabela `round_sessions` é isolada por RLS (auth.uid() = user_id),
- * portanto os contadores refletem apenas as sessões do próprio agente.
- * Atualiza via Realtime + refetch em focus/online.
+ * Consulta contadores reais de rondas do agente logado, a partir do mesmo
+ * schema (`patrol_slots`) usado pelo Gestor de Rondas em /rondas — antes
+ * este contador lia a tabela legada `round_sessions`, que não tem nenhuma
+ * relação com o Gestor de Rondas real, então os números na home nunca
+ * batiam com o que o agente via ao abrir o Gestor de Rondas de verdade.
  */
 export function useRoundsStats(): RoundsStats {
-  const { user } = useAuth();
+  const { agent } = useAgentProfile();
   const [state, setState] = useState<RoundsStats>({ active: 0, today: 0, loading: false });
 
   useEffect(() => {
-    if (!user?.id) {
+    if (!agent?.id) {
       setState({ active: 0, today: 0, loading: false });
       return;
     }
@@ -31,21 +32,23 @@ export function useRoundsStats(): RoundsStats {
       try {
         setState((s) => ({ ...s, loading: true }));
 
-        // "hoje" no fuso local do usuário — usamos o início do dia como referência
         const startOfDay = new Date();
         startOfDay.setHours(0, 0, 0, 0);
+        const endOfDay = new Date();
+        endOfDay.setHours(23, 59, 59, 999);
 
         const [{ count: activeCount }, { count: todayCount }] = await Promise.all([
           supabase
-            .from('round_sessions')
+            .from('patrol_slots')
             .select('id', { count: 'exact', head: true })
-            .eq('user_id', user.id)
-            .eq('is_active', true),
+            .eq('agent_id', agent.id)
+            .in('status', ['in_progress', 'paused']),
           supabase
-            .from('round_sessions')
+            .from('patrol_slots')
             .select('id', { count: 'exact', head: true })
-            .eq('user_id', user.id)
-            .gte('created_at', startOfDay.toISOString()),
+            .eq('agent_id', agent.id)
+            .gte('scheduled_start', startOfDay.toISOString())
+            .lte('scheduled_start', endOfDay.toISOString()),
         ]);
 
         if (!alive) return;
@@ -66,12 +69,12 @@ export function useRoundsStats(): RoundsStats {
 
     load();
 
-    // Realtime: reagir a mudanças nas próprias sessões
+    // Realtime: reagir a mudanças nas próprias rondas
     const channel = supabase
-      .channel(`round-sessions-${user.id}`)
+      .channel(`patrol-slots-${agent.id}`)
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'round_sessions', filter: `user_id=eq.${user.id}` },
+        { event: '*', schema: 'public', table: 'patrol_slots', filter: `agent_id=eq.${agent.id}` },
         () => scheduleLoad(),
       )
       .subscribe();
@@ -87,7 +90,7 @@ export function useRoundsStats(): RoundsStats {
       window.removeEventListener('focus', onFocus);
       window.removeEventListener('online', onFocus);
     };
-  }, [user?.id]);
+  }, [agent?.id]);
 
   return state;
 }

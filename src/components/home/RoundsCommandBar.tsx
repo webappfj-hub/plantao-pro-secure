@@ -1,10 +1,10 @@
 import { useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ClipboardList, RefreshCw } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAgentProfile } from '@/hooks/useAgentProfile';
 import { useRoundsStats } from '@/hooks/useRoundsStats';
 
-import { RoundsManagerLazy as RoundsManager } from './RoundsManagerLazy';
 import { TacticalClock } from './TacticalClock';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
@@ -17,6 +17,7 @@ export function RoundsCommandBar() {
   const { user } = useAuth();
   const { agent } = useAgentProfile();
   const rounds = useRoundsStats();
+  const navigate = useNavigate();
 
   const unitLabel = useMemo(() => {
     if (agent?.unit?.name) {
@@ -45,18 +46,15 @@ export function RoundsCommandBar() {
       >
         <div className="mx-auto flex h-14 max-w-[1600px] items-stretch px-2 sm:px-3">
           <div className="flex flex-1 items-center gap-3 min-w-0 sm:gap-5">
-            <RoundsManager
-              customTrigger={
-                <button
-                  type="button"
-                  aria-label="Abrir Gestor de Rondas"
-                  className="inline-flex shrink-0 items-center gap-2 rounded-md border border-primary/30 bg-primary/10 px-2.5 py-1.5 text-primary transition-colors hover:bg-primary/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 sm:px-3"
-                >
-                  <ClipboardList className="h-4 w-4" strokeWidth={2.2} />
-                  <span className="text-[11px] font-semibold uppercase tracking-wide sm:text-xs">Gestor de Rondas</span>
-                </button>
-              }
-            />
+            <button
+              type="button"
+              onClick={() => navigate('/rondas')}
+              aria-label="Abrir Gestor de Rondas"
+              className="inline-flex shrink-0 items-center gap-2 rounded-md border border-primary/30 bg-primary/10 px-2.5 py-1.5 text-primary transition-colors hover:bg-primary/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 sm:px-3"
+            >
+              <ClipboardList className="h-4 w-4" strokeWidth={2.2} />
+              <span className="text-[11px] font-semibold uppercase tracking-wide sm:text-xs">Gestor de Rondas</span>
+            </button>
 
             <div className="flex min-w-0 items-center gap-3 sm:gap-4">
               <Metric label="Em curso" value={String(rounds.active).padStart(2, '0')} live={rounds.active > 0} />

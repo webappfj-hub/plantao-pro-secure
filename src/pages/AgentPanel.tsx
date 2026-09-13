@@ -68,7 +68,6 @@ const PasswordChangeRequest = lazy(() => import('@/components/agent-panel/Passwo
 const SmartAlarmClock = lazy(() => import('@/components/agent-panel/SmartAlarmClock').then(m => ({ default: m.SmartAlarmClock })));
 const RoundsHistoryCard = lazy(() => import('@/components/agent-panel/RoundsHistoryCard').then(m => ({ default: m.RoundsHistoryCard })));
 // AgentsDirectoryCard agora vive somente na rota /diretorio (abas Equipe/Unidade/Sistema).
-const RoundsManager = lazy(() => import('@/components/home/RoundsManager').then(m => ({ default: ((m as any).RoundsManager ?? (m as any).default) as React.ComponentType<{ customTrigger?: ReactNode }> })));
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2, Users, MessageCircle, Calendar, Clock, ArrowRightLeft, CalendarOff, Settings, User, CalendarDays, Shield, Zap, Key, Bell, BellRing, Megaphone, Radio, ChevronDown } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
@@ -216,7 +215,6 @@ export default function AgentPanel() {
       void import('@/components/agent-panel/ShiftOperationsCenter');
       void import('@/components/agent-panel/ShiftBriefingCard');
       void import('@/components/DiagnosticReportButton');
-      void import('@/components/home/RoundsManager');
     };
 
     // Mount everything immediately (hidden via `data-[state=inactive]:hidden`)
@@ -1004,33 +1002,28 @@ export default function AgentPanel() {
                       PRONTO PARA OPERAR
                     </div>
                   </div>
-                  <Suspense fallback={<div className="flex items-center justify-center py-6"><Loader2 className="h-5 w-5 animate-spin text-primary" /></div>}>
-                    <div className="mt-4 flex w-full min-w-0 max-w-full sm:mt-5">
-                      <RoundsManager
-                        customTrigger={
-                          <button
-                            type="button"
-                            className="group flex min-h-[64px] w-full min-w-0 max-w-full items-center justify-between gap-2 rounded-xl border border-primary/50 bg-primary/15 px-3 py-3 text-left shadow-lg shadow-primary/10 transition-all duration-200 hover:border-primary/70 hover:bg-primary/20 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary sm:gap-3 sm:px-4"
-                          >
-                            <span className="flex min-w-0 flex-1 items-center gap-2.5 sm:gap-3">
-                              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-primary/45 bg-slate-950/70 sm:h-11 sm:w-11">
-                                <Radio className="h-4 w-4 text-primary sm:h-5 sm:w-5" />
-                              </span>
-                              <span className="min-w-0 flex-1">
-                                <span className="block text-sm font-black leading-tight text-primary-foreground sm:text-base break-words">
-                                  Abrir Gestor de Rondas
-                                </span>
-                                <span className="block text-[11px] font-semibold text-slate-300 sm:text-xs break-words">
-                                  Central tática de escala e acompanhamento
-                                </span>
-                              </span>
-                            </span>
-                            <Zap className="h-4 w-4 shrink-0 text-primary transition-transform group-hover:scale-110 sm:h-5 sm:w-5" />
-                          </button>
-                        }
-                      />
-                    </div>
-                  </Suspense>
+                  <div className="mt-4 flex w-full min-w-0 max-w-full sm:mt-5">
+                    <button
+                      type="button"
+                      onClick={() => navigate('/rondas')}
+                      className="group flex min-h-[64px] w-full min-w-0 max-w-full items-center justify-between gap-2 rounded-xl border border-primary/50 bg-primary/15 px-3 py-3 text-left shadow-lg shadow-primary/10 transition-all duration-200 hover:border-primary/70 hover:bg-primary/20 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary sm:gap-3 sm:px-4"
+                    >
+                      <span className="flex min-w-0 flex-1 items-center gap-2.5 sm:gap-3">
+                        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-primary/45 bg-slate-950/70 sm:h-11 sm:w-11">
+                          <Radio className="h-4 w-4 text-primary sm:h-5 sm:w-5" />
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block text-sm font-black leading-tight text-primary-foreground sm:text-base break-words">
+                            Abrir Gestor de Rondas
+                          </span>
+                          <span className="block text-[11px] font-semibold text-slate-300 sm:text-xs break-words">
+                            Central tática de escala e acompanhamento
+                          </span>
+                        </span>
+                      </span>
+                      <Zap className="h-4 w-4 shrink-0 text-primary transition-transform group-hover:scale-110 sm:h-5 sm:w-5" />
+                    </button>
+                  </div>
                 </div>
                 <RoundsHistoryCard agentId={agent.id} />
                 </SectionBoundary>}

@@ -53,9 +53,11 @@ const leaveTypes = [
   { value: 'training', label: 'Treinamento', icon: GraduationCap, color: 'text-blue-400', bgColor: 'bg-blue-500/20 border-blue-500/30' },
 ];
 
+// "12 horas" foi removido daqui por ser idêntico a "Diurno" (mesmo horário
+// 07h→19h, mesma duração) — as duas opções confundiam o agente na hora de
+// escolher o período da folga.
 const PERIODS = [
   { v: '24h' as const, l: '24 horas', emoji: '🕛', hours: 24, start: '07:00', end: '07:00', hint: '24h corridas' },
-  { v: '12h' as const, l: '12 horas', emoji: '⏱️', hours: 12, start: '07:00', end: '19:00', hint: 'sob demanda' },
   { v: 'dia' as const, l: 'Diurno', emoji: '🌅', hours: 12, start: '07:00', end: '19:00', hint: '07h → 19h' },
   { v: 'noite' as const, l: 'Noturno', emoji: '🌙', hours: 12, start: '19:00', end: '07:00', hint: '19h → 07h' },
 ];
@@ -88,10 +90,11 @@ export function LeaveRequestCard({ agentId, agentTeam, agentUnitId }: LeaveReque
   const [teamLeaves, setTeamLeaves] = useState<TeamMemberLeave[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [editingLeaveId, setEditingLeaveId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [selectedType, setSelectedType] = useState('special');
-  const [selectedPeriod, setSelectedPeriod] = useState<'24h' | '12h' | 'dia' | 'noite'>('24h');
+  const [selectedPeriod, setSelectedPeriod] = useState<'24h' | 'dia' | 'noite'>('24h');
   const [selectedMonth, setSelectedMonth] = useState(new Date());
   const [leaveDates, setLeaveDates] = useState<Date[]>([]);
   const [teamLeaveDates, setTeamLeaveDates] = useState<Date[]>([]);
@@ -235,9 +238,24 @@ export function LeaveRequestCard({ agentId, agentTeam, agentUnitId }: LeaveReque
     }
 
     setSelectedDate(date);
+    setEditingLeaveId(null);
     setSelectedType('special');
     setSelectedPeriod('24h');
     setLeaveDescription('');
+    setShowConfirmDialog(true);
+  };
+
+  // Abre o mesmo formulário de registro, mas pré-preenchido para alterar
+  // uma folga já existente (tipo, período, descrição) em vez de criar uma
+  // nova. Só permite editar folgas ainda pendentes — aprovadas/rejeitadas
+  // já foram decididas pela chefia.
+  const handleEditLeave = (leave: AgentLeave) => {
+    setEditingLeaveId(leave.id);
+    setSelectedDate(parseISO(leave.start_date));
+    setSelectedType(leave.leave_type);
+    setSelectedPeriod(((leave as any).period as typeof selectedPeriod) || '24h');
+    setLeaveDescription(leave.reason || '');
+    setShowDetailsDialog(false);
     setShowConfirmDialog(true);
   };
 
@@ -248,32 +266,37 @@ export function LeaveRequestCard({ agentId, agentTeam, agentUnitId }: LeaveReque
       setIsSubmitting(true);
       const dateStr = format(selectedDate, 'yyyy-MM-dd');
       const p = PERIOD_MAP[selectedPeriod];
+      const payload = {
+        leave_type: selectedType,
+        period: selectedPeriod,
+        start_date: dateStr,
+        end_date: dateStr,
+        start_time: p?.start ?? null,
+        end_time: p?.end ?? null,
+        hours_count: p ? computeHours(p.start, p.end, 1) : null,
+        reason: leaveDescription.trim() || null,
+      };
 
-      const { error } = await (supabase as any)
-        .from('agent_leaves')
-        .insert({
-          agent_id: agentId,
-          leave_type: selectedType,
-          period: selectedPeriod,
-          start_date: dateStr,
-          end_date: dateStr,
-          start_time: p?.start ?? null,
-          end_time: p?.end ?? null,
-          hours_count: p ? computeHours(p.start, p.end, 1) : null,
-          reason: leaveDescription.trim() || null,
-        });
+      const { error } = editingLeaveId
+        ? await (supabase as any).from('agent_leaves').update(payload).eq('id', editingLeaveId)
+        : await (supabase as any).from('agent_leaves').insert({ agent_id: agentId, ...payload });
 
       if (error) throw error;
 
       const typeLabel = leaveTypes.find(t => t.value === selectedType)?.label || selectedType;
-      notify.success(`${typeLabel} registrada para ${format(selectedDate, "dd/MM/yyyy", { locale: ptBR })}`);
+      notify.success(
+        editingLeaveId
+          ? `Folga atualizada para ${format(selectedDate, "dd/MM/yyyy", { locale: ptBR })}`
+          : `${typeLabel} registrada para ${format(selectedDate, "dd/MM/yyyy", { locale: ptBR })}`,
+      );
       setShowConfirmDialog(false);
       setSelectedDate(undefined);
+      setEditingLeaveId(null);
       setLeaveDescription('');
       fetchLeaves();
     } catch (error) {
       console.error('Error submitting leave:', error);
-      notify.error('Erro ao registrar folga');
+      notify.error(editingLeaveId ? 'Erro ao alterar folga' : 'Erro ao registrar folga');
     } finally {
       setIsSubmitting(false);
     }
@@ -888,7 +911,10 @@ export function LeaveRequestCard({ agentId, agentTeam, agentUnitId }: LeaveReque
 
       {/* Confirmation Dialog — Compact / Pro */}
       <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
-        <DialogContent className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 border-slate-700 bg-slate-950 p-0 gap-0 max-w-md w-[calc(100vw-1rem)] max-h-[92vh] sm:max-h-[85vh] flex flex-col overflow-hidden font-['IBM_Plex_Sans',_system-ui,_sans-serif]">
+        <DialogContent
+          className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 border-slate-700 bg-slate-950 p-0 gap-0 max-w-md w-[calc(100vw-1rem)] max-h-[92vh] sm:max-h-[85vh] flex flex-col overflow-hidden font-['IBM_Plex_Sans',_system-ui,_sans-serif]"
+          onInteractOutside={(e) => e.preventDefault()}
+        >
 
 
           {/* Header */}
@@ -901,7 +927,7 @@ export function LeaveRequestCard({ agentId, agentTeam, agentUnitId }: LeaveReque
               </svg>
               <div className="min-w-0">
                 <DialogTitle className="text-white text-sm font-semibold tracking-tight leading-tight">
-                  Registrar Folga
+                  {editingLeaveId ? 'Alterar Folga' : 'Registrar Folga'}
                 </DialogTitle>
                 {selectedDate && (
                   <DialogDescription className="text-[11px] text-primary/80 font-mono mt-0.5 truncate">
@@ -947,12 +973,11 @@ export function LeaveRequestCard({ agentId, agentTeam, agentUnitId }: LeaveReque
                 {/* Period */}
                 <div className="space-y-1.5">
                   <Label className="text-[10px] uppercase tracking-widest text-slate-400 font-semibold">Período</Label>
-                  <div className="grid grid-cols-4 gap-1.5">
+                  <div className="grid grid-cols-3 gap-1.5">
                     {PERIODS.map((p) => {
                       const active = selectedPeriod === p.v;
                       const icons: Record<string, JSX.Element> = {
                         '24h': <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>,
-                        '12h': <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 12l3 3"/></svg>,
                         'dia': <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M5.6 18.4L7 17M17 7l1.4-1.4"/></svg>,
                         'noite': <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M20 14A8 8 0 0 1 10 4a8 8 0 1 0 10 10z"/></svg>,
                       };
@@ -999,7 +1024,7 @@ export function LeaveRequestCard({ agentId, agentTeam, agentUnitId }: LeaveReque
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setShowConfirmDialog(false)}
+              onClick={() => { setShowConfirmDialog(false); setEditingLeaveId(null); }}
               className="border-slate-700 text-slate-300 hover:bg-slate-800 h-9 text-xs"
             >
               Cancelar
@@ -1011,11 +1036,11 @@ export function LeaveRequestCard({ agentId, agentTeam, agentUnitId }: LeaveReque
               className="bg-primary hover:bg-primary text-black font-semibold h-9 text-xs min-w-[130px]"
             >
               {isSubmitting ? (
-                <><Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />Registrando...</>
+                <><Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />{editingLeaveId ? 'Salvando...' : 'Registrando...'}</>
               ) : (
                 <>
                   <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 mr-1.5" fill="none" stroke="currentColor" strokeWidth="2.4"><path d="M5 12l5 5L20 7"/></svg>
-                  Confirmar Folga
+                  {editingLeaveId ? 'Salvar Alteração' : 'Confirmar Folga'}
                 </>
               )}
             </Button>
@@ -1139,15 +1164,26 @@ export function LeaveRequestCard({ agentId, agentTeam, agentUnitId }: LeaveReque
                             </Button>
                           </div>
                         ) : (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setConfirmCancelId(leave.id)}
-                            disabled={cancelingId !== null}
-                            className="h-7 px-2 text-red-400 hover:text-red-300 hover:bg-red-500/10 text-[11px] min-h-[36px] active:scale-95 transition-transform"
-                          >
-                            <Trash2 className="h-3.5 w-3.5 mr-1" /> Cancelar folga
-                          </Button>
+                          <div className="flex items-center gap-1.5">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleEditLeave(leave)}
+                              disabled={cancelingId !== null}
+                              className="h-7 px-2 text-primary hover:text-primary hover:bg-primary/10 text-[11px] min-h-[36px] active:scale-95 transition-transform"
+                            >
+                              Editar
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setConfirmCancelId(leave.id)}
+                              disabled={cancelingId !== null}
+                              className="h-7 px-2 text-red-400 hover:text-red-300 hover:bg-red-500/10 text-[11px] min-h-[36px] active:scale-95 transition-transform"
+                            >
+                              <Trash2 className="h-3.5 w-3.5 mr-1" /> Cancelar folga
+                            </Button>
+                          </div>
                         )
                       )}
                     </div>

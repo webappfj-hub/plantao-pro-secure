@@ -31,6 +31,10 @@ export function PanelNav({
   const location = useLocation();
   const confirm = useConfirm();
 
+  // "?home=1" é obrigatório: sem ele, o redirecionamento automático da home
+  // (Index.tsx manda master/admin direto de volta pra /master ou /admin)
+  // cancelava a navegação e prendia o usuário no painel — ele clicava em
+  // "Início"/"Voltar"/"Fechar" e a tela simplesmente não saía do painel.
   const handleBack = async () => {
     const ok = await confirm({
       title: 'Voltar',
@@ -40,7 +44,7 @@ export function PanelNav({
     if (!ok) return;
     const hasInAppHistory = location.key && location.key !== 'default';
     if (hasInAppHistory && window.history.length > 1) navigate(-1);
-    else navigate('/');
+    else navigate('/?home=1');
   };
 
   const handleHome = async () => {
@@ -49,7 +53,7 @@ export function PanelNav({
       description: 'Deseja sair deste painel e voltar à tela inicial?',
       confirmText: 'Ir para início',
     });
-    if (ok) navigate('/');
+    if (ok) navigate('/?home=1');
   };
 
   const handleClose = async () => {
@@ -58,7 +62,7 @@ export function PanelNav({
       description: 'Tem certeza que deseja fechar este painel?',
       confirmText: 'Fechar',
     });
-    if (ok) (onClose ? onClose() : navigate('/'));
+    if (ok) (onClose ? onClose() : navigate('/?home=1'));
   };
 
   const handleLogout = async () => {

@@ -1,8 +1,8 @@
 import { useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ClipboardList, Users2, Building2, Radio, CheckCircle2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { OperationalStatusRibbon } from './OperationalStatusRibbon';
-import { RoundsManagerLazy as RoundsManager } from './RoundsManagerLazy';
 import { useOperationalMetrics } from '@/hooks/useOperationalMetrics';
 import { useOnlineAgents } from '@/hooks/useOnlineAgents';
 import { useVisitorPresence } from '@/hooks/useVisitorPresence';
@@ -79,6 +79,7 @@ function TeamCard({
 }
 
 export function SplitOperationalHero({ onTeamClick }: Props) {
+  const navigate = useNavigate();
   const metrics = useOperationalMetrics();
   const trackedAgents = useOnlineAgents().size;
   const visitorsNow = useVisitorPresence();
@@ -145,23 +146,20 @@ export function SplitOperationalHero({ onTeamClick }: Props) {
 
       {/* Gestor de Rondas quick entry (mobile) */}
       <div className="mt-3 sm:hidden">
-        <RoundsManager
-          customTrigger={
-            <button
-              type="button"
-              aria-label="Abrir Gestor de Rondas"
-              className="flex w-full items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 text-left transition-colors hover:bg-muted"
-            >
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                <ClipboardList className="h-4 w-4" />
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="block text-sm font-semibold text-foreground">Gestor de Rondas</span>
-                <span className="block text-xs text-muted-foreground">Ver rondas em andamento</span>
-              </span>
-            </button>
-          }
-        />
+        <button
+          type="button"
+          onClick={() => navigate('/rondas')}
+          aria-label="Abrir Gestor de Rondas"
+          className="flex w-full items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 text-left transition-colors hover:bg-muted"
+        >
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+            <ClipboardList className="h-4 w-4" />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-semibold text-foreground">Gestor de Rondas</span>
+            <span className="block text-xs text-muted-foreground">Ver rondas em andamento</span>
+          </span>
+        </button>
       </div>
 
       {/* Quick metrics strip */}

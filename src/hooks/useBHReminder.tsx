@@ -50,32 +50,29 @@ export function useBHReminder({
     localStorage.setItem(`bh_reminders_${agentId}`, JSON.stringify(arr));
   }, [agentId]);
 
-  // Check if BH was registered today
+  // Check if BH was registered today. Queries by `created_at` (a real
+  // timestamp) instead of pattern-matching the free-text `description`
+  // column — the old substring check (`"BH - dd/MM/yyyy"`) only matched
+  // entries created through this exact dialog, so any entry inserted by a
+  // different flow (admin adjustment, automatic credit, etc.) was invisible
+  // to it and the reminder kept firing even though BH had been logged.
   const checkBHToday = useCallback(async (): Promise<boolean> => {
     if (!agentId) return false;
 
     try {
       setIsChecking(true);
       const today = new Date();
-      const todayStr = format(today, 'dd/MM/yyyy');
 
-      // Fetch today's BH entries
-      const { data: entries, error } = await supabase
+      const { count, error } = await supabase
         .from('overtime_bank')
-        .select('*')
+        .select('id', { count: 'exact', head: true })
         .eq('agent_id', agentId)
-        .order('created_at', { ascending: false });
+        .gte('created_at', startOfDay(today).toISOString())
+        .lte('created_at', endOfDay(today).toISOString());
 
       if (error) throw error;
 
-      // Check if any entry has today's date in description
-      const hasTodayBH = (entries || []).some((entry: BHEntry) => {
-        if (entry.description) {
-          return entry.description.includes(`BH - ${todayStr}`);
-        }
-        return false;
-      });
-
+      const hasTodayBH = (count ?? 0) > 0;
       setHasBHToday(hasTodayBH);
       return hasTodayBH;
     } catch (error) {
@@ -170,15 +167,13 @@ export function useBHReminder({
 
       if (error) throw error;
 
-      // Extract dates from entries
+      // Days that have at least one entry — based on `created_at` (real
+      // timestamp) rather than parsing "BH - dd/MM/yyyy" out of the
+      // free-text description, which misses entries from other flows
+      // (admin adjustments, automatic credits, etc.).
       const bhDates = new Set<string>();
-      (entries || []).forEach((entry: { description: string | null }) => {
-        if (entry.description) {
-          const match = entry.description.match(/BH - (\d{2}\/\d{2}\/\d{4})/);
-          if (match) {
-            bhDates.add(match[1]);
-          }
-        }
+      (entries || []).forEach((entry: { created_at: string }) => {
+        bhDates.add(format(new Date(entry.created_at), 'dd/MM/yyyy'));
       });
 
       // Count consecutive days without BH (backwards from today)

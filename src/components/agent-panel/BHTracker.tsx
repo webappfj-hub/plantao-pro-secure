@@ -1704,7 +1704,10 @@ export function BHTracker({ agentId, compact = false, isAdmin = false }: BHTrack
 
       {/* Confirmation Dialog */}
       <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
-        <DialogContent className="bg-slate-800 border-slate-700 max-w-md">
+        <DialogContent
+          className="bg-slate-800 border-slate-700 max-w-md"
+          onInteractOutside={(e) => e.preventDefault()}
+        >
           <DialogHeader>
             <DialogTitle className="text-white">Registrar Banco de Horas</DialogTitle>
             <DialogDescription className="text-slate-400">
@@ -1881,7 +1884,10 @@ export function BHTracker({ agentId, compact = false, isAdmin = false }: BHTrack
 
       {/* Edit Dialog */}
       <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-        <DialogContent className="bg-slate-800 border-slate-700">
+        <DialogContent
+          className="bg-slate-800 border-slate-700"
+          onInteractOutside={(e) => e.preventDefault()}
+        >
           <DialogHeader>
             <DialogTitle className="text-white">Editar Registro de BH</DialogTitle>
             <DialogDescription className="text-slate-400">

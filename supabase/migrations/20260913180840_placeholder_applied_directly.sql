@@ -1,0 +1,11 @@
+-- Placeholder: this version was applied directly to the live database
+-- (outside the normal `supabase db push` flow) on 2026-09-13, and this
+-- environment has no Docker available to run `supabase db pull` and
+-- reconstruct the exact diff. Recorded here (as a no-op) only so the
+-- migration ledger has a matching local file and future `db push` runs
+-- don't try to re-apply or conflict with it. If you need the exact SQL
+-- that ran, check the Supabase project's dashboard "Advisors"/logs or the
+-- other 2026-09-13 migration in this same batch
+-- (20260913134638_matricula_rls_ownership_fix.sql), which documents the
+-- confirmed change from that session.
+select 1;

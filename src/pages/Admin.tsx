@@ -249,7 +249,7 @@ export default function Admin() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => navigate('/')}
+                      onClick={() => navigate('/?home=1')}
                       className="border-slate-600 hover:bg-slate-700"
                     >
                       <Home className="h-4 w-4 mr-2" />
