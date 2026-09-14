@@ -716,11 +716,14 @@ export function BHTracker({ agentId, compact = false, isAdmin = false }: BHTrack
       if (dateMatch) {
         newDescription = newDescription!.replace(dateMatch[0], `BH - ${dateStr}`);
         newDescription = newDescription.replace(/\|[^|(]+\([\d.]+h\)/, `| ${periodLabel} (${newHours}h)`);
-      } else if (newDescription) {
-        // Fallback: swap hours only
-        newDescription = newDescription.replace(/\([\d.]+h\)/, `(${newHours}h)`);
       } else {
-        newDescription = `BH - ${dateStr} | ${periodLabel} (${newHours}h)`;
+        // No "BH - dd/MM/yyyy" tag to replace (e.g. an admin balance-adjustment
+        // entry like "Ajuste Admin: ..."). The date lives only inside this text —
+        // there's no real date column — so falling back to "swap hours only"
+        // here silently dropped every date change: the UPDATE still succeeded,
+        // but the entry's logical date never moved. Always (re)embed the tag.
+        const suffix = newDescription ? ` — ${newDescription}` : '';
+        newDescription = `BH - ${dateStr} | ${periodLabel} (${newHours}h)${suffix}`;
       }
 
       const { error } = await supabase
