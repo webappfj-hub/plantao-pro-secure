@@ -91,6 +91,21 @@ export function TeamMembersCard({ unitId, team, currentAgentId, currentAgentName
     }
   }, [unitId, team]);
 
+  // agent_leaves has no unit_id/team column to filter on server-side, so we
+  // subscribe to all changes and just refetch — this is what makes a
+  // colega's folga show up here automatically, without a manual reload.
+  useEffect(() => {
+    if (!unitId || !team) return;
+    const channel = supabase
+      .channel(`team-leaves-${unitId}-${team}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'agent_leaves' }, () => {
+        fetchTeamLeaves();
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [unitId, team]);
+
   const fetchTeamMembers = async () => {
     try {
       setIsLoading(true);

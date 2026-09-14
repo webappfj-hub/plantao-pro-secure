@@ -26,6 +26,16 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
   Clock,
   DollarSign,
   Edit3,
@@ -39,7 +49,9 @@ import {
   Wallet,
   History,
   Filter,
-  Calendar
+  Calendar,
+  Trash2,
+  Pencil
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -113,6 +125,15 @@ export function AgentBHManagement({ onDataChange }: Props) {
   const [bulkTeam, setBulkTeam] = useState('');
   const [bulkLimit, setBulkLimit] = useState('');
   const [isBulkSaving, setIsBulkSaving] = useState(false);
+
+  // Individual entry edit/delete states
+  const [entryEditOpen, setEntryEditOpen] = useState(false);
+  const [editingBhEntry, setEditingBhEntry] = useState<BHEntry | null>(null);
+  const [editEntryHours, setEditEntryHours] = useState('');
+  const [editEntryDescription, setEditEntryDescription] = useState('');
+  const [isEntrySaving, setIsEntrySaving] = useState(false);
+  const [entryToDeleteId, setEntryToDeleteId] = useState<string | null>(null);
+  const [isEntryDeleting, setIsEntryDeleting] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -320,6 +341,70 @@ export function AgentBHManagement({ onDataChange }: Props) {
       toast.error('Erro ao atualizar em lote');
     } finally {
       setIsBulkSaving(false);
+    }
+  };
+
+  const openEntryEdit = (entry: BHEntry) => {
+    setEditingBhEntry(entry);
+    setEditEntryHours(Math.abs(Number(entry.hours)).toString());
+    setEditEntryDescription(entry.description || '');
+    setEntryEditOpen(true);
+  };
+
+  const handleSaveEntry = async () => {
+    if (!editingBhEntry) return;
+    const hoursVal = parseFloat(editEntryHours.replace(',', '.'));
+    if (isNaN(hoursVal) || hoursVal <= 0) {
+      toast.error('Informe um número de horas válido');
+      return;
+    }
+    try {
+      setIsEntrySaving(true);
+      const signedHours = editingBhEntry.operation_type === 'debit' ? -Math.abs(hoursVal) : Math.abs(hoursVal);
+      const { error } = await supabase
+        .from('overtime_bank')
+        .update({ hours: signedHours, description: editEntryDescription.trim() || null })
+        .eq('id', editingBhEntry.id);
+      if (error) throw error;
+
+      toast.success('Registro de BH atualizado');
+      setEntryEditOpen(false);
+      setEditingBhEntry(null);
+      fetchData();
+      onDataChange?.();
+    } catch (err: any) {
+      console.error('Error updating overtime_bank entry:', err);
+      const isPermission = err?.code === '42501' || /permission|policy|row-level/i.test(err?.message || '');
+      toast.error(isPermission
+        ? 'Sem permissão para editar este registro (RLS). Verifique se as migrations de RLS foram aplicadas no banco.'
+        : `Erro ao atualizar registro: ${err?.message || 'erro desconhecido'}`);
+    } finally {
+      setIsEntrySaving(false);
+    }
+  };
+
+  const handleDeleteEntry = async () => {
+    if (!entryToDeleteId) return;
+    try {
+      setIsEntryDeleting(true);
+      const { error } = await supabase
+        .from('overtime_bank')
+        .delete()
+        .eq('id', entryToDeleteId);
+      if (error) throw error;
+
+      toast.success('Registro de BH excluído');
+      setEntryToDeleteId(null);
+      fetchData();
+      onDataChange?.();
+    } catch (err: any) {
+      console.error('Error deleting overtime_bank entry:', err);
+      const isPermission = err?.code === '42501' || /permission|policy|row-level/i.test(err?.message || '');
+      toast.error(isPermission
+        ? 'Sem permissão para excluir este registro (RLS). Verifique se as migrations de RLS foram aplicadas no banco.'
+        : `Erro ao excluir registro: ${err?.message || 'erro desconhecido'}`);
+    } finally {
+      setIsEntryDeleting(false);
     }
   };
 
@@ -552,6 +637,7 @@ export function AgentBHManagement({ onDataChange }: Props) {
                   <TableHead className="text-slate-400">Tipo</TableHead>
                   <TableHead className="text-slate-400">Horas</TableHead>
                   <TableHead className="text-slate-400">Descrição</TableHead>
+                  <TableHead className="text-slate-400 text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -581,6 +667,28 @@ export function AgentBHManagement({ onDataChange }: Props) {
                     </TableCell>
                     <TableCell className="text-slate-400 text-xs max-w-[200px] truncate">
                       {entry.description || '-'}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-7 w-7 text-slate-400 hover:text-white"
+                          onClick={() => openEntryEdit(entry)}
+                          title="Editar registro"
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-7 w-7 text-red-400 hover:text-red-300"
+                          onClick={() => setEntryToDeleteId(entry.id)}
+                          title="Excluir registro"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -774,6 +882,73 @@ export function AgentBHManagement({ onDataChange }: Props) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Edit individual overtime_bank entry */}
+      <Dialog open={entryEditOpen} onOpenChange={setEntryEditOpen}>
+        <DialogContent className="bg-slate-900 border-slate-700 text-white">
+          <DialogHeader>
+            <DialogTitle>Retificar Registro de BH</DialogTitle>
+            <DialogDescription className="text-slate-400">
+              {editingBhEntry?.agent_name} · {editingBhEntry && format(new Date(editingBhEntry.created_at), 'dd/MM/yyyy HH:mm', { locale: ptBR })}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Horas ({editingBhEntry?.operation_type === 'credit' ? 'crédito' : 'débito'})</Label>
+              <Input
+                type="text"
+                inputMode="decimal"
+                value={editEntryHours}
+                onChange={(e) => setEditEntryHours(e.target.value.replace(/[^0-9.,]/g, ''))}
+                className="bg-slate-700/50 border-slate-600 font-mono"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Descrição</Label>
+              <Textarea
+                value={editEntryDescription}
+                onChange={(e) => setEditEntryDescription(e.target.value)}
+                className="bg-slate-700/50 border-slate-600"
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEntryEditOpen(false)} className="border-slate-600">
+              Cancelar
+            </Button>
+            <Button onClick={handleSaveEntry} disabled={isEntrySaving} className="bg-primary hover:bg-primary">
+              {isEntrySaving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Pencil className="h-4 w-4 mr-2" />}
+              {isEntrySaving ? 'Salvando...' : 'Salvar'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete individual overtime_bank entry */}
+      <AlertDialog open={!!entryToDeleteId} onOpenChange={(open) => !open && setEntryToDeleteId(null)}>
+        <AlertDialogContent className="bg-slate-900 border-slate-700 text-white">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-red-400">Excluir Registro de BH</AlertDialogTitle>
+            <AlertDialogDescription className="text-slate-400">
+              Essa ação não pode ser desfeita. O registro será removido permanentemente do banco de horas do agente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isEntryDeleting} className="border-slate-600 bg-transparent text-white hover:bg-slate-800 hover:text-white">
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteEntry}
+              disabled={isEntryDeleting}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              {isEntryDeleting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Trash2 className="h-4 w-4 mr-2" />}
+              {isEntryDeleting ? 'Excluindo...' : 'Excluir'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

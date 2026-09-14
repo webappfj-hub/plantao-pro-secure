@@ -3,7 +3,16 @@
     "allow": [
       "Bash(git push *)",
       "Bash(git add *)",
-      "Bash(git commit -m 'fix: corrige valor padrão da hora de BH de 15.75 para 2 em todos os arquivos *)"
+      "Bash(git commit -m 'fix: corrige valor padrão da hora de BH de 15.75 para 2 em todos os arquivos *)",
+      "Bash(xargs grep -l \"agent_leaves\")",
+      "Bash(git -C plantao-pro-secure-main log --oneline -5)",
+      "Bash(git fetch *)",
+      "Bash(git remote *)",
+      "Bash(git cherry-pick *)",
+      "mcp__bdce63f1-a2ba-4d1c-88d9-a02d97ff39d5__list_projects",
+      "Bash(git commit -m ' *)",
+      "Bash(git rm *)",
+      "Bash(npx tsc *)"
     ]
   },
   "hooks": {

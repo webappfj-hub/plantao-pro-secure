@@ -12,9 +12,9 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { notify } from '@/lib/notify';
-import { CalendarOff, Loader2, Trash2, Palmtree, Stethoscope, Star, GraduationCap, CalendarPlus, Users, User, MessageCircle, FileDown } from 'lucide-react';
+import { CalendarOff, Loader2, Trash2, Palmtree, Stethoscope, Star, GraduationCap, CalendarPlus, Users, User, MessageCircle, FileDown, CheckCircle2 } from 'lucide-react';
 import { EmptyState } from '@/components/ui/data-states';
-import { format, parseISO, differenceInDays, isAfter, startOfDay, isSameDay, addDays } from 'date-fns';
+import { format, parseISO, differenceInDays, isAfter, isBefore, startOfDay, isSameDay, addDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { TeamMemberDialog } from './TeamMemberDialog';
 
@@ -125,6 +125,22 @@ export function LeaveRequestCard({ agentId, agentTeam, agentUnitId }: LeaveReque
     };
     window.addEventListener('online', handleOnline);
     return () => window.removeEventListener('online', handleOnline);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [agentId, agentTeam, agentUnitId]);
+
+  // agent_leaves has no unit_id/team column to filter on server-side, so we
+  // subscribe to all changes and just refetch — leave writes are infrequent
+  // enough that this is cheap. This is what makes a colega's folga show up
+  // on everyone else's panel automatically, without a manual reload.
+  useEffect(() => {
+    const channel = supabase
+      .channel(`agent-leaves-${agentId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'agent_leaves' }, () => {
+        fetchLeaves();
+        if (agentTeam && agentUnitId) fetchTeamLeaves();
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [agentId, agentTeam, agentUnitId]);
 
@@ -1225,9 +1241,10 @@ function LeaveItem({ leave, onDelete }: { leave: AgentLeave; onDelete?: (id: str
   const startDate = parseISO(leave.start_date);
   const endDate = parseISO(leave.end_date);
   const days = differenceInDays(endDate, startDate) + 1;
+  const isPast = leave.status === 'approved' && isBefore(startOfDay(endDate), startOfDay(new Date()));
 
   return (
-    <div className="flex items-center justify-between p-3 rounded-lg bg-slate-700/30 border border-slate-600/50">
+    <div className={`flex items-center justify-between p-3 rounded-lg border ${isPast ? 'bg-slate-800/30 border-slate-700/40 opacity-70' : 'bg-slate-700/30 border-slate-600/50'}`}>
       <div className="flex items-center gap-3">
         <div className={`p-2 rounded-lg ${typeInfo.color}`}>
           {typeInfo.icon}
@@ -1238,6 +1255,12 @@ function LeaveItem({ leave, onDelete }: { leave: AgentLeave; onDelete?: (id: str
             <Badge variant="outline" className={`text-xs ${statusInfo.color}`}>
               {statusInfo.label}
             </Badge>
+            {isPast && (
+              <Badge variant="outline" className="text-xs bg-slate-500/20 text-slate-400 border-slate-500/30">
+                <CheckCircle2 className="h-3 w-3 mr-1" />
+                Gozada
+              </Badge>
+            )}
           </div>
           <p className="text-sm text-slate-400">
             {format(startDate, "dd/MM", { locale: ptBR })}{days > 1 ? ` - ${format(endDate, "dd/MM/yyyy", { locale: ptBR })}` : `/${format(startDate, "yyyy", { locale: ptBR })}`} ({days} dia{days > 1 ? 's' : ''})

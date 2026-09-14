@@ -742,9 +742,12 @@ export function BHTracker({ agentId, compact = false, isAdmin = false }: BHTrack
       setShowEditDialog(false);
       setEditingEntry(null);
       fetchBHData();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating BH entry:', error);
-      toast.error('Erro ao atualizar registro');
+      const isPermission = error?.code === '42501' || /permission|policy|row-level/i.test(error?.message || '');
+      toast.error(isPermission
+        ? 'Sem permissão para editar este registro. Fale com o administrador.'
+        : `Erro ao atualizar registro: ${error?.message || 'tente novamente'}`);
     } finally {
       setIsEditing(false);
     }
@@ -785,9 +788,12 @@ export function BHTracker({ agentId, compact = false, isAdmin = false }: BHTrack
       setShowDeleteConfirm(false);
       setEntryToDelete(null);
       fetchBHData();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error removing BH entry:', error);
-      toast.error('Erro ao remover registro');
+      const isPermission = error?.code === '42501' || /permission|policy|row-level/i.test(error?.message || '');
+      toast.error(isPermission
+        ? 'Sem permissão para excluir este registro. Fale com o administrador.'
+        : `Erro ao remover registro: ${error?.message || 'tente novamente'}`);
     } finally {
       setIsDeleting(false);
     }
