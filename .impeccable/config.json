@@ -1,0 +1,17 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "side-tab",
+        "value": "*",
+        "files": [
+          "src/components/agent-panel/BHTracker.tsx"
+        ],
+        "createdAt": "2026-09-14T00:18:09.532Z",
+        "reason": "Pre-existing calendar legend/day-modifier borderLeft accents (current/previous BH period swatches), not a decorative side-tab card border. Not touched this session; functional category indicator in a small legend chip."
+      }
+    ]
+  }
+}
