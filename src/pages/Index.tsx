@@ -33,7 +33,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, AlertTriangle, Eye, EyeOff, UserCheck, Lock, Fingerprint, Shield, ShieldCheck, Users, KeyRound, Info, Mail, Calendar, Clock, BarChart3, RefreshCw, Target, Building2, Award, CheckCircle2, Zap, Radio, Settings, ChevronDown, User } from 'lucide-react';
+import { Loader2, AlertTriangle, Eye, EyeOff, UserCheck, Lock, Fingerprint, Shield, ShieldCheck, Users, KeyRound, Info, Mail, Calendar, Clock, BarChart3, RefreshCw, Target, Building2, Award, CheckCircle2, Zap, Radio, Settings, ChevronDown, User, LogOut } from 'lucide-react';
 
 
 import { Card, CardContent } from '@/components/ui/card';
@@ -119,7 +119,26 @@ function todayLongLabel(): string {
 }
 
 export default function Index() {
-  const { user, isLoading, signIn, signUp, setMasterSession, isAdmin, isMaster, userRole } = useAuth();
+  const { user, isLoading, signIn, signUp, setMasterSession, isAdmin, isMaster, userRole, signOut } = useAuth();
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  const handleLogout = async () => {
+    if (isLoggingOut) return;
+    setIsLoggingOut(true);
+    try {
+      await Promise.race([
+        signOut(),
+        new Promise((resolve) => setTimeout(resolve, 1200)),
+      ]);
+    } catch {
+      /* ignore */
+    }
+    try {
+      window.location.replace('/');
+    } catch {
+      window.location.href = '/';
+    }
+  };
   const { agent } = useAgentProfile();
   const { enabled: registrationsEnabled } = useRegistrationsEnabled();
   const navigate = useNavigate();
@@ -1448,11 +1467,19 @@ export default function Index() {
     );
   }
 
-  // Usuário autenticado vai direto para o painel operacional (Seção 13) —
-  // não a home pública de marketing. Master/admin continuam navegando pela
-  // sidebar normalmente (Painel Master / Admin), essa tela é só para /.
-  if (user) {
-    return <Navigate to="/agent-panel" replace />;
+  // Master/admin vão direto para seus painéis (igual ao useEffect acima),
+  // exceto quando ?home=1 pede explicitamente para ficar na home (ex: botão
+  // "Início" do painel). Agente comum NÃO é mais forçado para /agent-panel —
+  // ele fica na home, que mostra "Bem-vindo, {agente}" e o botão "Meu Painel"
+  // (ver JSX abaixo). Sem essa checagem, um agente logado nunca chegava a ver
+  // esse indicador nem o botão de sair, pois este guard já redirecionava antes.
+  if (user && userRole !== null) {
+    const homeParams = new URLSearchParams(window.location.search);
+    const stayOnHome = homeParams.get('home') === '1';
+    if (!stayOnHome) {
+      if (isMaster) return <Navigate to="/master" replace />;
+      if (isAdmin) return <Navigate to="/admin" replace />;
+    }
   }
 
   return (
@@ -1575,7 +1602,7 @@ export default function Index() {
       <header className="relative z-20 flex min-h-0 flex-1 lg:flex-none flex-col overflow-visible">
         {user && (
           <div
-            className="w-full max-w-6xl mx-auto pt-4"
+            className="w-full max-w-6xl mx-auto pt-4 flex items-center gap-2"
             style={{ paddingLeft: 'var(--home-pad-x)', paddingRight: 'var(--home-pad-x)' }}
           >
             <button
@@ -1589,6 +1616,16 @@ export default function Index() {
             >
               <User className="h-3.5 w-3.5" />
               Voltar para o Meu Painel
+            </button>
+            <button
+              type="button"
+              data-testid="home-logout-button"
+              onClick={handleLogout}
+              disabled={isLoggingOut}
+              className="inline-flex items-center gap-2 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-destructive hover:bg-destructive/20 hover:border-destructive/60 transition disabled:opacity-60"
+            >
+              {isLoggingOut ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <LogOut className="h-3.5 w-3.5" />}
+              Sair
             </button>
           </div>
         )}
