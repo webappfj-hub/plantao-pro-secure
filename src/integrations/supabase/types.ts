@@ -502,6 +502,7 @@ export type Database = {
           compensation_date: string | null
           completed_at: string | null
           created_at: string
+          description: string | null
           duration_hours: number | null
           end_time: string
           id: string
@@ -512,6 +513,7 @@ export type Database = {
           start_time: string
           status: string
           team: string | null
+          unit_id: string | null
           updated_at: string
         }
         Insert: {
@@ -519,6 +521,7 @@ export type Database = {
           compensation_date?: string | null
           completed_at?: string | null
           created_at?: string
+          description?: string | null
           duration_hours?: number | null
           end_time?: string
           id?: string
@@ -529,6 +532,7 @@ export type Database = {
           start_time?: string
           status?: string
           team?: string | null
+          unit_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -536,6 +540,7 @@ export type Database = {
           compensation_date?: string | null
           completed_at?: string | null
           created_at?: string
+          description?: string | null
           duration_hours?: number | null
           end_time?: string
           id?: string
@@ -546,6 +551,7 @@ export type Database = {
           start_time?: string
           status?: string
           team?: string | null
+          unit_id?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -554,6 +560,13 @@ export type Database = {
             columns: ["agent_id"]
             isOneToOne: false
             referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_shifts_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "units"
             referencedColumns: ["id"]
           },
         ]

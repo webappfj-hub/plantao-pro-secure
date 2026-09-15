@@ -127,7 +127,7 @@ function RondasHero({ team, children }: { team?: string | null; children?: React
             </span>
             {team ? `Equipe ${team} · em operação` : 'Operação em tempo real'}
           </span>
-          <h2 className="mt-1 truncate text-lg font-bold leading-tight text-white drop-shadow-sm sm:text-xl">Gestor de Rondas</h2>
+          <h2 className="mt-1 truncate text-lg font-bold leading-tight text-white drop-shadow-sm sm:text-xl">Central de operação</h2>
         </div>
       </div>
       {children && <div className="relative border-t border-white/10 bg-black/30 px-3 py-2 backdrop-blur-md sm:px-4">{children}</div>}

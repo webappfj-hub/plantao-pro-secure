@@ -64,7 +64,7 @@ export function BHManagerImproved() {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setEntries(data || []);
+      setEntries((data || []) as BankEntry[]);
     } catch (error) {
       console.error('Erro ao buscar banco de horas:', error);
       toast({
