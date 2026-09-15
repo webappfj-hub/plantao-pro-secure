@@ -64,7 +64,7 @@ export function CompletedHistoryCard() {
           .limit(100);
 
         if (bhError) throw bhError;
-        setBankHistory(bhData || []);
+        setBankHistory((bhData || []) as BankEntry[]);
       } catch (error) {
         console.error('Erro ao buscar histórico:', error);
       } finally {

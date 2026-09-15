@@ -72,7 +72,7 @@ export function ShiftManagerImproved() {
         .order('shift_date', { ascending: false });
 
       if (error) throw error;
-      setShifts(data || []);
+      setShifts((data || []) as unknown as Shift[]);
     } catch (error) {
       console.error('Erro ao buscar plantões:', error);
       toast({
