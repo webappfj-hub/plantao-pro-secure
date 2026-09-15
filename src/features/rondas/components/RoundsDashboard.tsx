@@ -34,43 +34,124 @@ import { enqueuePatrolAction, flushPatrolQueue, getQueueLength } from '../offlin
 import type { PatrolSlot } from '../types';
 
 /**
- * Radar de operação — nada de foto: um círculo de varredura (o símbolo
- * universal de vigilância/segurança) desenhado só em SVG/CSS, leve (zero
- * bytes de imagem) e que se liga de verdade ao tema de rondas. O feixe gira
- * sozinho via CSS puro (GPU, sem custo de JS); em `lowMotion` ele para e vira
- * um anel estático — nunca deixa de existir, só some o movimento.
+ * Radar de operação — varredura realista de PPI (plan position indicator):
+ * feixe cônico com rastro que decai, anéis de alcance com marcações de
+ * azimute, ecos que acendem no instante em que o feixe passa por eles e
+ * anel de retorno expandindo. Tudo em SVG/CSS (zero imagem, GPU); em
+ * `lowMotion` o radar continua desenhado, apenas parado.
  */
 function RadarSweep({ color, lowMotion }: { color: string; lowMotion: boolean }) {
+  // Ecos posicionados em azimutes conhecidos: o atraso da animação é
+  // calculado a partir do ângulo, então cada eco acende exatamente quando
+  // o feixe cruza sua posição (ciclo de 6s = 360°).
+  const echoes = [
+    { angle: 38, dist: 0.72 },
+    { angle: 145, dist: 0.46 },
+    { angle: 252, dist: 0.83 },
+  ];
+  const cycle = 6;
+
   return (
-    <div className="pointer-events-none absolute -right-6 -top-10 h-48 w-48 opacity-90 sm:-right-2 sm:-top-6 sm:h-56 sm:w-56">
-      <svg viewBox="0 0 200 200" className="h-full w-full">
+    <div className="pointer-events-none absolute -right-8 -top-12 h-56 w-56 sm:-right-4 sm:-top-8 sm:h-64 sm:w-64">
+      {/* Feixe cônico com rastro — camada CSS, mais suave que wedge em SVG */}
+      <div
+        className={cn('absolute inset-[6%] rounded-full', !lowMotion && 'radar-sweep')}
+        style={{
+          background: `conic-gradient(from 0deg, ${color}00 0deg, ${color}00 250deg, ${color}0f 300deg, ${color}2e 340deg, ${color}7a 356deg, ${color}e6 359.5deg, ${color}00 360deg)`,
+          maskImage: 'radial-gradient(circle at center, #000 62%, transparent 100%)',
+          WebkitMaskImage: 'radial-gradient(circle at center, #000 62%, transparent 100%)',
+        }}
+      />
+      <svg viewBox="0 0 200 200" className="relative h-full w-full">
         <defs>
-          <radialGradient id="radar-fade" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor={color} stopOpacity="0.55" />
+          <radialGradient id="radar-core" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stopColor={color} stopOpacity="0.22" />
+            <stop offset="70%" stopColor={color} stopOpacity="0.05" />
             <stop offset="100%" stopColor={color} stopOpacity="0" />
           </radialGradient>
-          <clipPath id="radar-circle-clip">
-            <circle cx="100" cy="100" r="92" />
-          </clipPath>
         </defs>
-        {[92, 66, 40].map((r) => (
-          <circle key={r} cx="100" cy="100" r={r} fill="none" stroke={color} strokeOpacity="0.28" strokeWidth="1" />
-        ))}
-        <line x1="100" y1="8" x2="100" y2="192" stroke={color} strokeOpacity="0.14" strokeWidth="1" />
-        <line x1="8" y1="100" x2="192" y2="100" stroke={color} strokeOpacity="0.14" strokeWidth="1" />
-        <g clipPath="url(#radar-circle-clip)">
-          <rect
-            x="100" y="100" width="92" height="92"
-            fill="url(#radar-fade)"
-            className={lowMotion ? undefined : 'radar-rotate'}
-            style={{ transformOrigin: '100px 100px' }}
+
+        <circle cx="100" cy="100" r="88" fill="url(#radar-core)" />
+
+        {/* Anéis de alcance */}
+        {[88, 66, 44, 22].map((r, i) => (
+          <circle
+            key={r}
+            cx="100"
+            cy="100"
+            r={r}
+            fill="none"
+            stroke={color}
+            strokeOpacity={i === 0 ? 0.42 : 0.2}
+            strokeWidth={i === 0 ? 1.2 : 0.8}
           />
-        </g>
-        {/* "Blips" — presenças detectadas no raio, reforça a leitura de vigilância ativa */}
-        {[{ x: 132, y: 68 }, { x: 70, y: 122 }].map((p, i) => (
-          <circle key={i} cx={p.x} cy={p.y} r="3" fill={color} className={lowMotion ? undefined : 'radar-blip'} style={{ animationDelay: `${i * 900}ms` }} />
         ))}
-        <circle cx="100" cy="100" r="92" fill="none" stroke={color} strokeOpacity="0.5" strokeWidth="1.5" />
+
+        {/* Eixos e diagonais discretas */}
+        {[0, 45, 90, 135].map((a) => (
+          <line
+            key={a}
+            x1="100"
+            y1="12"
+            x2="100"
+            y2="188"
+            stroke={color}
+            strokeOpacity={a % 90 === 0 ? 0.16 : 0.08}
+            strokeWidth="0.8"
+            transform={`rotate(${a} 100 100)`}
+          />
+        ))}
+
+        {/* Marcações de azimute a cada 15° — detalhe de instrumento */}
+        {Array.from({ length: 24 }, (_, i) => i * 15).map((a) => {
+          const major = a % 45 === 0;
+          return (
+            <line
+              key={a}
+              x1="100"
+              y1={major ? 78 : 83}
+              x2="100"
+              y2="88"
+              stroke={color}
+              strokeOpacity={major ? 0.5 : 0.26}
+              strokeWidth={major ? 1.1 : 0.7}
+              transform={`rotate(${a} 100 100)`}
+              style={{ transformBox: 'view-box' }}
+            />
+          );
+        })}
+
+        {/* Ecos detectados + anel de retorno, sincronizados com o feixe */}
+        {echoes.map(({ angle, dist }) => {
+          const rad = ((angle - 90) * Math.PI) / 180;
+          const cx = 100 + Math.cos(rad) * 82 * dist;
+          const cy = 100 + Math.sin(rad) * 82 * dist;
+          const delay = `-${((360 - angle) / 360) * cycle}s`;
+          return (
+            <g key={angle}>
+              <circle
+                cx={cx}
+                cy={cy}
+                r="3"
+                fill="none"
+                stroke={color}
+                strokeWidth="1"
+                className={lowMotion ? undefined : 'radar-echo-ring'}
+                style={lowMotion ? { opacity: 0.35 } : { animationDelay: delay }}
+              />
+              <circle
+                cx={cx}
+                cy={cy}
+                r="2.4"
+                fill={color}
+                className={lowMotion ? undefined : 'radar-echo'}
+                style={lowMotion ? { opacity: 0.5 } : { animationDelay: delay }}
+              />
+            </g>
+          );
+        })}
+
+        <circle cx="100" cy="100" r="1.8" fill={color} fillOpacity="0.8" />
       </svg>
     </div>
   );

@@ -402,6 +402,42 @@
   /* Gancho de classe pro keyframe tacticalPulse (definido mais abaixo) —
      usado nos "blips" do radar do Gestor de Rondas. */
   .radar-blip { animation: tacticalPulse 1.8s ease-in-out infinite; transform-origin: center; }
+
+  /* ---- Radar realista do Gestor de Rondas ----
+     Feixe cônico girando (GPU), ecos que acendem quando o feixe passa e
+     anel de retorno que se expande — tudo em CSS puro, sem imagem. */
+  @keyframes radar-sweep-rotate {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+  .radar-sweep {
+    animation: radar-sweep-rotate 6s linear infinite;
+    transform-origin: 50% 50%;
+    will-change: transform;
+  }
+
+  @keyframes radar-echo {
+    0%, 4% { opacity: 1; transform: scale(1.35); }
+    18% { opacity: 0.85; transform: scale(1); }
+    70% { opacity: 0.18; transform: scale(1); }
+    100% { opacity: 0; transform: scale(0.9); }
+  }
+  .radar-echo {
+    animation: radar-echo 6s linear infinite;
+    transform-origin: center;
+    transform-box: fill-box;
+  }
+
+  @keyframes radar-echo-ring {
+    0%, 3% { opacity: 0.75; r: 3; }
+    35% { opacity: 0; r: 13; }
+    100% { opacity: 0; r: 13; }
+  }
+  .radar-echo-ring { animation: radar-echo-ring 6s linear infinite; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .radar-sweep, .radar-echo, .radar-echo-ring { animation: none !important; }
+  }
 }
 
 
