@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { RoundsDashboard } from '@/features/rondas/components/RoundsDashboard';
+import { RoundsHeroBanner } from '@/features/rondas/components/RoundsHeroBanner';
 import { BackButton } from '@/components/BackButton';
 import { MobileBottomNav } from '@/components/layout/MobileBottomNav';
 import { useAuth } from '@/contexts/AuthContext';
@@ -73,7 +74,10 @@ export default function RondasCommand() {
         ) : blocked ? (
           <RoundsAccessRestricted />
         ) : (
-          <RoundsDashboard />
+          <>
+            <RoundsHeroBanner />
+            <RoundsDashboard />
+          </>
         )}
       </main>
       <MobileBottomNav />
