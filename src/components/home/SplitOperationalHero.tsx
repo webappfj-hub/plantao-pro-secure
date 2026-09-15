@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ClipboardList, Users2, Building2, Radio, CheckCircle2 } from 'lucide-react';
+import { ClipboardList, Users2, Building2, Radio, CheckCircle2, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { OperationalStatusRibbon } from './OperationalStatusRibbon';
 import { useOperationalMetrics } from '@/hooks/useOperationalMetrics';
@@ -144,21 +144,30 @@ export function SplitOperationalHero({ onTeamClick }: Props) {
         </div>
       </div>
 
-      {/* Gestor de Rondas quick entry (mobile) */}
-      <div className="mt-3 sm:hidden">
+      {/* Gestor de Rondas — destaque principal (mobile) */}
+      <div className="mt-4 sm:hidden">
         <button
           type="button"
           onClick={() => navigate('/rondas')}
           aria-label="Abrir Gestor de Rondas"
-          className="flex w-full items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 text-left transition-colors hover:bg-muted"
+          className="group relative flex w-full items-center gap-3.5 overflow-hidden rounded-xl border border-primary/40 bg-gradient-to-r from-primary/15 via-primary/[0.07] to-transparent px-4 py-3.5 text-left shadow-sm ring-1 ring-inset ring-primary/10 transition-all duration-200 hover:border-primary/60 hover:shadow-md active:scale-[0.995] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
         >
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-            <ClipboardList className="h-4 w-4" />
+          <span aria-hidden className="absolute inset-y-0 left-0 w-[3px] bg-primary" />
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-primary/30 bg-primary/15 text-primary">
+            <ClipboardList className="h-5 w-5" strokeWidth={2.2} />
           </span>
           <span className="min-w-0 flex-1">
-            <span className="block text-sm font-semibold text-foreground">Gestor de Rondas</span>
-            <span className="block text-xs text-muted-foreground">Ver rondas em andamento</span>
+            <span className="flex items-center gap-2">
+              <span className="block text-[15px] font-bold tracking-tight text-foreground">Gestor de Rondas</span>
+              <span className="rounded-sm border border-primary/30 bg-primary/10 px-1.5 py-[1px] text-[9px] font-bold uppercase tracking-wider text-primary">
+                Operacional
+              </span>
+            </span>
+            <span className="mt-0.5 block text-xs text-muted-foreground">
+              Escala, cronômetro, alarme e histórico
+            </span>
           </span>
+          <ChevronRight className="h-5 w-5 shrink-0 text-primary transition-transform duration-200 group-hover:translate-x-0.5" strokeWidth={2.4} />
         </button>
       </div>
 
