@@ -918,18 +918,15 @@ body {
 
 /* ================================
    BLOQUEIO FINAL DO SELO LOVABLE
+   (seletores restritos ao próprio selo — não afeta o layout do app)
    ================================ */
-#lovable-badge, 
+#lovable-badge,
 .lovable-badge,
-[id*="lovable"],
-[class*="lovable"],
-a[href*="lovable.dev"],
-div[style*="bottom: 0"][style*="right: 0"][style*="fixed"] {
+a#lovable-badge-open,
+a[href*="lovable.dev/projects"],
+a[href^="https://lovable.dev"][target="_blank"] {
     display: none !important;
-    visibility: hidden !important;
-    opacity: 0 !important;
     pointer-events: none !important;
-    z-index: -9999 !important;
 }
 
 /* 3D Team Icons — Idle Float */
