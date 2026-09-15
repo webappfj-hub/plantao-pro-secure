@@ -370,10 +370,14 @@ export type Database = {
           approved_by: string | null
           created_at: string
           end_date: string
+          end_time: string | null
+          hours_count: number | null
           id: string
           leave_type: string
+          period: string | null
           reason: string | null
           start_date: string
+          start_time: string | null
           status: string
           updated_at: string
         }
@@ -383,10 +387,14 @@ export type Database = {
           approved_by?: string | null
           created_at?: string
           end_date: string
+          end_time?: string | null
+          hours_count?: number | null
           id?: string
           leave_type: string
+          period?: string | null
           reason?: string | null
           start_date: string
+          start_time?: string | null
           status?: string
           updated_at?: string
         }
@@ -396,10 +404,14 @@ export type Database = {
           approved_by?: string | null
           created_at?: string
           end_date?: string
+          end_time?: string | null
+          hours_count?: number | null
           id?: string
           leave_type?: string
+          period?: string | null
           reason?: string | null
           start_date?: string
+          start_time?: string | null
           status?: string
           updated_at?: string
         }
