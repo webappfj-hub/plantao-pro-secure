@@ -99,6 +99,7 @@ export type Database = {
           agent_id: string
           clicked: boolean
           completed: boolean
+          converted: boolean
           device_info: Json | null
           id: string
           view_duration_seconds: number | null
@@ -109,6 +110,7 @@ export type Database = {
           agent_id: string
           clicked?: boolean
           completed?: boolean
+          converted?: boolean
           device_info?: Json | null
           id?: string
           view_duration_seconds?: number | null
@@ -119,6 +121,7 @@ export type Database = {
           agent_id?: string
           clicked?: boolean
           completed?: boolean
+          converted?: boolean
           device_info?: Json | null
           id?: string
           view_duration_seconds?: number | null
@@ -425,12 +428,81 @@ export type Database = {
           },
         ]
       }
+      agent_messages: {
+        Row: {
+          created_at: string
+          id: string
+          message: string
+          read: boolean
+          recipient_id: string
+          sender_id: string
+          sender_name: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message: string
+          read?: boolean
+          recipient_id: string
+          sender_id: string
+          sender_name?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message?: string
+          read?: boolean
+          recipient_id?: string
+          sender_id?: string
+          sender_name?: string | null
+        }
+        Relationships: []
+      }
+      agent_presence: {
+        Row: {
+          agent_id: string | null
+          created_at: string
+          id: string
+          last_seen: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          agent_id?: string | null
+          created_at?: string
+          id?: string
+          last_seen?: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          agent_id?: string | null
+          created_at?: string
+          id?: string
+          last_seen?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_presence_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       agent_shifts: {
         Row: {
           agent_id: string
           compensation_date: string | null
           completed_at: string | null
           created_at: string
+          duration_hours: number | null
           end_time: string
           id: string
           is_vacation: boolean
@@ -439,6 +511,7 @@ export type Database = {
           shift_type: string
           start_time: string
           status: string
+          team: string | null
           updated_at: string
         }
         Insert: {
@@ -446,6 +519,7 @@ export type Database = {
           compensation_date?: string | null
           completed_at?: string | null
           created_at?: string
+          duration_hours?: number | null
           end_time?: string
           id?: string
           is_vacation?: boolean
@@ -454,6 +528,7 @@ export type Database = {
           shift_type?: string
           start_time?: string
           status?: string
+          team?: string | null
           updated_at?: string
         }
         Update: {
@@ -461,6 +536,7 @@ export type Database = {
           compensation_date?: string | null
           completed_at?: string | null
           created_at?: string
+          duration_hours?: number | null
           end_time?: string
           id?: string
           is_vacation?: boolean
@@ -469,6 +545,7 @@ export type Database = {
           shift_type?: string
           start_time?: string
           status?: string
+          team?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -1451,7 +1528,10 @@ export type Database = {
           avatar_url: string | null
           created_at: string
           full_name: string | null
+          home_card_order: Json | null
           id: string
+          password_changed_at: string | null
+          reminder_settings: Json | null
           updated_at: string
           user_id: string
         }
@@ -1459,7 +1539,10 @@ export type Database = {
           avatar_url?: string | null
           created_at?: string
           full_name?: string | null
+          home_card_order?: Json | null
           id?: string
+          password_changed_at?: string | null
+          reminder_settings?: Json | null
           updated_at?: string
           user_id: string
         }
@@ -1467,7 +1550,10 @@ export type Database = {
           avatar_url?: string | null
           created_at?: string
           full_name?: string | null
+          home_card_order?: Json | null
           id?: string
+          password_changed_at?: string | null
+          reminder_settings?: Json | null
           updated_at?: string
           user_id?: string
         }
@@ -1522,6 +1608,7 @@ export type Database = {
       }
       round_sessions: {
         Row: {
+          auto_started: boolean
           created_at: string
           end_time: string | null
           ended_at: string | null
@@ -1530,13 +1617,17 @@ export type Database = {
           is_active: boolean
           mode: string
           notified_indices: number[] | null
+          require_confirmation_to_stop: boolean
           rows: Json | null
           server_started_at: string
           start_time: string | null
+          stop_confirmed_at: string | null
+          stop_confirmed_by: string | null
           team: string
           user_id: string
         }
         Insert: {
+          auto_started?: boolean
           created_at?: string
           end_time?: string | null
           ended_at?: string | null
@@ -1545,13 +1636,17 @@ export type Database = {
           is_active?: boolean
           mode?: string
           notified_indices?: number[] | null
+          require_confirmation_to_stop?: boolean
           rows?: Json | null
           server_started_at?: string
           start_time?: string | null
+          stop_confirmed_at?: string | null
+          stop_confirmed_by?: string | null
           team: string
           user_id: string
         }
         Update: {
+          auto_started?: boolean
           created_at?: string
           end_time?: string | null
           ended_at?: string | null
@@ -1560,9 +1655,12 @@ export type Database = {
           is_active?: boolean
           mode?: string
           notified_indices?: number[] | null
+          require_confirmation_to_stop?: boolean
           rows?: Json | null
           server_started_at?: string
           start_time?: string | null
+          stop_confirmed_at?: string | null
+          stop_confirmed_by?: string | null
           team?: string
           user_id?: string
         }
@@ -1931,34 +2029,46 @@ export type Database = {
         Row: {
           agent_id: string
           created_at: string
+          description: string | null
           end_time: string
           id: string
           notes: string | null
           shift_date: string
           shift_type: string
           start_time: string
+          status: string | null
+          team: string | null
+          unit_id: string | null
           updated_at: string
         }
         Insert: {
           agent_id: string
           created_at?: string
+          description?: string | null
           end_time: string
           id?: string
           notes?: string | null
           shift_date: string
           shift_type?: string
           start_time: string
+          status?: string | null
+          team?: string | null
+          unit_id?: string | null
           updated_at?: string
         }
         Update: {
           agent_id?: string
           created_at?: string
+          description?: string | null
           end_time?: string
           id?: string
           notes?: string | null
           shift_date?: string
           shift_type?: string
           start_time?: string
+          status?: string | null
+          team?: string | null
+          unit_id?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -1969,6 +2079,13 @@ export type Database = {
             referencedRelation: "agents"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "shifts_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "units"
+            referencedColumns: ["id"]
+          },
         ]
       }
       system_settings: {
@@ -1977,6 +2094,7 @@ export type Database = {
           id: string
           key: string
           updated_at: string
+          updated_by: string | null
           value: Json | null
         }
         Insert: {
@@ -1984,6 +2102,7 @@ export type Database = {
           id?: string
           key: string
           updated_at?: string
+          updated_by?: string | null
           value?: Json | null
         }
         Update: {
@@ -1991,6 +2110,7 @@ export type Database = {
           id?: string
           key?: string
           updated_at?: string
+          updated_by?: string | null
           value?: Json | null
         }
         Relationships: []
@@ -2155,6 +2275,8 @@ export type Database = {
           municipality: string
           name: string
           phone: string | null
+          president_name: string | null
+          security_coordinator_name: string | null
         }
         Insert: {
           address?: string | null
@@ -2169,6 +2291,8 @@ export type Database = {
           municipality: string
           name: string
           phone?: string | null
+          president_name?: string | null
+          security_coordinator_name?: string | null
         }
         Update: {
           address?: string | null
@@ -2183,6 +2307,8 @@ export type Database = {
           municipality?: string
           name?: string
           phone?: string | null
+          president_name?: string | null
+          security_coordinator_name?: string | null
         }
         Relationships: []
       }
