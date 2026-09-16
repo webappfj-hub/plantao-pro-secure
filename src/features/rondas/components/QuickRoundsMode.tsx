@@ -19,6 +19,7 @@ import * as api from '../api';
 import { AgentScheduleTimeline, buildQuickModeWindows } from './AgentScheduleTimeline';
 import { TacticalChronometer } from './TacticalChronometer';
 import { ShareScheduleButton } from './ShareScheduleButton';
+import { PatrolHeroArt } from './PatrolHeroArt';
 
 /** Início/fim em "HH:mm" → duração em minutos. Vira o dia (fim < início) soma 24h. */
 function diffMinutes(start: string, end: string): number {
@@ -533,18 +534,16 @@ export function QuickRoundsMode({ unitId, team, onSessionActiveChange }: QuickRo
     const overallProgressPct = Math.min(100, (elapsedMs / totalMs) * 100);
     const urgent = remainingInSlice < 60_000;
     const runColors = getTeamColors(team);
-    const runEmblem = getTeamEmblem(team);
 
     return (
       <section className="relative animate-in fade-in-0 slide-in-from-bottom-2 duration-500 overflow-hidden rounded-2xl border bg-card" style={{ borderColor: `${runColors.primary}40` }}>
-        {/* Emblema da equipe ao fundo — leve (ícone vetorial, não foto), dá
-            identidade visual à ronda sem pesar. */}
-        {runEmblem && (
-          <img src={runEmblem} alt="" aria-hidden loading="lazy" className="pointer-events-none absolute -right-8 -top-8 z-0 h-40 w-40 opacity-[0.06] grayscale" />
-        )}
+        {/* Ilustração de fundo — vigilância/segurança pública (torre, CCTV,
+            agente em ronda) — ocupa o espaço vazio do cartão sem competir
+            com o conteúdo, que fica em z-10 por cima. */}
+        <PatrolHeroArt color={runColors.primary} className="z-0" />
         <StatusStrip team={team} agentCount={sessionNames.length} perAgentMs={perAgentMs} />
 
-        <div className="flex items-center justify-between gap-3 px-4 py-2">
+        <div className="relative z-10 flex items-center justify-between gap-3 px-4 py-2">
           <h3 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-foreground">
             <span className="relative flex h-2 w-2">
               {!lowMotion && <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-70" />}
@@ -573,7 +572,7 @@ export function QuickRoundsMode({ unitId, team, onSessionActiveChange }: QuickRo
         </div>
 
         {/* Cronômetro tático — o agente atual, com contagem regressiva embutida */}
-        <div key={currentIndex} className="flex flex-col items-center gap-2 border-t border-border px-6 py-5 text-center animate-in fade-in-0 zoom-in-95 duration-500">
+        <div key={currentIndex} className="relative z-10 flex flex-col items-center gap-2 border-t border-border px-6 py-5 text-center animate-in fade-in-0 zoom-in-95 duration-500">
           <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Agente na ronda</p>
           <p className="text-lg font-bold text-foreground">{sessionNames[currentIndex]}</p>
 
@@ -589,7 +588,7 @@ export function QuickRoundsMode({ unitId, team, onSessionActiveChange }: QuickRo
           </div>
         </div>
 
-        <div className="border-t border-border px-4 py-2.5">
+        <div className="relative z-10 border-t border-border px-4 py-2.5">
           <div className="mb-1 flex items-center justify-between text-[10.5px] text-muted-foreground">
             <span>Progresso geral do turno</span>
             <span className="tabular-nums">{fmtClock(elapsedMs)} / {fmtClock(totalMs)}</span>
@@ -602,7 +601,7 @@ export function QuickRoundsMode({ unitId, team, onSessionActiveChange }: QuickRo
           </div>
         </div>
 
-        <div className="border-t border-border p-3">
+        <div className="relative z-10 border-t border-border bg-card p-3">
           <AgentScheduleTimeline
             rangeStart={new Date(triggerMs)}
             rangeEnd={new Date(triggerMs + totalMs)}
