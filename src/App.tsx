@@ -23,7 +23,6 @@ import { SingleTabGuard } from "@/components/SingleTabGuard";
 
 import { PanelSkeleton } from "@/components/ui/panel-skeleton";
 import { InactivityGuard } from "@/components/InactivityGuard";
-import { ImageProtection } from "@/components/ImageProtection";
 import { ServiceWorkerUpdateBanner } from "@/components/ServiceWorkerUpdateBanner";
 
 
@@ -144,7 +143,6 @@ const App = () => (
         <TooltipProvider>
           <Toaster />
           <Sonner />
-          <ImageProtection />
           <ServiceWorkerUpdateBanner />
           <BrowserRouter>
             <AuthProvider>
