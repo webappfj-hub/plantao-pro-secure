@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
-import { WifiOff, Clock3, Sun, Moon, Users, Building2, MapPin, UserCheck, SplitSquareHorizontal, ShieldOff, CalendarPlus, CalendarClock, CalendarDays, Hourglass, UserPlus, Search, Loader2 } from 'lucide-react';
+import { WifiOff, Clock3, Sun, Moon, Users, Building2, MapPin, UserCheck, SplitSquareHorizontal, ShieldOff, CalendarPlus, CalendarClock, CalendarDays, Hourglass, UserPlus, Search, Loader2, ShieldCheck, RadioTower } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { useAgentProfile } from '@/hooks/useAgentProfile';
@@ -52,7 +52,7 @@ function RadarSweep({ color, lowMotion }: { color: string; lowMotion: boolean })
   const cycle = 6;
 
   return (
-    <div className="pointer-events-none absolute -right-8 -top-12 h-56 w-56 sm:-right-4 sm:-top-8 sm:h-64 sm:w-64">
+    <div className="pointer-events-none absolute -right-12 -top-16 h-72 w-72 opacity-80 sm:-right-4 sm:-top-20 sm:h-96 sm:w-96 xl:right-[5%] xl:h-[28rem] xl:w-[28rem]">
       {/* Feixe cônico com rastro — camada CSS, mais suave que wedge em SVG */}
       <div
         className={cn('absolute inset-[6%] rounded-full', !lowMotion && 'radar-sweep')}
@@ -170,9 +170,9 @@ function RondasHero({ team, children }: { team?: string | null; children?: React
   const colors = getTeamColors(team ?? null);
   const { lowMotion } = useLowMotion();
   return (
-    <div
-      className="relative overflow-hidden rounded-2xl border"
-      style={{ borderColor: `${colors.primary}30`, background: 'linear-gradient(160deg, #070b14 0%, #0b1120 55%, #070b14 100%)' }}
+    <section
+      className="rounds-ops-header relative overflow-hidden rounded-xl border"
+      style={{ borderColor: `${colors.primary}30` }}
     >
       {/* Grade tática de pontos — mesma textura usada no resto do painel */}
       <div
@@ -195,11 +195,14 @@ function RondasHero({ team, children }: { team?: string | null; children?: React
         style={{ background: 'linear-gradient(180deg, transparent 0%, #070b14aa 75%, #070b14 100%)' }}
       />
 
-      <div className="relative flex items-end gap-3 px-4 pb-2.5 pt-6 sm:px-5">
-        <BrasaoSentinela size={30} title="Gestor de Rondas — PlantãoPro AC" />
-        <div className="min-w-0 flex-1">
+      <div className="relative grid min-h-[184px] items-center gap-5 px-4 py-5 sm:px-6 lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] lg:px-8">
+        <div className="flex min-w-0 items-center gap-3 lg:justify-self-start">
+          <div className="rounds-command-emblem grid h-12 w-12 shrink-0 place-items-center rounded-md border border-primary/30 bg-primary/10">
+            <BrasaoSentinela size={34} title="Gestor de Rondas — PlantãoPro AC" />
+          </div>
+          <div className="min-w-0">
           <span
-            className="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-white ring-1 backdrop-blur-sm"
+            className="inline-flex items-center gap-1.5 rounded px-2 py-1 text-[9px] font-semibold uppercase tracking-wide text-primary ring-1 ring-primary/25 backdrop-blur-sm"
             style={{ background: `${colors.primary}26`, borderColor: colors.primary, boxShadow: `inset 0 0 0 1px ${colors.primary}55` }}
           >
             <span className="relative flex h-1.5 w-1.5">
@@ -208,11 +211,31 @@ function RondasHero({ team, children }: { team?: string | null; children?: React
             </span>
             {team ? `Equipe ${team} · em operação` : 'Operação em tempo real'}
           </span>
-          <h2 className="mt-1 truncate text-lg font-bold leading-tight text-white drop-shadow-sm sm:text-xl">Central de operação</h2>
+            <h2 className="mt-2 truncate text-xl font-bold uppercase leading-tight text-foreground sm:text-2xl">Central de operação</h2>
+            <p className="mt-1 font-mono text-[9px] uppercase text-muted-foreground">Monitoramento e controle de rondas</p>
+          </div>
+        </div>
+
+        <OperationalClock color={colors.primary} />
+
+        <div className="hidden items-center gap-3 lg:flex lg:justify-self-end">
+          <div className="text-right">
+            <p className="text-[9px] font-semibold uppercase text-muted-foreground">Estado do sistema</p>
+            <p className="mt-1 flex items-center justify-end gap-2 font-mono text-xs font-bold text-emerald-400">
+              <span className="relative flex h-2 w-2">
+                {!lowMotion && <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-60" />}
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+              </span>
+              OPERANTE
+            </p>
+          </div>
+          <div className="grid h-11 w-11 place-items-center rounded-md border border-border bg-muted/40">
+            <RadioTower className="h-5 w-5 text-primary" />
+          </div>
         </div>
       </div>
-      {children && <div className="relative border-t border-white/10 bg-black/30 px-3 py-2 backdrop-blur-md sm:px-4">{children}</div>}
-    </div>
+      {children && <div className="relative border-t border-border/70 bg-background/45 px-3 py-2.5 backdrop-blur-md sm:px-5">{children}</div>}
+    </section>
   );
 }
 
@@ -235,29 +258,25 @@ function OperationalClock({ color }: { color: string }) {
     .toUpperCase();
 
   return (
-    <div
-      className="flex items-center gap-3 rounded-lg border px-3 py-1.5"
-      style={{ borderColor: `${color}35`, background: `linear-gradient(90deg, ${color}14, transparent)` }}
-    >
-      <div className="leading-none">
-        <div className="flex items-baseline gap-1 font-mono text-lg font-bold tabular-nums text-white sm:text-xl" style={{ textShadow: `0 0 14px ${color}70` }}>
+    <div className="rounds-digital-clock relative mx-auto w-fit min-w-[242px] rounded-lg border px-4 py-3 text-center sm:min-w-[300px] sm:px-6" style={{ borderColor: `${color}50` }}>
+      <div className="rounds-clock-glass absolute inset-0 rounded-lg" aria-hidden />
+      <div className="relative leading-none">
+        <div className="rounds-clock-digits flex items-baseline justify-center gap-1 font-mono text-[2rem] font-bold tabular-nums text-foreground sm:text-[2.65rem]" style={{ textShadow: `0 0 16px ${color}90` }}>
           <span>{pad(hours)}</span>
-          <span style={{ color }}>:</span>
+          <span className={lowMotion ? undefined : 'live-clock-colon'} style={{ color }}>:</span>
           <span>{pad(minutes)}</span>
-          <span className="text-xs font-semibold opacity-60 sm:text-sm" style={{ color }}>:{pad(seconds)}</span>
+          <span className="ml-1 text-sm font-semibold opacity-75 sm:text-base" style={{ color }}>{pad(seconds)}</span>
         </div>
-        <div className="mt-0.5 flex items-center gap-1 text-[8.5px] font-bold uppercase tracking-[0.16em]" style={{ color }}>
+        <div className="mt-2 flex items-center justify-center gap-1.5 text-[8px] font-bold uppercase" style={{ color }}>
           <span className="relative flex h-1 w-1">
             {!lowMotion && <span className="absolute inline-flex h-full w-full animate-ping rounded-full opacity-70" style={{ background: color }} />}
             <span className="relative inline-flex h-1 w-1 rounded-full" style={{ background: color }} />
           </span>
           Horário oficial · Acre
         </div>
-      </div>
-      <div className="h-8 w-px shrink-0" style={{ background: `${color}30` }} />
-      <div className="text-right leading-none">
-        <div className="text-[11px] font-bold text-white/90">{dateLabel}</div>
-        <div className="mt-0.5 text-[8.5px] font-medium uppercase tracking-wide text-white/60">Sincronizado</div>
+          Horário oficial · Acre
+        </div>
+        <div className="mt-2 border-t border-border/60 pt-1.5 text-[9px] font-semibold uppercase text-muted-foreground">{dateLabel} · SINCRONIZADO</div>
       </div>
     </div>
   );
@@ -554,7 +573,7 @@ export function RoundsDashboard({ onShiftActiveChange }: RoundsDashboardProps = 
 
   if (shiftQuery.isLoading) {
     return (
-      <div className="space-y-3 p-3">
+      <div className="rounds-dashboard space-y-4 py-3 sm:py-4">
         <RondasHero team={team} />
         <Skeleton className="h-40 w-full rounded-xl" />
         <Skeleton className="h-24 w-full rounded-xl" />
@@ -564,7 +583,7 @@ export function RoundsDashboard({ onShiftActiveChange }: RoundsDashboardProps = 
 
   if (!shift) {
     return (
-      <div className="space-y-3 p-3">
+      <div className="rounds-dashboard space-y-4 py-3 sm:py-4">
         <RondasHero team={team} />
 
         {!user && (
@@ -612,7 +631,7 @@ export function RoundsDashboard({ onShiftActiveChange }: RoundsDashboardProps = 
           </div>
         )}
 
-        <div className="animate-in fade-in-0 slide-in-from-bottom-2 duration-500 overflow-hidden rounded-2xl border border-primary/20 bg-gradient-to-br from-card via-card to-primary/[0.07]">
+        <div className="ops-console-panel animate-in fade-in-0 slide-in-from-bottom-2 overflow-hidden rounded-xl border border-primary/20 bg-card duration-500">
           <div className="flex flex-col items-center gap-3 px-5 py-6 text-center sm:flex-row sm:justify-between sm:text-left">
             <div className="flex items-center gap-3">
               <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-primary/10 ring-1 ring-primary/25">
@@ -696,7 +715,7 @@ export function RoundsDashboard({ onShiftActiveChange }: RoundsDashboardProps = 
   const isNightShift = shiftStart.getHours() >= 18 || shiftStart.getHours() < 6;
 
   return (
-    <div className="space-y-3 p-3">
+    <div className="rounds-dashboard space-y-4 py-3 sm:py-4">
       {/* RondasHero fica sempre na mesma posição em todos os estados
           (carregando / sem turno / com turno) para que o React reaproveite
           o mesmo elemento de imagem ao trocar de equipe — sem isso, a troca
@@ -716,7 +735,6 @@ export function RoundsDashboard({ onShiftActiveChange }: RoundsDashboardProps = 
           </div>
 
           <div className="flex flex-wrap items-center gap-1.5 sm:justify-end">
-            <OperationalClock color={getTeamColors(team).primary} />
             <Button
               variant="outline" size="sm"
               aria-label="Dividir ou reprogramar a ronda"
@@ -807,7 +825,7 @@ export function RoundsDashboard({ onShiftActiveChange }: RoundsDashboardProps = 
       <RoundMetrics metrics={metrics} />
 
       {/* Bloco principal: ronda atual (destaque) + fila de próximas rondas */}
-      <div className="grid grid-cols-1 gap-3 xl:grid-cols-[1.55fr_1fr]">
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1.65fr)_minmax(320px,0.85fr)]">
         {currentAgentSlot && timer ? (
           <section className="relative overflow-hidden rounded-xl border border-border bg-card p-4">
             {/* Emblema da equipe ao fundo — leve (ícone vetorial, não foto),

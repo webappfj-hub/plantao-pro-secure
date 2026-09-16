@@ -1,6 +1,5 @@
 import { useNavigate } from 'react-router-dom';
 import { RoundsDashboard } from '@/features/rondas/components/RoundsDashboard';
-import { RoundsHeroBanner } from '@/features/rondas/components/RoundsHeroBanner';
 import { BackButton } from '@/components/BackButton';
 import { MobileBottomNav } from '@/components/layout/MobileBottomNav';
 import { useAuth } from '@/contexts/AuthContext';
@@ -50,21 +49,21 @@ export default function RondasCommand() {
     // toda página fora do AppShell precisa da própria rolagem interna, senão
     // conteúdo abaixo da dobra fica inacessível (era exatamente o bug: a
     // tela "travava" sem dar pra navegar até os controles/formulário).
-    <div className="flex h-[100dvh] flex-col bg-background overflow-hidden">
+    <div className="rounds-command-shell flex h-[100dvh] flex-col overflow-hidden bg-background">
       <header
-        className="sticky top-0 z-10 shrink-0 border-b border-border bg-background/95 px-4 py-3 backdrop-blur"
+        className="sticky top-0 z-20 shrink-0 border-b border-border/70 bg-background/85 px-4 py-2.5 backdrop-blur-xl"
         style={{ paddingTop: 'calc(0.75rem + env(safe-area-inset-top, 0px))' }}
       >
-        <div className="mx-auto flex max-w-5xl items-center gap-3">
+        <div className="mx-auto flex max-w-[1600px] items-center gap-3">
           <BackButton />
-          <div>
-            <h1 className="text-lg font-bold text-foreground">Gestor de Rondas</h1>
-            <p className="text-xs text-muted-foreground">Controle, acompanhamento e segurança em tempo real.</p>
+          <div className="min-w-0">
+            <h1 className="truncate text-base font-bold uppercase text-foreground sm:text-lg">Gestor de Rondas</h1>
+            <p className="truncate font-mono text-[9px] uppercase text-primary sm:text-[10px]">Central de controle operacional</p>
           </div>
         </div>
       </header>
       <main
-        className="mx-auto w-full max-w-5xl flex-1 overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch]"
+        className="mx-auto w-full max-w-[1600px] flex-1 overflow-y-auto overscroll-y-contain px-2 sm:px-4 xl:px-6 [-webkit-overflow-scrolling:touch]"
         style={{ paddingBottom: 'calc(56px + env(safe-area-inset-bottom))' }}
       >
         {checkingAccess ? (
@@ -74,10 +73,7 @@ export default function RondasCommand() {
         ) : blocked ? (
           <RoundsAccessRestricted />
         ) : (
-          <>
-            <RoundsHeroBanner />
-            <RoundsDashboard />
-          </>
+          <RoundsDashboard />
         )}
       </main>
       <MobileBottomNav />
