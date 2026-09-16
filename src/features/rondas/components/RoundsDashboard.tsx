@@ -274,8 +274,6 @@ function OperationalClock({ color }: { color: string }) {
           </span>
           Horário oficial · Acre
         </div>
-          Horário oficial · Acre
-        </div>
         <div className="mt-2 border-t border-border/60 pt-1.5 text-[9px] font-semibold uppercase text-muted-foreground">{dateLabel} · SINCRONIZADO</div>
       </div>
     </div>
