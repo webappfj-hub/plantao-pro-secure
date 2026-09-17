@@ -30,8 +30,11 @@ function fmt(iso: string) {
 }
 
 /** Histórico imutável de eventos do turno — auditoria (Seção 36/45). Nunca
- * sobrescreve; é sempre um append-only log lido em ordem cronológica reversa. */
-export function RoundHistory({ shiftId }: { shiftId: string }) {
+ * sobrescreve; é sempre um append-only log lido em ordem cronológica reversa.
+ * `agentNameById` vem de dados já carregados pelo painel (roster do turno) —
+ * evita depender de uma FK patrol_events.agent_id → agents que não existe
+ * no schema, sem precisar de mais uma migration. */
+export function RoundHistory({ shiftId, agentNameById }: { shiftId: string; agentNameById?: Map<string, { name: string }> }) {
   const { data, isLoading } = useQuery({
     queryKey: ['patrol-history', shiftId],
     queryFn: async (): Promise<PatrolEventRow[]> => {
@@ -58,12 +61,18 @@ export function RoundHistory({ shiftId }: { shiftId: string }) {
       {data.map((ev) => {
         const meta = EVENT_ICON[ev.event_type] ?? { icon: History, label: ev.event_type, tone: 'text-muted-foreground' };
         const Icon = meta.icon;
+        const agentName = ev.agent_id ? agentNameById?.get(ev.agent_id)?.name : undefined;
         return (
           <div key={ev.id} className="flex items-center gap-2.5 rounded-md border border-border/60 bg-card/50 px-3 py-1.5 text-sm">
-            <Icon className={`h-3.5 w-3.5 shrink-0 ${meta.tone}`} strokeWidth={2.2} />
-            <span className="flex-1 text-foreground">{meta.label}</span>
+            <span className={`grid h-7 w-7 shrink-0 place-items-center rounded-full bg-muted ${meta.tone}`}>
+              <Icon className="h-3.5 w-3.5" strokeWidth={2.2} />
+            </span>
+            <span className="min-w-0 flex-1 truncate text-foreground">
+              {agentName && <span className="font-semibold">{agentName} — </span>}
+              {meta.label}
+            </span>
             {ev.event_type === 'extended' && ev.metadata?.minutes ? (
-              <span className="text-xs text-muted-foreground">+{String(ev.metadata.minutes)} min</span>
+              <span className="shrink-0 text-xs text-muted-foreground">+{String(ev.metadata.minutes)} min</span>
             ) : null}
             <span className="shrink-0 text-xs tabular-nums text-muted-foreground">{fmt(ev.created_at)}</span>
           </div>

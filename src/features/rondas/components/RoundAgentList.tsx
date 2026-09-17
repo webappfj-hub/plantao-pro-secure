@@ -15,12 +15,18 @@ export function RoundAgentList({ agents, onRemove }: { agents: PatrolAgentAssign
   }
   return (
     <div className="divide-y divide-border rounded-lg border border-border">
-      {agents.map((a) => {
+      {agents.map((a, i) => {
         const status = STATUS_LABEL[a.status];
         return (
-          <div key={a.id} className="flex items-center gap-3 px-3 py-2">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold text-muted-foreground">
-              {a.agent?.name?.slice(0, 2).toUpperCase() ?? '--'}
+          <div key={a.id} className="flex items-center gap-2.5 px-3 py-2">
+            <span className="w-4 shrink-0 text-center font-mono text-[10px] font-bold text-muted-foreground">{String(i + 1).padStart(2, '0')}</span>
+            <div className="relative flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-muted text-xs font-semibold text-muted-foreground ring-1 ring-border">
+              {a.agent?.avatar_url ? (
+                <img src={a.agent.avatar_url} alt="" className="h-full w-full object-cover" />
+              ) : (
+                a.agent?.name?.slice(0, 2).toUpperCase() ?? '--'
+              )}
+              <span className={cn('absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-card', status.dot)} />
             </div>
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-1.5 truncate text-sm font-medium text-foreground">

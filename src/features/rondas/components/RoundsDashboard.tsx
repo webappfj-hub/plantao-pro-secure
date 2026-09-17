@@ -30,7 +30,7 @@ import { RoundMetrics } from './RoundMetrics';
 import { RoundTimeline } from './RoundTimeline';
 import { AgentScheduleTimeline, buildAgentWindows } from './AgentScheduleTimeline';
 import { ShareScheduleButton } from './ShareScheduleButton';
-import { NextRounds } from './NextRounds';
+import { TimeDistributionDonut } from './TimeDistributionDonut';
 import { RoundAgentList } from './RoundAgentList';
 import { IncidentDialog } from './IncidentDialog';
 import { ShiftDivider } from './ShiftDivider';
@@ -997,10 +997,14 @@ export function RoundsDashboard({ onShiftActiveChange }: RoundsDashboardProps = 
 
       <RoundMetrics metrics={metrics} />
 
-      {/* Bloco principal: ronda atual (destaque) + fila de próximas rondas */}
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1.65fr)_minmax(320px,0.85fr)]">
+      {/* Linha 1: TIMER PRINCIPAL | AGENTES — as duas ações mais imediatas de
+          quem está de fato acompanhando a ronda agora. */}
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1.4fr)_minmax(280px,1fr)]">
         {currentAgentSlot && timer ? (
-          <section className="relative overflow-hidden rounded-xl border border-border bg-card p-4">
+          <section
+            className="relative overflow-hidden rounded-xl border-2 bg-card p-4 shadow-lg"
+            style={{ borderColor: `${getTeamColors(team).primary}45`, boxShadow: `0 10px 30px -16px ${getTeamColors(team).primary}55` }}
+          >
             {/* Emblema da equipe ao fundo — leve (ícone vetorial, não foto),
                 só pra dar identidade visual ao card sem pesar. */}
             {getTeamEmblem(team) && (
@@ -1100,62 +1104,8 @@ export function RoundsDashboard({ onShiftActiveChange }: RoundsDashboardProps = 
         )}
 
         <section className="rounded-xl border border-border bg-card p-4">
-          <h3 className="mb-3 text-[13px] font-semibold uppercase tracking-wide text-foreground">Próximas rondas</h3>
-          <NextRounds slots={slots} />
-        </section>
-      </div>
-
-      {/* Linhas do tempo — por agente (padrão) e por quarto de hora, em
-          abas: as duas mostravam basicamente a mesma informação em formatos
-          diferentes, empilhadas uma embaixo da outra. Uma delas de cada vez
-          cabe bem mais fácil numa única tela. */}
-      <section className="overflow-hidden rounded-xl border border-border bg-card">
-        <Tabs defaultValue="agentes" className="w-full">
-          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-3 pt-2.5">
-            <TabsList className="h-8 bg-muted/60 p-0.5">
-              <TabsTrigger value="agentes" className="relative h-7 px-2.5 text-[11px] before:absolute before:-inset-y-2 before:content-['']">Tempo por agente</TabsTrigger>
-              <TabsTrigger value="quartos" className="relative h-7 px-2.5 text-[11px] before:absolute before:-inset-y-2 before:content-['']">Quartos de hora</TabsTrigger>
-            </TabsList>
-          </div>
-          <TabsContent value="agentes" className="m-0 p-3">
-            {agentWindows.length > 0 ? (
-              <AgentScheduleTimeline
-                rangeStart={shiftStart}
-                rangeEnd={shiftEnd}
-                windows={agentWindows}
-                live
-                highlightKey={currentAgentSlot?.agent_id ?? null}
-                title="Tempo de cada agente"
-              />
-            ) : (
-              <p className="text-sm text-muted-foreground">Nenhum agente escalado neste turno ainda.</p>
-            )}
-          </TabsContent>
-          <TabsContent value="quartos" className="m-0 space-y-2.5 p-3">
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-muted-foreground">
-              {[
-                { c: 'bg-emerald-500', l: 'Concluída' },
-                { c: 'bg-sky-500', l: 'Em andamento' },
-                { c: 'bg-muted-foreground/50', l: 'Pendente' },
-                { c: 'bg-amber-500', l: 'Atraso' },
-                { c: 'bg-rose-500', l: 'Ocorrência' },
-              ].map((k) => (
-                <span key={k.l} className="inline-flex items-center gap-1.5">
-                  <span className={cn('h-2 w-2 rounded-full', k.c)} />
-                  {k.l}
-                </span>
-              ))}
-            </div>
-            <RoundTimeline slots={slots} activeSlotId={currentAgentSlot?.id} />
-          </TabsContent>
-        </Tabs>
-      </section>
-
-      {/* Equipe + histórico/ocorrências lado a lado */}
-      <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-        <section className="rounded-xl border border-border bg-card p-4">
           <h3 className="mb-3 text-[13px] font-semibold uppercase tracking-wide text-foreground">
-            Agentes da equipe {team}{' '}
+            Agentes da ronda{' '}
             <span className="font-normal text-muted-foreground">({shiftAgents.length})</span>
           </h3>
           <RoundAgentList agents={shiftAgents} onRemove={user ? handleRemoveShiftAgent : undefined} />
@@ -1166,19 +1116,87 @@ export function RoundsDashboard({ onShiftActiveChange }: RoundsDashboardProps = 
             />
           )}
         </section>
+      </div>
+
+      {/* Linha 2: TIMELINE DA RONDA | DISTRIBUIÇÃO DO TEMPO — a antiga tira
+          horizontal de pontinhos + o card "Próximas rondas" mostravam a
+          mesma informação (setor/agente/horário/status) em formatos
+          diferentes; viraram uma única timeline vertical cronológica. */}
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1.4fr)_minmax(280px,1fr)]">
+        <section className="rounded-xl border border-border bg-card p-4">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <h3 className="text-[13px] font-semibold uppercase tracking-wide text-foreground">Timeline da ronda</h3>
+            <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[9.5px] text-muted-foreground">
+              {[
+                { c: 'bg-emerald-500', l: 'Concluída' },
+                { c: 'bg-sky-400', l: 'Em andamento' },
+                { c: 'bg-amber-500', l: 'Atraso' },
+                { c: 'ring-2 ring-border', l: 'Pendente' },
+              ].map((k) => (
+                <span key={k.l} className="inline-flex items-center gap-1">
+                  <span className={cn('h-2 w-2 rounded-full', k.c)} />
+                  {k.l}
+                </span>
+              ))}
+            </div>
+          </div>
+          <RoundTimeline slots={slots} activeSlotId={currentAgentSlot?.id} />
+        </section>
 
         <section className="rounded-xl border border-border bg-card p-4">
-          <h3 className="mb-3 flex items-center gap-2 text-[13px] font-semibold uppercase tracking-wide text-foreground">
-            Últimas ocorrências
+          <Tabs defaultValue="distribuicao" className="w-full">
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+              <h3 className="text-[13px] font-semibold uppercase tracking-wide text-foreground">Distribuição do tempo</h3>
+              <TabsList className="h-7 bg-muted/60 p-0.5">
+                <TabsTrigger value="distribuicao" className="relative h-6 px-2 text-[10px] before:absolute before:-inset-y-2 before:content-['']">Por agente</TabsTrigger>
+                <TabsTrigger value="linha" className="relative h-6 px-2 text-[10px] before:absolute before:-inset-y-2 before:content-['']">Linha do tempo</TabsTrigger>
+              </TabsList>
+            </div>
+            <TabsContent value="distribuicao" className="m-0">
+              <TimeDistributionDonut windows={agentWindows} totalMinutes={(shiftEnd.getTime() - shiftStart.getTime()) / 60_000} />
+            </TabsContent>
+            <TabsContent value="linha" className="m-0">
+              {agentWindows.length > 0 ? (
+                <AgentScheduleTimeline
+                  rangeStart={shiftStart}
+                  rangeEnd={shiftEnd}
+                  windows={agentWindows}
+                  live
+                  highlightKey={currentAgentSlot?.agent_id ?? null}
+                  title="Tempo de cada agente"
+                />
+              ) : (
+                <p className="text-sm text-muted-foreground">Nenhum agente escalado neste turno ainda.</p>
+              )}
+            </TabsContent>
+          </Tabs>
+        </section>
+      </div>
+
+      {/* Linha 3: HISTÓRICO / RELATÓRIOS */}
+      <section className="rounded-xl border border-border bg-card p-4">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <h3 className="flex items-center gap-2 text-[13px] font-semibold uppercase tracking-wide text-foreground">
+            Atividades recentes
             {metrics.open_incidents > 0 && (
               <span className="rounded-full bg-rose-500/15 px-2 py-0.5 text-[10px] font-bold text-rose-400">
-                {metrics.open_incidents} em aberto
+                {metrics.open_incidents} ocorrência{metrics.open_incidents > 1 ? 's' : ''} em aberto
               </span>
             )}
           </h3>
-          <RoundHistory shiftId={shift.id} />
-        </section>
-      </div>
+          {agentWindows.length > 0 && (
+            <ShareScheduleButton
+              team={shift.team}
+              unitName={agent?.unit?.name}
+              rangeStart={shiftStart}
+              rangeEnd={shiftEnd}
+              windows={agentWindows}
+              stats={{ coveragePct: metrics.coverage_pct, openIncidents: metrics.open_incidents }}
+            />
+          )}
+        </div>
+        <RoundHistory shiftId={shift.id} agentNameById={agentMetaById} />
+      </section>
 
       <IncidentDialog open={incidentOpen} onOpenChange={setIncidentOpen} onSubmit={handleIncident} />
       <ShiftDivider
