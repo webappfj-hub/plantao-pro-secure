@@ -52,7 +52,7 @@ function obfuscate(str: string): string {
   return ENC_PREFIX + btoa(bin);
 }
 
-function deobfuscate(str: string): string {
+export function deobfuscate(str: string): string {
   try {
     if (str.startsWith(ENC_PREFIX)) {
       const key = getDeviceKey();
