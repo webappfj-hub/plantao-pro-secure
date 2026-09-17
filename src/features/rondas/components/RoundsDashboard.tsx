@@ -23,7 +23,7 @@ import { useLowMotion } from '@/hooks/useLowMotion';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { QuickRoundsMode } from './QuickRoundsMode';
 import * as api from '../api';
-import { useRoundTimer } from '../useRoundTimer';
+import { useRoundTimer, formatClock } from '../useRoundTimer';
 import { RoundTimer } from './RoundTimer';
 import { RoundControls } from './RoundControls';
 import { RoundMetrics } from './RoundMetrics';
@@ -286,6 +286,90 @@ function OperationalClock({ color }: { color: string }) {
 }
 
 /**
+ * Destaque "Agente em ronda agora" — vitrine do topo do Gestor de Rondas.
+ * Vidro fosco (glassmorphism) + tipografia de segurança pública (mono,
+ * versalete, tracking largo) + selo do agente com pulso de vida (mesma
+ * família de animações "on-duty" usada no resto do app: duty-glow-pulse,
+ * duty-scanline, duty-shield-beat). Só aparece quando alguém está de fato
+ * em campo AGORA — nunca um placeholder vazio competindo por atenção.
+ */
+function ActivePatrolBanner({
+  slot, timer, team,
+}: { slot: PatrolSlot; timer: ReturnType<typeof useRoundTimer>; team: string | null }) {
+  const colors = getTeamColors(team ?? null);
+  const { lowMotion } = useLowMotion();
+  const poster = team ? teamPosters[team] : undefined;
+  const agentName = slot.agent?.name ?? 'Agente';
+  const initials = agentName.split(' ').filter(Boolean).slice(0, 2).map((p) => p[0]).join('').toUpperCase();
+
+  return (
+    <div
+      className="relative overflow-hidden rounded-xl border shadow-lg"
+      style={{
+        borderColor: `${colors.primary}55`,
+        background: `linear-gradient(120deg, ${colors.primary}1f, hsl(var(--background) / 0.55) 55%)`,
+        backdropFilter: 'blur(14px)',
+        WebkitBackdropFilter: 'blur(14px)',
+      }}
+    >
+      {/* Varredura horizontal — reforça "monitoramento ao vivo" sem pesar */}
+      {!lowMotion && (
+        <div
+          aria-hidden
+          className="animate-duty-scanline pointer-events-none absolute inset-y-0 left-0 w-1/3"
+          style={{ background: `linear-gradient(90deg, transparent, ${colors.primary}30, transparent)` }}
+        />
+      )}
+
+      <div className="relative flex items-center gap-3 px-4 py-3 sm:px-5 sm:py-3.5">
+        <div
+          className={cn('relative shrink-0 rounded-lg', !lowMotion && 'animate-duty-glow')}
+          style={{ boxShadow: lowMotion ? `0 0 0 1px ${colors.primary}55` : undefined }}
+        >
+          {poster ? (
+            <img src={poster} alt="" aria-hidden className="h-14 w-14 rounded-lg border object-cover" style={{ borderColor: `${colors.primary}70` }} />
+          ) : (
+            <div
+              className="grid h-14 w-14 place-items-center rounded-lg border text-sm font-bold"
+              style={{ borderColor: `${colors.primary}70`, color: colors.primary, background: `${colors.primary}14` }}
+            >
+              {initials || <UserCheck className="h-5 w-5" />}
+            </div>
+          )}
+          <span
+            className={cn('absolute -bottom-1 -right-1 grid h-5 w-5 place-items-center rounded-full border-2 border-background', !lowMotion && 'animate-duty-shield')}
+            style={{ background: colors.primary }}
+          >
+            <RadioTower className="h-2.5 w-2.5 text-white" />
+          </span>
+        </div>
+
+        <div className="min-w-0 flex-1">
+          <p className="flex items-center gap-1.5 font-mono text-[9.5px] font-bold uppercase tracking-[0.2em]" style={{ color: colors.primary }}>
+            <span className="relative flex h-1.5 w-1.5">
+              {!lowMotion && <span className="absolute inline-flex h-full w-full animate-ping rounded-full opacity-70" style={{ background: colors.primary }} />}
+              <span className="relative inline-flex h-1.5 w-1.5 rounded-full" style={{ background: colors.primary }} />
+            </span>
+            Agente em ronda agora
+          </p>
+          <p className="truncate text-base font-bold text-foreground sm:text-lg">{agentName}</p>
+          <p className="truncate text-[11px] text-muted-foreground">
+            {slot.sector?.name ?? 'Setor não definido'} · Equipe {team ?? '—'}
+          </p>
+        </div>
+
+        <div className="shrink-0 text-right">
+          <p className="font-mono text-xl font-bold tabular-nums text-foreground sm:text-2xl" style={{ textShadow: `0 0 14px ${colors.primary}60` }}>
+            {formatClock(timer?.secondsElapsed ?? 0)}
+          </p>
+          <p className="font-mono text-[9px] font-semibold uppercase tracking-wide text-muted-foreground">em campo</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
  * Identidade do dispositivo do visitante sem login — gerada uma vez e
  * guardada no localStorage (nunca depende de conta/login). É o que garante
  * que a ronda avulsa de um visitante nunca "generaliza": cada aparelho só
@@ -536,6 +620,20 @@ export function RoundsDashboard({ onShiftActiveChange }: RoundsDashboardProps = 
     [slots, agent?.id],
   );
   const timer = useRoundTimer(currentAgentSlot);
+
+  // Qualquer agente da equipe em ronda agora — não só o do usuário logado
+  // (que pode nem estar vinculado a um agente, caso de visitante). Alimenta
+  // o destaque "Agente em ronda agora" no topo do painel. Com mais de um
+  // simultâneo (estratégia rotativa/blocos raramente sobrepõe), mostra o
+  // que começou primeiro.
+  const activePatrolSlot = useMemo(() => {
+    const active = slots.filter((s) => s.status === 'active' && s.agent_id);
+    if (active.length === 0) return null;
+    return active.reduce((earliest, s) => (
+      new Date(s.started_at ?? s.scheduled_start).getTime() < new Date(earliest.started_at ?? earliest.scheduled_start).getTime() ? s : earliest
+    ));
+  }, [slots]);
+  const activePatrolTimer = useRoundTimer(activePatrolSlot);
 
   const invalidateAll = () => {
     if (!shift?.id) return;
@@ -817,7 +915,10 @@ export function RoundsDashboard({ onShiftActiveChange }: RoundsDashboardProps = 
           desmontava e remontava a foto, gerando o "flash" branco e o atraso
           percebido na transição. */}
       <RondasHero team={team}>
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        {activePatrolSlot && (
+          <ActivePatrolBanner slot={activePatrolSlot} timer={activePatrolTimer} team={team} />
+        )}
+        <div className={cn('flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between', activePatrolSlot && 'mt-2.5')}>
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
             <span className="flex items-center gap-1.5 text-[11px] font-semibold text-white/90">
               {isNightShift ? <Moon className="h-3.5 w-3.5 text-primary" strokeWidth={2.2} /> : <Sun className="h-3.5 w-3.5 text-primary" strokeWidth={2.2} />}
