@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
-import { WifiOff, Clock3, Sun, Moon, Users, Building2, MapPin, UserCheck, SplitSquareHorizontal, ShieldOff, CalendarPlus, CalendarClock, CalendarDays, Hourglass, UserPlus, Search, Loader2, ShieldCheck, RadioTower } from 'lucide-react';
+import { WifiOff, Clock3, Sun, Moon, Users, Building2, MapPin, UserCheck, SplitSquareHorizontal, ShieldOff, CalendarPlus, CalendarClock, CalendarDays, Hourglass, UserPlus, Search, Loader2, ShieldCheck, RadioTower, Square, ShieldAlert, Lock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { useAgentProfile } from '@/hooks/useAgentProfile';
@@ -9,6 +9,11 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import {
+  AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction,
+} from '@/components/ui/alert-dialog';
+import { RoundCompletionCelebration, type RoundCompletionStats } from './RoundCompletionCelebration';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { BrasaoSentinela } from '@/components/BrasaoSentinela';
@@ -321,6 +326,9 @@ export function RoundsDashboard({ onShiftActiveChange }: RoundsDashboardProps = 
   const queryClient = useQueryClient();
   const [incidentOpen, setIncidentOpen] = useState(false);
   const [dividerOpen, setDividerOpen] = useState(false);
+  const [endConfirmOpen, setEndConfirmOpen] = useState(false);
+  const [endingShift, setEndingShift] = useState(false);
+  const [celebrationStats, setCelebrationStats] = useState<RoundCompletionStats | null>(null);
   const [isOnline, setIsOnline] = useState(typeof navigator === 'undefined' ? true : navigator.onLine);
   const [pendingCount, setPendingCount] = useState(() => getQueueLength());
   // Rodízio do Modo Rápido (ronda avulsa) esperando ou rodando — não gera
@@ -609,6 +617,46 @@ export function RoundsDashboard({ onShiftActiveChange }: RoundsDashboardProps = 
     toast.success('Ocorrência registrada.');
   };
 
+  const handleConfirmEndShift = async () => {
+    if (!shift) return;
+    setEndingShift(true);
+    try {
+      const start = new Date(shift.start_at);
+      const now = getServerDate();
+      const totalMin = Math.max(1, Math.round((now.getTime() - start.getTime()) / 60_000));
+      const h = Math.floor(totalMin / 60);
+      const m = totalMin % 60;
+      await api.closeShift(shift.id);
+      setEndConfirmOpen(false);
+      setCelebrationStats({
+        team: shift.team,
+        totalSlots: metrics.total_slots,
+        completedSlots: metrics.completed_slots,
+        coveragePct: metrics.coverage_pct,
+        durationLabel: h > 0 ? `${h}h${m > 0 ? `${m}min` : ''}` : `${m}min`,
+      });
+      queryClient.invalidateQueries({ queryKey: ['patrol-shift', unitId, team, guestDeviceId] });
+    } catch (e: any) {
+      toast.error(e?.message ?? 'Não foi possível encerrar a ronda.');
+    } finally {
+      setEndingShift(false);
+    }
+  };
+
+  // Ronda encerrada agora mesmo — mostra a celebração ANTES de checar
+  // qualquer outra coisa (turno/loading), pois assim que `closeShift`
+  // resolve, o refetch já pode ter apagado `shift` — sem essa checagem no
+  // topo, a tela de conclusão seria desmontada antes do usuário lê-la.
+  if (celebrationStats) {
+    return (
+      <RoundCompletionCelebration
+        open
+        onClose={() => setCelebrationStats(null)}
+        stats={celebrationStats}
+      />
+    );
+  }
+
   if (!unitId || !team) {
     // For authenticated users without profile link
     if (user) {
@@ -801,6 +849,15 @@ export function RoundsDashboard({ onShiftActiveChange }: RoundsDashboardProps = 
                 stats={{ coveragePct: metrics.coverage_pct, openIncidents: metrics.open_incidents }}
               />
             )}
+            <Button
+              variant="outline" size="sm"
+              aria-label="Encerrar ronda"
+              className="relative h-7 gap-1.5 border-destructive/40 bg-destructive/10 px-2 text-[11px] text-destructive-foreground before:absolute before:-inset-y-2.5 before:-inset-x-1 before:content-[''] hover:bg-destructive/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive/60"
+              onClick={() => setEndConfirmOpen(true)}
+            >
+              <Square className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Encerrar ronda</span>
+            </Button>
           </div>
         </div>
       </RondasHero>
@@ -816,56 +873,23 @@ export function RoundsDashboard({ onShiftActiveChange }: RoundsDashboardProps = 
         </div>
       )}
       {!user && (
-        <div className="space-y-3 rounded-lg border border-primary/25 bg-primary/[0.06] p-4">
-          <p className="text-sm font-medium text-primary">Acesso público — trocar equipe/unidade</p>
-          <div className="grid gap-3 grid-cols-1 sm:grid-cols-2">
-            <div>
-              <label className="text-xs font-medium text-muted-foreground">Equipe</label>
-              <Select value={guestTeam || 'ALFA'} onValueChange={(v) => setGuestTeam(v || 'ALFA')}>
-                <SelectTrigger className="mt-1 h-9 border-border bg-background text-sm text-foreground">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent side="bottom" avoidCollisions={false}>
-                  <SelectItem value="ALFA">ALFA</SelectItem>
-                  <SelectItem value="BRAVO">BRAVO</SelectItem>
-                  <SelectItem value="CHARLIE">CHARLIE</SelectItem>
-                  <SelectItem value="DELTA">DELTA</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <label className="text-xs font-medium text-muted-foreground">Unidade</label>
-              <Select value={guestUnitId || '__loading__'} onValueChange={(v) => setGuestUnitId(v || null)}>
-                <SelectTrigger className="mt-1 h-9 border-border bg-background text-sm text-foreground">
-                  <SelectValue placeholder="Carregando unidades…" />
-                </SelectTrigger>
-                <SelectContent side="bottom" avoidCollisions={false}>
-                  {unitsForPicker.length === 0 && (
-                    <SelectItem value="__loading__" disabled>Carregando unidades…</SelectItem>
-                  )}
-                  {unitsForPicker.map((u) => (
-                    <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
+        <div className="flex items-center gap-3 rounded-lg border border-border bg-muted/30 p-3.5">
           {guestTeam && teamPosters[guestTeam] && (
-            <div key={guestTeam} className="flex items-center gap-3 animate-in fade-in-0 slide-in-from-left-2 duration-300">
-              <img
-                src={teamPosters[guestTeam]}
-                alt={`Equipe ${guestTeam}`}
-                className="h-16 w-16 shrink-0 rounded-xl border border-primary/25 object-cover"
-              />
-              <div>
-                <p className="text-sm font-bold text-foreground">EQUIPE {guestTeam}</p>
-                <p className="text-xs text-muted-foreground">Selecionada para esta ronda</p>
-              </div>
-            </div>
+            <img
+              src={teamPosters[guestTeam]}
+              alt={`Equipe ${guestTeam}`}
+              className="h-12 w-12 shrink-0 rounded-xl border border-border object-cover grayscale-[35%]"
+            />
           )}
-
-          <p className="text-xs text-muted-foreground">Ou <a href="/login" className="text-primary underline hover:no-underline font-medium">faça login</a> para usar seu perfil de agente</p>
+          <div className="min-w-0 flex-1">
+            <p className="flex items-center gap-1.5 text-sm font-bold text-foreground">
+              <Lock className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+              Equipe {guestTeam} · {agent?.unit?.name ?? 'unidade selecionada'}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Equipe e unidade travadas enquanto esta ronda estiver ativa — evita perder o acompanhamento por engano.
+            </p>
+          </div>
         </div>
       )}
 
@@ -1073,6 +1097,38 @@ export function RoundsDashboard({ onShiftActiveChange }: RoundsDashboardProps = 
           toast.success(`${preview.length} slots gerados.`);
         }}
       />
+
+      <AlertDialog open={endConfirmOpen} onOpenChange={setEndConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <ShieldAlert className="h-5 w-5 text-destructive" />
+              Encerrar esta ronda?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2 text-left">
+              <span className="block">
+                O turno da Equipe <strong className="text-foreground">{shift.team}</strong> será marcado como concluído.
+                {metrics.pending_slots > 0 && (
+                  <> Ainda há <strong className="text-foreground">{metrics.pending_slots}</strong> ronda{metrics.pending_slots > 1 ? 's' : ''} pendente{metrics.pending_slots > 1 ? 's' : ''}.</>
+                )}
+              </span>
+              <span className="block font-medium text-destructive">
+                Não é possível reabrir depois de encerrado — só programar um novo turno.
+              </span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Continuar acompanhando</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); void handleConfirmEndShift(); }}
+              disabled={endingShift}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {endingShift ? 'Encerrando...' : 'Encerrar definitivamente'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
