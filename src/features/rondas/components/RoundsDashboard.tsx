@@ -192,7 +192,7 @@ function RondasHero({ team, children }: { team?: string | null; children?: React
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0"
-        style={{ background: 'linear-gradient(180deg, transparent 0%, #070b14aa 75%, #070b14 100%)' }}
+        style={{ background: 'linear-gradient(180deg, transparent 0%, hsl(var(--background) / 0.67) 75%, hsl(var(--background)) 100%)' }}
       />
 
       <div className="relative grid min-h-[184px] items-center gap-5 px-4 py-5 sm:px-6 lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] lg:px-8">
@@ -591,7 +591,7 @@ export function RoundsDashboard({ onShiftActiveChange }: RoundsDashboardProps = 
               <div>
                 <label htmlFor="guest-team-select" className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Equipe</label>
                 <Select value={guestTeam || 'ALFA'} onValueChange={(v) => setGuestTeam(v || 'ALFA')}>
-                  <SelectTrigger id="guest-team-select" className="mt-1 h-9 border-slate-700 bg-slate-800/90 text-sm text-white">
+                  <SelectTrigger id="guest-team-select" className="mt-1 h-9 border-border bg-background text-sm text-foreground">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent side="bottom" avoidCollisions={false}>
@@ -605,7 +605,7 @@ export function RoundsDashboard({ onShiftActiveChange }: RoundsDashboardProps = 
               <div>
                 <label htmlFor="guest-unit-select" className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Unidade</label>
                 <Select value={guestUnitId || '__loading__'} onValueChange={(v) => setGuestUnitId(v || null)}>
-                  <SelectTrigger id="guest-unit-select" className="mt-1 h-9 border-slate-700 bg-slate-800/90 text-sm text-white">
+                  <SelectTrigger id="guest-unit-select" className="mt-1 h-9 border-border bg-background text-sm text-foreground">
                     <SelectValue placeholder="Carregando unidades…" />
                   </SelectTrigger>
                   <SelectContent side="bottom" avoidCollisions={false}>
@@ -773,7 +773,7 @@ export function RoundsDashboard({ onShiftActiveChange }: RoundsDashboardProps = 
             <div>
               <label className="text-xs font-medium text-muted-foreground">Equipe</label>
               <Select value={guestTeam || 'ALFA'} onValueChange={(v) => setGuestTeam(v || 'ALFA')}>
-                <SelectTrigger className="mt-1 h-9 border-slate-700 bg-slate-800/90 text-sm text-white">
+                <SelectTrigger className="mt-1 h-9 border-border bg-background text-sm text-foreground">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent side="bottom" avoidCollisions={false}>
@@ -787,7 +787,7 @@ export function RoundsDashboard({ onShiftActiveChange }: RoundsDashboardProps = 
             <div>
               <label className="text-xs font-medium text-muted-foreground">Unidade</label>
               <Select value={guestUnitId || '__loading__'} onValueChange={(v) => setGuestUnitId(v || null)}>
-                <SelectTrigger className="mt-1 h-9 border-slate-700 bg-slate-800/90 text-sm text-white">
+                <SelectTrigger className="mt-1 h-9 border-border bg-background text-sm text-foreground">
                   <SelectValue placeholder="Carregando unidades…" />
                 </SelectTrigger>
                 <SelectContent side="bottom" avoidCollisions={false}>
