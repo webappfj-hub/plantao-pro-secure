@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { SplitSquareHorizontal, Users, MapPin } from 'lucide-react';
+import { SplitSquareHorizontal, Users } from 'lucide-react';
 import { generateSlotPreview } from '../api';
 import type { DistributionStrategy, PatrolAgentAssignment, PatrolSector } from '../types';
 import { AgentScheduleTimeline, buildAgentWindows } from './AgentScheduleTimeline';
@@ -110,22 +110,6 @@ export function ShiftDivider({ open, onOpenChange, startAt, endAt, intervalMinut
                   <label key={a.agent_id} className="flex items-center gap-2 rounded-md px-1.5 py-1 text-xs hover:bg-background">
                     <Checkbox checked={selectedAgents.includes(a.agent_id)} onCheckedChange={() => toggle(selectedAgents, setSelectedAgents, a.agent_id)} />
                     <span className="truncate text-foreground">{a.agent?.name ?? a.agent_id}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {sectors.length > 0 && (
-            <div className="space-y-1.5">
-              <Label className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                <MapPin className="h-3.5 w-3.5 text-primary" /> Setores ({selectedSectors.length} selecionados)
-              </Label>
-              <div className="max-h-28 space-y-0.5 overflow-y-auto rounded-lg border border-border bg-muted/20 p-1.5">
-                {sectors.map((s) => (
-                  <label key={s.id} className="flex items-center gap-2 rounded-md px-1.5 py-1 text-xs hover:bg-background">
-                    <Checkbox checked={selectedSectors.includes(s.id)} onCheckedChange={() => toggle(selectedSectors, setSelectedSectors, s.id)} />
-                    <span className="truncate text-foreground">{s.name}</span>
                   </label>
                 ))}
               </div>

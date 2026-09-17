@@ -138,13 +138,18 @@ export function QuickRoundsMode({ unitId, team, onSessionActiveChange }: QuickRo
   const queryClient = useQueryClient();
   const storageKey = `quick-rounds-session-${unitId ?? 'x'}-${team ?? 'x'}`;
   const posKey = `${storageKey}-pos`;
+  // Visitante sem login: guarda a sessão em sessionStorage, não localStorage
+  // — fecha o navegador e a próxima abertura já nasce limpa (sem nomes nem
+  // rodízio de teste sobrando). Agente logado mantém localStorage: é
+  // trabalho real, precisa sobreviver a fechar/reabrir a aba sem perder.
+  const store = user ? localStorage : sessionStorage;
 
   const [names, setNames] = useState<string[]>(['', '']);
   const [startTime, setStartTime] = useState(() => nowHm());
   const [endTime, setEndTime] = useState(() => addHours(nowHm(), 12));
   const [session, setSession] = useState<Session | null>(() => {
     try {
-      const raw = localStorage.getItem(storageKey);
+      const raw = store.getItem(storageKey);
       return raw ? (JSON.parse(raw) as Session) : null;
     } catch {
       return null;
@@ -206,8 +211,8 @@ export function QuickRoundsMode({ unitId, team, onSessionActiveChange }: QuickRo
   const persist = (s: Session | null) => {
     setSession(s);
     try {
-      if (s) localStorage.setItem(storageKey, JSON.stringify(s));
-      else localStorage.removeItem(storageKey);
+      if (s) store.setItem(storageKey, JSON.stringify(s));
+      else store.removeItem(storageKey);
     } catch { /* ignore */ }
   };
 
