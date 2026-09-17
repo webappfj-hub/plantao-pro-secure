@@ -953,11 +953,12 @@ export function RoundsDashboard({ onShiftActiveChange }: RoundsDashboardProps = 
             <Button
               variant="outline" size="sm"
               aria-label="Encerrar ronda"
-              className="relative h-7 gap-1.5 border-destructive/40 bg-destructive/10 px-2 text-[11px] text-destructive-foreground before:absolute before:-inset-y-2.5 before:-inset-x-1 before:content-[''] hover:bg-destructive/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive/60"
+              className="relative h-7 gap-1.5 border-destructive/50 bg-destructive/15 px-2.5 text-[11px] font-semibold text-destructive-foreground before:absolute before:-inset-y-2.5 before:-inset-x-1 before:content-[''] hover:bg-destructive/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive/60"
               onClick={() => setEndConfirmOpen(true)}
             >
-              <Square className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">Encerrar ronda</span>
+              <Square className="h-3.5 w-3.5 fill-current" />
+              <span>Encerrar</span>
+              <span className="hidden sm:inline">&nbsp;ronda</span>
             </Button>
           </div>
         </div>
