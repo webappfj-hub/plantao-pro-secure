@@ -52,7 +52,8 @@ import {
 import { fetchUnits as fetchUnitsShared } from '@/lib/units';
 const UnsavedChangesDialog = lazy(() => import('@/components/UnsavedChangesDialog').then(m => ({ default: m.UnsavedChangesDialog })));
 const ForgotPasswordDialog = lazy(() => import('@/components/ForgotPasswordDialog').then(m => ({ default: m.ForgotPasswordDialog })));
-import { SavedCredentials, getAutoLoginCredential, getSavedCredentials, getQuickLoginCredential, canQuickLogin, removeCredential, CREDENTIALS_CHANGED_EVENT } from '@/components/auth/SavedCredentials';
+import { SavedCredentials, getAutoLoginCredential, getSavedCredentials, getQuickLoginCredential, canQuickLogin, removeCredential, CREDENTIALS_CHANGED_EVENT, saveCredential, updateLastLogin } from '@/components/auth/SavedCredentials';
+import { QuickAccessPasswordDialog } from '@/components/auth/QuickAccessPasswordDialog';
 const ManageCredentialsDialog = lazy(() => import('@/components/auth/ManageCredentialsDialog').then(m => ({ default: m.ManageCredentialsDialog })));
 const MasterPasswordRecoveryDialog = lazy(() => import('@/components/MasterPasswordRecoveryDialog').then(m => ({ default: m.MasterPasswordRecoveryDialog })));
 import { MasterLoginDialog } from '@/components/auth/MasterLoginDialog';
@@ -172,7 +173,10 @@ export default function Index() {
   const [showAdminLogin, setShowAdminLogin] = useState(false);
   
   const [showCredentialsManager, setShowCredentialsManager] = useState(false);
-  
+  const [showQuickAccessPassword, setShowQuickAccessPassword] = useState(false);
+  const [quickAccessPasswordCpf, setQuickAccessPasswordCpf] = useState('');
+  const [quickAccessPasswordAgent, setQuickAccessPasswordAgent] = useState<string>();
+
   const [units, setUnits] = useState<Unit[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCheckingCpf, setIsCheckingCpf] = useState(false);
@@ -1338,15 +1342,46 @@ export default function Index() {
   };
 
   // Handle credential selection (without password)
-  const handleQuickLoginSelect = (cpf: string) => {
+  const handleQuickLoginSelect = async (cpf: string) => {
     persistLastCpf(cpf);
-    setLoginCpf(cpf.replace(/\D/g, '').slice(0, 6));
-    setSelectedTeam(null); // Clear team selection for direct login
-    setShowLogin(true);
+    setQuickAccessPasswordCpf(cpf.replace(/\D/g, ''));
+
+    // Fetch agent info to show name
+    const { data: rows } = await (supabase as any)
+      .rpc('lookup_agent_for_login', { _cpf: cpf.replace(/\D/g, '') });
+    const agentData = Array.isArray(rows) && rows.length ? rows[0] : null;
+
+    setQuickAccessPasswordAgent(agentData?.name);
+    setShowQuickAccessPassword(true);
+  };
+
+  const handleQuickAccessPasswordConfirm = async (cpf: string, password: string, shouldSave: boolean) => {
+    const cleanCpf = cpf.replace(/\D/g, '');
+    const authEmail = `${cleanCpf}@agent.plantaopro.com`;
+
+    const { error } = await signIn(authEmail, password);
+
+    if (error) {
+      throw new Error(error.message || 'Falha ao fazer login');
+    }
+
+    persistLastCpf(cleanCpf);
+
+    if (shouldSave) {
+      const { data: rows } = await (supabase as any)
+        .rpc('lookup_agent_for_login', { _cpf: cleanCpf });
+      const agentData = Array.isArray(rows) && rows.length ? rows[0] : null;
+      saveCredential(cleanCpf, agentData?.name, password);
+    }
+
+    updateLastLogin(cleanCpf);
+
     toast({
-      title: 'Matrícula carregada',
-      description: 'Digite sua senha para entrar.',
+      title: 'Login confirmado',
+      description: shouldSave ? 'Credenciais salvas neste dispositivo' : 'Sessão iniciada',
     });
+
+    setShowLogin(false);
   };
 
   const handleBiometricLogin = async () => {
@@ -2448,6 +2483,15 @@ export default function Index() {
         open={pendingApprovalDialog.open}
         onClose={() => setPendingApprovalDialog({ open: false })}
         agentName={pendingApprovalDialog.agentName}
+      />
+
+      {/* Quick Access Password Dialog */}
+      <QuickAccessPasswordDialog
+        open={showQuickAccessPassword}
+        onOpenChange={setShowQuickAccessPassword}
+        cpf={quickAccessPasswordCpf}
+        agentName={quickAccessPasswordAgent}
+        onConfirm={handleQuickAccessPasswordConfirm}
       />
       </div>
       <RoundReminderDialog
