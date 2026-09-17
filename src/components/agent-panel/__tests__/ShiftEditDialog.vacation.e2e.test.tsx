@@ -65,6 +65,8 @@ describe('ShiftEditDialog · E2E editar → Folga/Férias', () => {
     const summary = await screen.findByTestId('shift-range-summary');
     expect(summary.textContent?.toLowerCase()).toMatch(/dia inteiro|folga|férias|licen/);
 
+    // Confirmação explícita é obrigatória antes de salvar uma folga/férias/licença.
+    await user.click(screen.getByRole('checkbox'));
     await user.click(screen.getByRole('button', { name: /salvar altera/i }));
     await user.click(await screen.findByRole('button', { name: /^confirmar$/i }));
 

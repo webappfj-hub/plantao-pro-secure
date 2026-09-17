@@ -402,8 +402,14 @@ export function ShiftEditDialog({ open, onOpenChange, shiftDate, shift, agentId,
                 </Button>
                 <Button
                   size="sm"
-                  onClick={() => setConfirmOpen(true)}
-                  disabled={saving || (kind === 'vacation' && !vacationAck)}
+                  onClick={() => {
+                    if (kind === 'vacation' && !vacationAck) {
+                      toast.error('Marque a confirmação de folga/férias/licença antes de salvar.');
+                      return;
+                    }
+                    setConfirmOpen(true);
+                  }}
+                  disabled={saving}
                   className="bg-primary text-black hover:bg-primary min-h-11"
                 >
                   Salvar alterações
