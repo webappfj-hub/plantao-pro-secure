@@ -541,7 +541,10 @@ export function QuickRoundsMode({ unitId, team, onSessionActiveChange }: QuickRo
     const runColors = getTeamColors(team);
 
     return (
-      <section className="relative animate-in fade-in-0 slide-in-from-bottom-2 duration-500 overflow-hidden rounded-2xl border bg-card" style={{ borderColor: `${runColors.primary}40` }}>
+      <section
+        className="relative animate-in fade-in-0 slide-in-from-bottom-2 duration-500 overflow-hidden rounded-2xl border-2 bg-card shadow-xl"
+        style={{ borderColor: `${runColors.primary}55`, boxShadow: `0 0 0 1px ${runColors.primary}22, 0 12px 36px -12px ${runColors.primary}50` }}
+      >
         {/* Ilustração de fundo — vigilância/segurança pública (torre, CCTV,
             agente em ronda) — ocupa o espaço vazio do cartão sem competir
             com o conteúdo, que fica em z-10 por cima. */}
@@ -622,45 +625,77 @@ export function QuickRoundsMode({ unitId, team, onSessionActiveChange }: QuickRo
   }
 
   // ---------- Configuração ----------
+  const perAgentMsPreview = activeNames.length > 0 ? (durationMinutes * 60_000) / activeNames.length : 0;
+  // Mapeia cada linha digitada (pode ter nome vazio) pro seu índice dentro
+  // de `activeNames` — é o que determina a fatia de horário que ela ocupa.
+  // Sem isso, o índice bruto de `names` desalinha assim que alguém apaga um
+  // nome no meio da lista.
+  let activeCursor = 0;
+  const rowWindow = (name: string): { start: Date; end: Date } | null => {
+    if (!name.trim() || durationMinutes <= 0 || perAgentMsPreview <= 0) return null;
+    const idx = activeCursor++;
+    const base = todayAt(startTime).getTime() + idx * perAgentMsPreview;
+    return { start: new Date(base), end: new Date(base + perAgentMsPreview) };
+  };
+  const fmtRowTime = (d: Date) => d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Rio_Branco' });
+  const quickColors = getTeamColors(team);
+
   return (
-    <section className="animate-in fade-in-0 slide-in-from-bottom-2 duration-500 overflow-hidden rounded-2xl border border-border bg-card">
-      <StatusStrip team={team} agentCount={activeNames.length} perAgentMs={activeNames.length > 0 ? (durationMinutes * 60_000) / activeNames.length : 0} />
+    <section
+      className="relative animate-in fade-in-0 slide-in-from-bottom-2 duration-500 overflow-hidden rounded-2xl border-2 bg-card shadow-lg"
+      style={{ borderColor: `${quickColors.primary}40`, boxShadow: `0 8px 28px -14px ${quickColors.primary}45` }}
+    >
+      {/* Faixa superior de destaque — deixa claro que este card é a ação principal da tela */}
+      <div className="h-[3px] w-full" style={{ background: `linear-gradient(90deg, transparent, ${quickColors.primary}, transparent)` }} aria-hidden />
+
+      <StatusStrip team={team} agentCount={activeNames.length} perAgentMs={perAgentMsPreview} />
 
       <div className="flex items-center gap-2 px-4 py-2">
-        <Users className="h-3.5 w-3.5 text-primary" />
+        <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0" style={{ color: quickColors.primary }} aria-hidden>
+          <path d="M12 2 L20 5.5 V11 C20 16 16.5 20 12 22 C7.5 20 4 16 4 11 V5.5 Z" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
+          <path d="M12 7 V12 L15 14" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
         <h3 className="text-xs font-bold text-foreground">Modo rápido — digitar nomes</h3>
         <span className="text-[10px] text-muted-foreground">· sem cadastro, tempo dividido igual</span>
       </div>
 
-      <div className="space-y-2.5 border-t border-border px-4 py-3">
+      <div className="space-y-2 border-t border-border px-4 py-2.5">
         <div className="space-y-1">
-          {names.map((name, i) => (
-            <div key={i} className="flex items-center gap-1.5">
-              <span
-                className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-white"
-                style={{ background: CHIP_COLORS[i % CHIP_COLORS.length] }}
-              >
-                {i + 1}
-              </span>
-              <Input
-                value={name}
-                onChange={(e) => updateName(i, e.target.value)}
-                placeholder={`Nome do agente ${i + 1}`}
-                aria-label={`Nome do agente ${i + 1}`}
-                className="h-8 text-sm"
-              />
-              {names.length > 1 && (
-                <Button
-                  variant="ghost" size="icon"
-                  aria-label={`Remover agente ${i + 1}`}
-                  className="relative h-8 w-8 shrink-0 text-muted-foreground before:absolute before:-inset-1 before:content-['']"
-                  onClick={() => removeName(i)}
+          {names.map((name, i) => {
+            const win = rowWindow(name);
+            return (
+              <div key={i} className="flex items-center gap-1.5">
+                <span
+                  className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-white"
+                  style={{ background: CHIP_COLORS[i % CHIP_COLORS.length] }}
                 >
-                  <X className="h-3.5 w-3.5" />
-                </Button>
-              )}
-            </div>
-          ))}
+                  {i + 1}
+                </span>
+                <Input
+                  value={name}
+                  onChange={(e) => updateName(i, e.target.value)}
+                  placeholder={`Nome do agente ${i + 1}`}
+                  aria-label={`Nome do agente ${i + 1}`}
+                  className="h-8 text-sm"
+                />
+                {win && (
+                  <span className="hidden shrink-0 whitespace-nowrap font-mono text-[10px] tabular-nums text-muted-foreground sm:inline">
+                    {fmtRowTime(win.start)}–{fmtRowTime(win.end)}
+                  </span>
+                )}
+                {names.length > 1 && (
+                  <Button
+                    variant="ghost" size="icon"
+                    aria-label={`Remover agente ${i + 1}`}
+                    className="relative h-8 w-8 shrink-0 text-muted-foreground before:absolute before:-inset-1 before:content-['']"
+                    onClick={() => removeName(i)}
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </Button>
+                )}
+              </div>
+            );
+          })}
           <Button variant="outline" size="sm" className="h-7 gap-1.5 text-xs" onClick={addName}>
             <Plus className="h-3.5 w-3.5" /> Adicionar agente
           </Button>
@@ -681,16 +716,6 @@ export function QuickRoundsMode({ unitId, team, onSessionActiveChange }: QuickRo
             <Clock3 className="h-3 w-3 shrink-0" />
             Início e término iguais — o rodízio vai durar 24h. Confira se não esqueceu de ajustar o término.
           </p>
-        )}
-
-        {/* Prévia com hora de início/fim de cada agente — não só a fração igual */}
-        {activeNames.length > 0 && durationMinutes > 0 && (
-          <AgentScheduleTimeline
-            rangeStart={todayAt(startTime)}
-            rangeEnd={new Date(todayAt(startTime).getTime() + durationMinutes * 60_000)}
-            windows={buildQuickModeWindows(activeNames, todayAt(startTime), (durationMinutes * 60_000) / activeNames.length)}
-            title="Prévia da divisão"
-          />
         )}
 
         <div className="grid grid-cols-2 gap-2">
