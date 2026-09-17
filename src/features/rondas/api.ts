@@ -30,13 +30,23 @@ export async function listSectors(unitId: string): Promise<PatrolSector[]> {
 
 // ---------- Shifts ----------
 
-export async function getActiveShift(unitId: string, team: string): Promise<PatrolShift | null> {
-  const { data, error } = await sb
+/**
+ * Busca o turno ativo. `guestDeviceId` isola a ronda avulsa por dispositivo:
+ * um visitante sem login (guestDeviceId preenchido) só enxerga o turno que
+ * ele mesmo criou NESTE dispositivo (guest_device_id igual ao seu) — nunca o
+ * de outro visitante nem o turno real de uma equipe autenticada. Um agente
+ * logado (guestDeviceId null/undefined) só enxerga turnos "reais"
+ * (guest_device_id IS NULL), nunca uma ronda avulsa de teste de visitante.
+ */
+export async function getActiveShift(unitId: string, team: string, guestDeviceId?: string | null): Promise<PatrolShift | null> {
+  let query = sb
     .from('patrol_shifts')
     .select('*')
     .eq('unit_id', unitId)
     .eq('team', team)
-    .eq('status', 'active')
+    .eq('status', 'active');
+  query = guestDeviceId ? query.eq('guest_device_id', guestDeviceId) : query.is('guest_device_id', null);
+  const { data, error } = await query
     .order('created_at', { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -46,6 +56,7 @@ export async function getActiveShift(unitId: string, team: string): Promise<Patr
 
 export async function createShift(input: {
   unit_id: string; team: string; start_at: string; end_at: string; interval_minutes: number; created_by: string | null;
+  guest_device_id?: string | null;
 }): Promise<PatrolShift> {
   const { data, error } = await sb.from('patrol_shifts').insert(input).select().single();
   if (error) throw error;
@@ -250,7 +261,7 @@ export async function listScheduledRounds(unitId: string, team: string): Promise
 
 /** Transforma uma programação em um turno real de hoje: cria o patrol_shift,
  * atribui a equipe inteira e já gera a grade de quartos de hora (rotativo). */
-export async function activateScheduledRound(row: ScheduledRoundRow, team: string, createdBy: string | null): Promise<PatrolShift> {
+export async function activateScheduledRound(row: ScheduledRoundRow, team: string, createdBy: string | null, guestDeviceId?: string | null): Promise<PatrolShift> {
   const now = getServerDate();
   let start = now;
   let end: Date;
@@ -274,6 +285,7 @@ export async function activateScheduledRound(row: ScheduledRoundRow, team: strin
     end_at: end.toISOString(),
     interval_minutes: intervalMinutes,
     created_by: createdBy,
+    guest_device_id: guestDeviceId ?? null,
   });
 
   const roster = await listUnitTeamAgents(row.unit_id!, team);

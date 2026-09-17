@@ -280,6 +280,29 @@ function OperationalClock({ color }: { color: string }) {
   );
 }
 
+/**
+ * Identidade do dispositivo do visitante sem login — gerada uma vez e
+ * guardada no localStorage (nunca depende de conta/login). É o que garante
+ * que a ronda avulsa de um visitante nunca "generaliza": cada aparelho só
+ * enxerga e mexe no turno que ele mesmo criou, nunca o de outro visitante
+ * nem o turno real de uma equipe autenticada (ver getActiveShift em api.ts).
+ */
+const GUEST_DEVICE_KEY = 'plantaopro_guest_device_id_v1';
+function getGuestDeviceId(): string {
+  try {
+    let id = localStorage.getItem(GUEST_DEVICE_KEY);
+    if (!id) {
+      id = typeof crypto !== 'undefined' && crypto.randomUUID
+        ? crypto.randomUUID()
+        : `dev-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      localStorage.setItem(GUEST_DEVICE_KEY, id);
+    }
+    return id;
+  } catch {
+    return `dev-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  }
+}
+
 interface RoundsDashboardProps {
   /** Avisa quem hospeda o painel (ex.: o modal da home) se existe um turno
    * ativo — usado para travar o fechamento acidental do Gestor de Rondas
@@ -337,9 +360,13 @@ export function RoundsDashboard({ onShiftActiveChange }: RoundsDashboardProps = 
   const unitId = agent?.unit_id ?? guestUnitId ?? null;
   const team = agent?.team ?? guestTeam ?? null;
 
+  // Só existe para visitante sem login — um agente autenticado nunca usa
+  // isolamento por dispositivo, sua ronda é sempre a da equipe (compartilhada).
+  const guestDeviceId = useMemo(() => (user ? null : getGuestDeviceId()), [user]);
+
   const shiftQuery = useQuery({
-    queryKey: ['patrol-shift', unitId, team],
-    queryFn: () => api.getActiveShift(unitId!, team!),
+    queryKey: ['patrol-shift', unitId, team, guestDeviceId],
+    queryFn: () => api.getActiveShift(unitId!, team!, guestDeviceId),
     enabled: !!unitId && !!team,
     refetchInterval: 30_000,
     // Mantém o conteúdo da equipe anterior visível enquanto busca a nova
@@ -422,7 +449,7 @@ export function RoundsDashboard({ onShiftActiveChange }: RoundsDashboardProps = 
     if (!unitId || !team) return;
     setActivatingId(row.id);
     try {
-      await api.activateScheduledRound(row, team, user?.id ?? null);
+      await api.activateScheduledRound(row, team, user?.id ?? null, guestDeviceId);
       await shiftQuery.refetch();
       toast.success(`Turno "${row.name}" ativado a partir da programação.`);
     } catch (e: any) {
@@ -663,7 +690,7 @@ export function RoundsDashboard({ onShiftActiveChange }: RoundsDashboardProps = 
           </div>
         </div>
 
-        <CreateShiftDialog open={dividerOpen} onOpenChange={setDividerOpen} unitId={unitId} team={team} createdBy={user?.id ?? null} onCreated={() => shiftQuery.refetch()} />
+        <CreateShiftDialog open={dividerOpen} onOpenChange={setDividerOpen} unitId={unitId} team={team} createdBy={user?.id ?? null} guestDeviceId={guestDeviceId} onCreated={() => shiftQuery.refetch()} />
 
         <div className="flex items-center gap-3 text-[11px] uppercase tracking-wide text-muted-foreground">
           <div className="h-px flex-1 bg-border" /> ou <div className="h-px flex-1 bg-border" />
@@ -1138,8 +1165,8 @@ const INTERVAL_OPTIONS = [
  * ShiftDivider (mesmo estado `open`) assim que o turno passa a existir,
  * para o usuário já escolher a estratégia de divisão.
  */
-function CreateShiftDialog({ open, onOpenChange, unitId, team, createdBy, onCreated }: {
-  open: boolean; onOpenChange: (v: boolean) => void; unitId: string; team: string; createdBy: string | null; onCreated: () => void;
+function CreateShiftDialog({ open, onOpenChange, unitId, team, createdBy, guestDeviceId, onCreated }: {
+  open: boolean; onOpenChange: (v: boolean) => void; unitId: string; team: string; createdBy: string | null; guestDeviceId: string | null; onCreated: () => void;
 }) {
   const [startAt, setStartAt] = useState(() => formatAcreDateTimeLocal(getServerDate()));
   const [durationMinutes, setDurationMinutes] = useState(12 * 60);
@@ -1169,16 +1196,22 @@ function CreateShiftDialog({ open, onOpenChange, unitId, team, createdBy, onCrea
       const end = new Date(start.getTime() + durationMinutes * 60_000);
       const shift = await api.createShift({
         unit_id: unitId, team, start_at: start.toISOString(), end_at: end.toISOString(),
-        interval_minutes: intervalMinutes, created_by: createdBy,
+        interval_minutes: intervalMinutes, created_by: createdBy, guest_device_id: guestDeviceId,
       });
+      let rosterAssigned = true;
       try {
         const roster = await api.listUnitTeamAgents(unitId, team);
         if (roster.length > 0) await api.assignAgentsToShift(shift.id, roster.map((a) => a.id));
       } catch {
-        // Segue sem atribuir automaticamente — dá para escolher agentes na etapa de divisão.
+        // Segue sem atribuir automaticamente — dá para escolher agentes na etapa de divisão,
+        // mas avisa (ver toast abaixo) em vez de falhar calado.
+        rosterAssigned = false;
       }
       onCreated();
       toast.success('Turno criado. Agora escolha como dividir as rondas.');
+      if (!rosterAssigned) {
+        toast.warning('Não foi possível carregar a equipe automaticamente — selecione os agentes na próxima etapa.');
+      }
       // Não fecha: assim que `shift` existir, o pai troca este diálogo pelo ShiftDivider.
     } catch (e: any) {
       toast.error(e?.message ?? 'Não foi possível criar o turno.');

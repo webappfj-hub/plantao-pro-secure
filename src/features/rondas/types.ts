@@ -22,6 +22,9 @@ export interface PatrolShift {
   interval_minutes: number;
   status: PatrolShiftStatus;
   created_by: string | null;
+  /** Preenchido só em rondas avulsas de visitante sem login — isola o turno
+   * ao dispositivo que o criou (ver getActiveShift em api.ts). */
+  guest_device_id?: string | null;
   created_at: string;
 }
 

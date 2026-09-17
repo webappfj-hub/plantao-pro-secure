@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
+import { SplitSquareHorizontal, Users, MapPin } from 'lucide-react';
 import { generateSlotPreview } from '../api';
 import type { DistributionStrategy, PatrolAgentAssignment, PatrolSector } from '../types';
 import { AgentScheduleTimeline, buildAgentWindows } from './AgentScheduleTimeline';
@@ -72,36 +73,43 @@ export function ShiftDivider({ open, onOpenChange, startAt, endAt, intervalMinut
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="max-w-lg"
+        className="max-w-md gap-0 overflow-hidden p-0"
         onPointerDownOutside={(e) => e.preventDefault()}
         onInteractOutside={(e) => e.preventDefault()}
         onEscapeKeyDown={(e) => e.preventDefault()}
       >
-        <DialogHeader>
-          <DialogTitle>Dividir turno</DialogTitle>
-          <DialogDescription>Gera os quartos de hora e distribui os agentes escalados.</DialogDescription>
-        </DialogHeader>
+        <div className="flex items-center gap-3 border-b border-border bg-primary/[0.06] px-5 py-4">
+          <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary/15 ring-1 ring-primary/25">
+            <SplitSquareHorizontal className="h-4.5 w-4.5 text-primary" strokeWidth={2} />
+          </div>
+          <div className="min-w-0">
+            <DialogTitle className="text-sm">Dividir turno</DialogTitle>
+            <DialogDescription className="text-xs">Gera os quartos de hora e distribui os agentes escalados.</DialogDescription>
+          </div>
+        </div>
 
-        <div className="space-y-4">
+        <div className="max-h-[70vh] space-y-3.5 overflow-y-auto px-5 py-4">
           <div className="space-y-1.5">
-            <Label>Estratégia</Label>
+            <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Estratégia</Label>
             <Select value={strategy} onValueChange={(v) => setStrategy(v as DistributionStrategy)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
               <SelectContent>
                 {STRATEGIES.map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
               </SelectContent>
             </Select>
-            <p className="text-xs text-muted-foreground">{STRATEGIES.find((s) => s.value === strategy)?.hint}</p>
+            <p className="text-[11px] text-muted-foreground">{STRATEGIES.find((s) => s.value === strategy)?.hint}</p>
           </div>
 
           {agents.length > 0 && (
             <div className="space-y-1.5">
-              <Label>Agentes ({selectedAgents.length} selecionados)</Label>
-              <div className="max-h-32 space-y-1 overflow-y-auto rounded-md border border-border p-2">
+              <Label className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                <Users className="h-3.5 w-3.5 text-primary" /> Agentes ({selectedAgents.length} selecionados)
+              </Label>
+              <div className="max-h-28 space-y-0.5 overflow-y-auto rounded-lg border border-border bg-muted/20 p-1.5">
                 {agents.map((a) => (
-                  <label key={a.agent_id} className="flex items-center gap-2 text-sm">
+                  <label key={a.agent_id} className="flex items-center gap-2 rounded-md px-1.5 py-1 text-xs hover:bg-background">
                     <Checkbox checked={selectedAgents.includes(a.agent_id)} onCheckedChange={() => toggle(selectedAgents, setSelectedAgents, a.agent_id)} />
-                    {a.agent?.name ?? a.agent_id}
+                    <span className="truncate text-foreground">{a.agent?.name ?? a.agent_id}</span>
                   </label>
                 ))}
               </div>
@@ -110,31 +118,33 @@ export function ShiftDivider({ open, onOpenChange, startAt, endAt, intervalMinut
 
           {sectors.length > 0 && (
             <div className="space-y-1.5">
-              <Label>Setores ({selectedSectors.length} selecionados)</Label>
-              <div className="max-h-32 space-y-1 overflow-y-auto rounded-md border border-border p-2">
+              <Label className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                <MapPin className="h-3.5 w-3.5 text-primary" /> Setores ({selectedSectors.length} selecionados)
+              </Label>
+              <div className="max-h-28 space-y-0.5 overflow-y-auto rounded-lg border border-border bg-muted/20 p-1.5">
                 {sectors.map((s) => (
-                  <label key={s.id} className="flex items-center gap-2 text-sm">
+                  <label key={s.id} className="flex items-center gap-2 rounded-md px-1.5 py-1 text-xs hover:bg-background">
                     <Checkbox checked={selectedSectors.includes(s.id)} onCheckedChange={() => toggle(selectedSectors, setSelectedSectors, s.id)} />
-                    {s.name}
+                    <span className="truncate text-foreground">{s.name}</span>
                   </label>
                 ))}
               </div>
             </div>
           )}
 
-          <div className="rounded-md border border-border bg-muted/40 px-3 py-2 text-sm">
-            <span className="font-semibold text-foreground">{preview.length}</span> slots serão criados
+          <div className="flex items-start gap-2 rounded-lg border border-border bg-muted/30 px-3 py-2.5 text-xs text-muted-foreground">
+            <span><span className="font-semibold text-foreground">{preview.length}</span> slots serão criados
             {preview.length > 0 && (
-              <span className="text-muted-foreground">
+              <>
                 {' '}({preview[0].scheduled_start.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Rio_Branco' })} até{' '}
                 {preview[preview.length - 1].scheduled_end.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Rio_Branco' })})
-              </span>
-            )}
+              </>
+            )}</span>
           </div>
 
           {previewWindows.length > 0 && (
             <div className="space-y-1.5">
-              <Label>Prévia — tempo de cada agente</Label>
+              <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Prévia — tempo de cada agente</Label>
               <AgentScheduleTimeline
                 rangeStart={startAt}
                 rangeEnd={endAt}
@@ -145,9 +155,11 @@ export function ShiftDivider({ open, onOpenChange, startAt, endAt, intervalMinut
           )}
         </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button onClick={handleConfirm} disabled={saving || preview.length === 0}>{saving ? 'Gerando...' : `Gerar ${preview.length} slots`}</Button>
+        <DialogFooter className="border-t border-border bg-muted/20 px-5 py-3.5">
+          <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button size="sm" onClick={handleConfirm} disabled={saving || preview.length === 0} className="gap-1.5">
+            {saving ? 'Gerando...' : `Gerar ${preview.length} slots`}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
