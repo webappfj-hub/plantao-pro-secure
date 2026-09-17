@@ -1,6 +1,68 @@
 import { useEffect, useRef, useState } from "react";
-import { AlertTriangle, ExternalLink } from "lucide-react";
+import { ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
+
+/** Ilustração institucional — duas janelas do navegador em conflito, uma
+ * travada por um cadeado. Mesmo idioma visual (gradientes/bisel) dos outros
+ * emblemas táticos do app (ver RoundsManager.tsx: useEmblemFx). */
+function DuplicateTabIllustration() {
+  return (
+    <svg viewBox="0 0 160 120" className="h-28 w-36 shrink-0" aria-hidden role="img">
+      <defs>
+        <linearGradient id="dtg-back" x1="0" x2="0" y1="0" y2="1">
+          <stop offset="0%" stopColor="#334155" />
+          <stop offset="100%" stopColor="#0f172a" />
+        </linearGradient>
+        <linearGradient id="dtg-front" x1="0" x2="0" y1="0" y2="1">
+          <stop offset="0%" stopColor="#1e293b" />
+          <stop offset="100%" stopColor="#020617" />
+        </linearGradient>
+        <radialGradient id="dtg-glow" cx="50%" cy="45%" r="60%">
+          <stop offset="0%" stopColor="#f59e0b" stopOpacity="0.55" />
+          <stop offset="100%" stopColor="#f59e0b" stopOpacity="0" />
+        </radialGradient>
+        <linearGradient id="dtg-lock" x1="0" x2="0" y1="0" y2="1">
+          <stop offset="0%" stopColor="#fde68a" />
+          <stop offset="100%" stopColor="#d97706" />
+        </linearGradient>
+      </defs>
+
+      {/* Janela de fundo (aba "fantasma" tentando abrir) */}
+      <g transform="translate(14 8) rotate(-4 60 50)" opacity="0.85">
+        <rect x="0" y="0" width="120" height="86" rx="8" fill="url(#dtg-back)" stroke="#475569" strokeWidth="1.2" />
+        <rect x="0" y="0" width="120" height="16" rx="8" fill="#1e293b" />
+        <circle cx="10" cy="8" r="2.2" fill="#64748b" />
+        <circle cx="18" cy="8" r="2.2" fill="#64748b" />
+        <circle cx="26" cy="8" r="2.2" fill="#64748b" />
+        <rect x="10" y="28" width="70" height="6" rx="3" fill="#475569" />
+        <rect x="10" y="42" width="94" height="5" rx="2.5" fill="#334155" />
+        <rect x="10" y="53" width="94" height="5" rx="2.5" fill="#334155" />
+        <rect x="10" y="64" width="60" height="5" rx="2.5" fill="#334155" />
+      </g>
+
+      {/* Janela ativa (a aba original, em foco) */}
+      <g transform="translate(30 24)">
+        <rect x="0" y="0" width="120" height="86" rx="8" fill="url(#dtg-front)" stroke="#f59e0b" strokeOpacity="0.55" strokeWidth="1.4" />
+        <rect x="0" y="0" width="120" height="16" rx="8" fill="#0b1120" />
+        <circle cx="10" cy="8" r="2.4" fill="#f59e0b" fillOpacity="0.85" />
+        <circle cx="18" cy="8" r="2.4" fill="#f59e0b" fillOpacity="0.55" />
+        <circle cx="26" cy="8" r="2.4" fill="#f59e0b" fillOpacity="0.3" />
+        <rect x="10" y="28" width="70" height="6" rx="3" fill="#f59e0b" fillOpacity="0.7" />
+        <rect x="10" y="42" width="94" height="5" rx="2.5" fill="#334155" />
+        <rect x="10" y="53" width="94" height="5" rx="2.5" fill="#334155" />
+      </g>
+
+      {/* Auréola de alerta + cadeado central, sobre as duas janelas */}
+      <circle cx="80" cy="60" r="34" fill="url(#dtg-glow)" />
+      <g transform="translate(80 60)">
+        <rect x="-13" y="-2" width="26" height="20" rx="4" fill="url(#dtg-lock)" stroke="#78350f" strokeWidth="1.2" />
+        <path d="M-8 -2 V-10 a8 8 0 0 1 16 0 V-2" fill="none" stroke="url(#dtg-lock)" strokeWidth="3.4" strokeLinecap="round" />
+        <circle cx="0" cy="7" r="2.6" fill="#78350f" />
+        <rect x="-1.1" y="8" width="2.2" height="6" rx="1" fill="#78350f" />
+      </g>
+    </svg>
+  );
+}
 
 /**
  * SingleTabGuard
@@ -190,56 +252,38 @@ export function SingleTabGuard({ children }: { children: React.ReactNode }) {
     return (
       <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/95 p-6 text-slate-100 backdrop-blur-xl">
         <div className="tactical-cards w-full max-w-md rounded-lg border border-amber-500/40 bg-slate-900/90 p-6 shadow-2xl">
-          <div className="mb-4 flex items-center gap-3">
-            <div className="rounded-full border border-amber-500/50 bg-amber-500/10 p-2">
-              <AlertTriangle className="h-6 w-6 text-amber-400" />
-            </div>
-            <h1 className="font-mono text-sm uppercase tracking-[0.22em] text-amber-400">
+          <div className="mb-4 flex flex-col items-center text-center">
+            <DuplicateTabIllustration />
+            <h1 className="mt-2 font-mono text-sm uppercase tracking-[0.22em] text-amber-400">
               Aba duplicada detectada
             </h1>
           </div>
-          <p className="mb-2 text-sm leading-relaxed text-slate-300">
+          <p className="mb-2 text-center text-sm leading-relaxed text-slate-300">
             O <b>Plantão Pro</b> já está aberto em outra aba deste navegador.
           </p>
-          <p className="mb-5 text-xs leading-relaxed text-slate-400">
-            Para evitar conflitos de sessão e contagens duplicadas, mantenha
-            apenas uma aba ativa. Volte para a aba original ou feche-a antes de
-            abrir uma nova.
+          <p className="mb-5 text-center text-xs leading-relaxed text-slate-400">
+            Para evitar conflitos de sessão e contagens duplicadas de rondas e
+            plantões, o sistema não pode ficar aberto em mais de uma aba ao
+            mesmo tempo. Volte para a aba original — esta aqui fica bloqueada
+            até que ela seja fechada.
           </p>
-          <div className="flex flex-col gap-2 sm:flex-row">
-            <Button
-              variant="outline"
-              className="flex-1 border-amber-500/40 text-amber-300 hover:bg-amber-500/10"
-              onClick={() => {
-                try {
-                  const bc = new BroadcastChannel(CHANNEL);
-                  bc.postMessage({ type: "focus-request", id: "duplicate" });
-                  setTimeout(() => bc.close(), 200);
-                } catch {
-                  /* ignore */
-                }
-                window.close();
-              }}
-            >
-              <ExternalLink className="mr-2 h-4 w-4" />
-              Ir para a aba original
-            </Button>
-            <Button
-              variant="ghost"
-              className="flex-1 text-slate-400 hover:text-slate-200"
-              onClick={() => {
-                // Escape hatch: usuário força esta aba como dona.
-                try {
-                  localStorage.removeItem(HEARTBEAT_KEY);
-                } catch {
-                  /* ignore */
-                }
-                window.location.reload();
-              }}
-            >
-              Usar esta aba mesmo assim
-            </Button>
-          </div>
+          <Button
+            variant="outline"
+            className="w-full border-amber-500/40 text-amber-300 hover:bg-amber-500/10"
+            onClick={() => {
+              try {
+                const bc = new BroadcastChannel(CHANNEL);
+                bc.postMessage({ type: "focus-request", id: "duplicate" });
+                setTimeout(() => bc.close(), 200);
+              } catch {
+                /* ignore */
+              }
+              window.close();
+            }}
+          >
+            <ExternalLink className="mr-2 h-4 w-4" />
+            Ir para a aba original
+          </Button>
         </div>
       </div>
     );
