@@ -328,11 +328,28 @@ export function RoundsDashboard({ onShiftActiveChange }: RoundsDashboardProps = 
   // fechamento acidental da janela (mesmo sem login).
   const [quickRoundActive, setQuickRoundActive] = useState(false);
 
-  // Allow manual team/unit selection for unauthenticated users.
-  // Default to ALFA team and CS Feijó (unidade real — antes usava a string
-  // literal "main", que não corresponde a nenhum unit_id de verdade).
-  const [guestTeam, setGuestTeam] = useState<string | null>('ALFA');
-  const [guestUnitId, setGuestUnitId] = useState<string | null>('dd77c458-92fb-49e2-819d-7a32288cc390');
+  // Allow manual team/unit selection for unauthenticated users. Persistido
+  // no localStorage (por dispositivo, igual ao guest_device_id): sem isso,
+  // qualquer remontagem do painel (fechar/reabrir o modal, trocar de aba)
+  // esquecia a equipe/unidade escolhida e voltava pro padrão fixo — a ronda
+  // real (de outra equipe) continuava ativa no banco, mas sumia da tela,
+  // dando a impressão de que "o sistema reiniciou".
+  const GUEST_TEAM_KEY = 'plantaopro_guest_team_v1';
+  const GUEST_UNIT_KEY = 'plantaopro_guest_unit_v1';
+  const [guestTeam, setGuestTeamState] = useState<string | null>(() => {
+    try { return localStorage.getItem(GUEST_TEAM_KEY) || 'ALFA'; } catch { return 'ALFA'; }
+  });
+  const [guestUnitId, setGuestUnitIdState] = useState<string | null>(() => {
+    try { return localStorage.getItem(GUEST_UNIT_KEY) || 'dd77c458-92fb-49e2-819d-7a32288cc390'; } catch { return 'dd77c458-92fb-49e2-819d-7a32288cc390'; }
+  });
+  const setGuestTeam = (v: string | null) => {
+    setGuestTeamState(v);
+    try { if (v) localStorage.setItem(GUEST_TEAM_KEY, v); } catch { /* ignore */ }
+  };
+  const setGuestUnitId = (v: string | null) => {
+    setGuestUnitIdState(v);
+    try { if (v) localStorage.setItem(GUEST_UNIT_KEY, v); } catch { /* ignore */ }
+  };
 
   const flushQueue = async () => {
     const { synced, remaining } = await flushPatrolQueue({
@@ -378,14 +395,19 @@ export function RoundsDashboard({ onShiftActiveChange }: RoundsDashboardProps = 
 
   // Existe alguma ronda em andamento — turno estruturado OU Modo Rápido.
   const hasActiveRound = !!shift || quickRoundActive;
+  // Inclui a EDIÇÃO em andamento (form de criar turno ou dividir/reprogramar
+  // aberto) — sem isso, o modal da home fechava livre (clique fora, Esc, X)
+  // enquanto ainda não existia turno salvo, descartando tudo o que o
+  // visitante estava preenchendo. Dava a impressão de "o sistema reiniciou".
+  const isBusyWithRound = hasActiveRound || dividerOpen;
 
   // Reporta pra fora (o modal da home usa isso pra travar o botão de fechar
   // e pedir confirmação) — mesmo sem login, mesmo sendo ronda avulsa.
   useEffect(() => {
-    onShiftActiveChange?.(hasActiveRound);
+    onShiftActiveChange?.(isBusyWithRound);
     return () => onShiftActiveChange?.(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasActiveRound]);
+  }, [isBusyWithRound]);
 
   // Trava o fechamento da PRÓPRIA ABA/JANELA do navegador (não só o modal
   // interno) enquanto há ronda em andamento — recarregar ou fechar a aba
@@ -394,7 +416,7 @@ export function RoundsDashboard({ onShiftActiveChange }: RoundsDashboardProps = 
   // mensagem padrão do próprio sistema), mas é obrigatório setar algo pra
   // acionar o aviso nativo de "Sair do site?".
   useEffect(() => {
-    if (!hasActiveRound) return;
+    if (!isBusyWithRound) return;
     const handler = (e: BeforeUnloadEvent) => {
       e.preventDefault();
       e.returnValue = '';
@@ -402,7 +424,7 @@ export function RoundsDashboard({ onShiftActiveChange }: RoundsDashboardProps = 
     };
     window.addEventListener('beforeunload', handler);
     return () => window.removeEventListener('beforeunload', handler);
-  }, [hasActiveRound]);
+  }, [isBusyWithRound]);
 
   const slotsQuery = useQuery({
     queryKey: ['patrol-slots', shift?.id],
