@@ -809,6 +809,10 @@ export function BHTracker({ agentId, compact = false, isAdmin = false }: BHTrack
   // Ciclo anterior — já fechado, valor a receber (ou já pago) no mês de pagamento dele.
   const previousPeriodBalance = getPeriodBalance(previousPeriod);
 
+  // Sem nenhum lançamento, não mostra saldo, valor, limite nem ciclos (seriam
+  // zeros inventados): só o convite para registrar o primeiro BH.
+  const hasBH = entries.length > 0;
+
   const totalValue = currentFortnightBalance * hourlyRate;
   const progressPercent = currentFortnightLimit > 0 ? Math.min((currentFortnightBalance / currentFortnightLimit) * 100, 100) : 0;
   const isNearLimit = currentFortnightLimit > 0 && currentFortnightBalance >= currentFortnightLimit * 0.8;
@@ -856,6 +860,26 @@ export function BHTracker({ agentId, compact = false, isAdmin = false }: BHTrack
       setSelectedPeriod('day');
       setShowConfirmDialog(true);
     };
+
+    if (!hasBH) {
+      return (
+        <Card className="card-night-green bg-gradient-to-br from-[hsl(222,60%,4%)] via-[hsl(222,55%,6%)] to-[hsl(142,40%,8%)] border-2 border-slate-600/40">
+          <CardContent className="space-y-3 p-3 md:p-4">
+            <div className="flex items-center gap-3">
+              <div className="rounded-xl bg-slate-500/15 p-2.5 ring-1 ring-slate-500/30"><Clock className="h-5 w-5 text-slate-300" /></div>
+              <div className="min-w-0">
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-300 md:text-xs">Banco de Horas</p>
+                <p className="text-sm font-semibold text-slate-100">Nenhum BH registrado</p>
+                <p className="text-[11px] text-slate-400">Registre o primeiro para acompanhar saldo e valor a receber.</p>
+              </div>
+            </div>
+            <Button onClick={handleQuickRegisterToday} className="h-10 w-full bg-gradient-to-r from-green-600 to-emerald-600 font-bold text-white hover:from-green-500 hover:to-emerald-500">
+              <CalendarPlus className="mr-2 h-4 w-4" /> Registrar HOJE ({todayStr})
+            </Button>
+          </CardContent>
+        </Card>
+      );
+    }
 
     return (
       <Card 
@@ -1009,6 +1033,16 @@ export function BHTracker({ agentId, compact = false, isAdmin = false }: BHTrack
           </div>
         )}
 
+        {!hasBH && (
+          <div role="status" className="rounded-lg border border-slate-600/40 bg-slate-700/20 p-4 text-center">
+            <Clock className="mx-auto mb-2 h-6 w-6 text-slate-400" />
+            <p className="text-sm font-semibold text-slate-100">Nenhum BH registrado</p>
+            <p className="mt-1 text-xs text-slate-400">Escolha um dia no calendário abaixo para registrar o primeiro. Saldo, valor a receber e ciclos aparecem depois do primeiro lançamento.</p>
+          </div>
+        )}
+
+        {hasBH && (
+          <>
         {/* Pay-period summary — ciclo atual + ciclo anterior (a receber) */}
         <div className="space-y-2">
           <div className="flex items-center gap-2 mb-1">
@@ -1133,6 +1167,9 @@ export function BHTracker({ agentId, compact = false, isAdmin = false }: BHTrack
             </TooltipProvider>
           </div>
         </div>
+
+          </>
+        )}
 
         {/* Period Scale Visual — dias registrados dentro do ciclo 16→15 */}
         <div className="space-y-2">
@@ -1398,10 +1435,14 @@ export function BHTracker({ agentId, compact = false, isAdmin = false }: BHTrack
         </Dialog>
 
         {/* Monthly Summary by Pay Period */}
-        <MonthlySummary entries={entries} selectedMonth={selectedMonth} hourlyRate={hourlyRate} />
+        {hasBH && (
+          <>
+            <MonthlySummary entries={entries} selectedMonth={selectedMonth} hourlyRate={hourlyRate} />
 
-        {/* BH Evolution Chart */}
-        <BHEvolutionChart entries={entries} hourlyRate={hourlyRate} />
+            {/* BH Evolution Chart */}
+            <BHEvolutionChart entries={entries} hourlyRate={hourlyRate} />
+          </>
+        )}
 
         {/* Calendar for clicking dates */}
         <div className="space-y-2">

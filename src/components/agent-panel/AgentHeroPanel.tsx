@@ -27,12 +27,14 @@ interface QuickStats {
   totalShifts: number;
   completedShifts: number;
   bhBalance: number;
+  /** Há ao menos um lançamento de BH? Sem isso, mostra "—" e não "+0". */
+  hasBH: boolean;
   pendingLeaves: number;
 }
 
 export function AgentHeroPanel({ agentId, agentName, agentTeam }: AgentHeroPanelProps) {
   const [nextShift, setNextShift] = useState<NextShift | null>(null);
-  const [stats, setStats] = useState<QuickStats>({ totalShifts: 0, completedShifts: 0, bhBalance: 0, pendingLeaves: 0 });
+  const [stats, setStats] = useState<QuickStats>({ totalShifts: 0, completedShifts: 0, bhBalance: 0, hasBH: false, pendingLeaves: 0 });
   const currentTime = useServerTime(1000);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -56,12 +58,13 @@ export function AgentHeroPanel({ agentId, agentName, agentTeam }: AgentHeroPanel
         }
 
         // Fetch quick stats
-        const [shiftsRes, bhRes, leavesRes] = await Promise.all([
+        const [shiftsRes, bhRes, bhCountRes, leavesRes] = await Promise.all([
           supabase
             .from('agent_shifts')
             .select('id, status')
             .eq('agent_id', agentId),
           supabase.rpc('calculate_bh_balance', { p_agent_id: agentId }),
+          supabase.from('overtime_bank').select('id', { count: 'exact', head: true }).eq('agent_id', agentId),
           supabase
             .from('agent_leaves')
             .select('id')
@@ -76,6 +79,7 @@ export function AgentHeroPanel({ agentId, agentName, agentTeam }: AgentHeroPanel
           totalShifts,
           completedShifts,
           bhBalance: bhRes.data || 0,
+          hasBH: (bhCountRes.count ?? 0) > 0,
           pendingLeaves: leavesRes.data?.length || 0
         });
       } catch (error) {
@@ -238,7 +242,7 @@ export function AgentHeroPanel({ agentId, agentName, agentTeam }: AgentHeroPanel
             },
             { 
               label: 'Taxa', 
-              value: `${completionRate}%`, 
+              value: stats.totalShifts > 0 ? `${completionRate}%` : '—', 
               icon: TrendingUp, 
               color: 'from-emerald-500/20 to-emerald-600/10',
               iconColor: 'text-emerald-400',
@@ -246,11 +250,11 @@ export function AgentHeroPanel({ agentId, agentName, agentTeam }: AgentHeroPanel
             },
             { 
               label: 'BH', 
-              value: `${stats.bhBalance >= 0 ? '+' : ''}${stats.bhBalance}`, 
+              value: stats.hasBH ? `${stats.bhBalance >= 0 ? '+' : ''}${stats.bhBalance}` : '—', 
               icon: Activity, 
-              color: stats.bhBalance >= 0 ? 'from-blue-500/20 to-blue-600/10' : 'from-rose-500/20 to-rose-600/10',
-              iconColor: stats.bhBalance >= 0 ? 'text-blue-400' : 'text-rose-400',
-              borderColor: stats.bhBalance >= 0 ? 'border-blue-500/30' : 'border-rose-500/30'
+              color: !stats.hasBH ? 'from-zinc-500/15 to-zinc-600/10' : stats.bhBalance >= 0 ? 'from-blue-500/20 to-blue-600/10' : 'from-rose-500/20 to-rose-600/10',
+              iconColor: !stats.hasBH ? 'text-zinc-400' : stats.bhBalance >= 0 ? 'text-blue-400' : 'text-rose-400',
+              borderColor: !stats.hasBH ? 'border-zinc-500/30' : stats.bhBalance >= 0 ? 'border-blue-500/30' : 'border-rose-500/30'
             },
             { 
               label: 'Folgas', 
