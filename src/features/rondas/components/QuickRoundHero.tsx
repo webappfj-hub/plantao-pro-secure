@@ -5,12 +5,10 @@ import { cn } from '@/lib/utils';
 import { TEAM_COLORS, type TeamKey } from '@/lib/teamColors';
 import { TEAM_ART, CHROME_GRADIENT } from '@/lib/teamArt';
 import { InstrumentDial } from './CommandClock';
-import { fmtDuration } from '../quickSession';
+import { fmtClockTime, fmtDuration, needsSeconds } from '../quickSession';
 
 const FINAL_COUNTDOWN_MS = 10 * 60_000;
 
-const hm = (ms: number) =>
-  new Date(ms).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Rio_Branco' });
 
 function fmtClock(ms: number): string {
   const t = Math.max(0, Math.floor(ms / 1000));
@@ -45,6 +43,8 @@ export function QuickRoundHero({ team, names, phase, now, triggerMs, perAgentMs,
   const key: TeamKey = team && team in TEAM_ART ? (team as TeamKey) : 'ALFA';
   const color = TEAM_COLORS[key].hex;
   const n = names.length;
+  const precise = needsSeconds(perAgentMs);
+  const hm = (ms: number) => fmtClockTime(ms, precise);
   const running = phase === 'running';
   const elapsed = running ? Math.max(0, now - triggerMs) : 0;
   const current = running ? Math.min(Math.floor(elapsed / perAgentMs), n - 1) : -1;
@@ -103,18 +103,26 @@ export function QuickRoundHero({ team, names, phase, now, triggerMs, perAgentMs,
       style={{ background: CHROME_GRADIENT }}
     >
       <div className="relative overflow-hidden rounded-t-[14px] bg-[#070c18] text-white">
-        <img
-          src={TEAM_ART[key].src}
-          alt=""
+        {/* Fundo vetorial tático (sem foto): degradê azul-marinho, grade fina,
+            malha de hexágonos e faixas diagonais na cor da equipe. */}
+        <div aria-hidden className="absolute inset-0" style={{ background: 'linear-gradient(115deg, #0a1122 0%, #0d1830 45%, #0a1326 100%)' }} />
+        <div
           aria-hidden
-          decoding="async"
-          className="pointer-events-none absolute inset-y-0 right-0 h-full w-[200%] max-w-none select-none object-cover object-[100%_35%]"
+          className="absolute inset-0 opacity-60"
+          style={{
+            backgroundImage: `url("data:image/svg+xml;utf8,${encodeURIComponent(
+              "<svg xmlns='http://www.w3.org/2000/svg' width='28' height='48' viewBox='0 0 28 48'><path d='M14 0 28 8v16L14 32 0 24V8zM14 32l14 8v16M14 32 0 40v16' fill='none' stroke='#8fb4ff' stroke-opacity='0.07' stroke-width='1'/></svg>",
+            )}")`,
+            backgroundSize: '28px 48px',
+          }}
         />
         <div
           aria-hidden
           className="absolute inset-0"
-          style={{ background: 'linear-gradient(90deg, rgb(7 12 24 / 0.97) 0%, rgb(7 12 24 / 0.86) 45%, rgb(7 12 24 / 0.62) 100%)' }}
+          style={{ backgroundImage: 'linear-gradient(rgb(143 180 255 / 0.05) 1px, transparent 1px), linear-gradient(90deg, rgb(143 180 255 / 0.05) 1px, transparent 1px)', backgroundSize: '32px 32px' }}
         />
+        <div aria-hidden className="absolute inset-y-0 right-[24%] w-36 -skew-x-[24deg] opacity-[0.16]" style={{ background: `linear-gradient(90deg, transparent, ${color}, transparent)` }} />
+        <div aria-hidden className="absolute inset-0" style={{ background: `radial-gradient(60% 140% at 0% 50%, ${color}1f, transparent 60%)` }} />
         <div aria-hidden className="absolute inset-x-0 top-0 h-px" style={{ background: `linear-gradient(90deg, transparent, ${color}, transparent)` }} />
 
         {/* Barra superior */}

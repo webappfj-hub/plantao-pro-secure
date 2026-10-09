@@ -53,11 +53,28 @@ export function quickRoundStatus(s: StoredQuickSession | null, now: number): Qui
   };
 }
 
-/** Duração legível: "1h48", "36 min". */
+/** Duração legível, com segundos quando a conta não fecha em minutos:
+ * "30 s", "1 min 30 s", "36 min", "1h48". */
 export function fmtDuration(ms: number): string {
-  const min = Math.round(ms / 60_000);
+  const sec = Math.round(ms / 1000);
+  if (sec < 60) return `${sec} s`;
+  if (sec < 3600) {
+    const m = Math.floor(sec / 60);
+    const r = sec % 60;
+    return r ? `${m} min ${r} s` : `${m} min`;
+  }
+  const min = Math.round(sec / 60);
   const h = Math.floor(min / 60);
   const m = min % 60;
-  if (h === 0) return `${m} min`;
   return m === 0 ? `${h}h` : `${h}h${String(m).padStart(2, '0')}`;
+}
+
+/** Fatias curtas ou quebradas (ex.: 30 s) precisam de segundos para o horário não parecer errado. */
+export const needsSeconds = (perAgentMs: number) => perAgentMs % 60_000 !== 0 || perAgentMs < 300_000;
+
+/** Horário no fuso do Acre — HH:MM, ou HH:MM:SS quando `withSeconds`. */
+export function fmtClockTime(ms: number, withSeconds = false): string {
+  return new Date(ms).toLocaleTimeString('pt-BR', {
+    hour: '2-digit', minute: '2-digit', ...(withSeconds ? { second: '2-digit' } : {}), timeZone: 'America/Rio_Branco',
+  });
 }

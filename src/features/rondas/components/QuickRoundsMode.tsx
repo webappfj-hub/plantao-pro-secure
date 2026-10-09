@@ -18,7 +18,7 @@ import * as api from '../api';
 import { buildQuickModeWindows } from './AgentScheduleTimeline';
 import { ShareScheduleButton } from './ShareScheduleButton';
 import { QuickRoundHero } from './QuickRoundHero';
-import { fmtDuration } from '../quickSession';
+import { fmtClockTime, fmtDuration, needsSeconds } from '../quickSession';
 
 /** Início/fim em "HH:mm" → duração em minutos. Vira o dia (fim < início) soma 24h. */
 function diffMinutes(start: string, end: string): number {
@@ -516,7 +516,7 @@ export function QuickRoundsMode({ unitId, team, onSessionActiveChange }: QuickRo
     const base = todayAt(startTime).getTime() + idx * perAgentMsPreview;
     return { start: new Date(base), end: new Date(base + perAgentMsPreview) };
   };
-  const fmtRowTime = (d: Date) => d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Rio_Branco' });
+  const fmtRowTime = (d: Date) => fmtClockTime(d.getTime(), needsSeconds(perAgentMsPreview));
   const quickColors = getTeamColors(team);
 
   return (
