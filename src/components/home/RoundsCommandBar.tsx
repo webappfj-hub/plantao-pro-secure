@@ -6,6 +6,7 @@ import { useAgentProfile } from '@/hooks/useAgentProfile';
 import { useRoundsStats } from '@/hooks/useRoundsStats';
 
 import { useServerTime } from '@/hooks/useServerTime';
+import { DutyTeamBadge } from './DutyTeamBadge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 
@@ -44,7 +45,7 @@ export function RoundsCommandBar() {
         aria-label="Controle de rondas, indicadores e horário"
         className="glass glass-surface w-full rounded-lg"
       >
-        <div className="mx-auto flex h-14 max-w-[1600px] items-stretch px-2 sm:px-3">
+        <div className="relative mx-auto flex h-14 max-w-[1600px] items-stretch px-2 sm:px-3">
           <div className="flex flex-1 items-center gap-3 min-w-0 sm:gap-5">
             <button
               type="button"
@@ -89,6 +90,8 @@ export function RoundsCommandBar() {
                 </>
               )}
             </div>
+
+            <DutyTeamBadge className="ml-auto hidden w-[320px] md:flex xl:absolute xl:left-1/2 xl:top-1/2 xl:ml-0 xl:w-[440px] xl:-translate-x-1/2 xl:-translate-y-1/2" />
           </div>
 
           <div className="flex shrink-0 items-center gap-3 border-l border-border pl-3 sm:pl-5">
