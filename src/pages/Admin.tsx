@@ -23,6 +23,7 @@ const RegistrationsToggleCard = lazyRetry(() => import('@/components/admin/Regis
 const RoundsAccessToggleCard = lazyRetry(() => import('@/components/admin/RoundsAccessToggleCard').then(m => ({ default: m.RoundsAccessToggleCard })));
 const AdvertisementsManager = lazyRetry(() => import('@/components/admin/AdvertisementsManager').then(m => ({ default: m.AdvertisementsManager })));
 const DynamicScreensManager = lazyRetry(() => import('@/components/admin/DynamicScreensManager').then(m => ({ default: m.DynamicScreensManager })));
+const AccessAuditPanel = lazyRetry(() => import('@/components/admin/AccessAuditPanel').then(m => ({ default: m.AccessAuditPanel })));
 const ScheduledRoundsManager = lazyRetry(() => import('@/components/admin/ScheduledRoundsManager').then(m => ({ default: m.ScheduledRoundsManager })));
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -51,7 +52,8 @@ import {
   Settings2,
   Palette,
   Sparkles,
-  CalendarClock
+  CalendarClock,
+  ScrollText
 } from 'lucide-react';
 
 interface AdminPermissions {
@@ -429,6 +431,14 @@ export default function Admin() {
                     </TabsTrigger>
 
                     <TabsTrigger
+                      value="logs"
+                      className="px-4 py-2 data-[state=active]:bg-red-600 data-[state=active]:text-white rounded-md whitespace-nowrap"
+                    >
+                      <ScrollText className="h-4 w-4 mr-2" />
+                      Logs de acesso
+                    </TabsTrigger>
+
+                    <TabsTrigger
                       value="appearance"
                       className="px-4 py-2 data-[state=active]:bg-pink-600 data-[state=active]:text-white rounded-md whitespace-nowrap"
                     >
@@ -518,6 +528,13 @@ export default function Admin() {
                 <TabsContent value="rondas" className="mt-4">
                   <SectionBoundary label="painel-admin" fallback={<PanelSkeleton />}>
                     <ScheduledRoundsManager />
+                  </SectionBoundary>
+                </TabsContent>
+
+                <TabsContent value="logs" className="mt-4">
+                  <SectionBoundary label="logs-acesso" fallback={<PanelSkeleton />}>
+                    {/* Inclui "Apagar tudo", "Apagar filtrados" e por agente — todos com confirmação. */}
+                    <AccessAuditPanel />
                   </SectionBoundary>
                 </TabsContent>
 
