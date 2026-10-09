@@ -4,7 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { lazy, Suspense, useEffect } from "react";
-import { AuthProvider } from "@/contexts/AuthContext";
+import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { FontSizeProvider } from "@/contexts/FontSizeContext";
 import { useGlobalNavigation } from "@/hooks/useGlobalNavigation";
@@ -110,10 +110,17 @@ function LowMotionSync() {
   return null;
 }
 
-// Prefetch the most likely next-routes while browser is idle,
-// so authenticated users open the panel/admin instantly on weak links.
+// Prefetch the most likely next-routes while browser is idle, so
+// authenticated users open the panel/admin instantly on weak links.
+// Visitantes (a maioria na home) não baixam páginas que não podem abrir, e
+// conexões com economia de dados/2G não pré-carregam nada.
 function RoutePrefetcher() {
+  const { user, masterSession, isAdmin, isMaster } = useAuth();
+  const loggedIn = !!user || !!masterSession;
   useEffect(() => {
+    if (!loggedIn) return;
+    const conn = (navigator as any).connection;
+    if (conn?.saveData || /2g/.test(conn?.effectiveType ?? '')) return;
     const idle =
       (window as any).requestIdleCallback ||
       ((cb: () => void) => setTimeout(cb, 1200));
@@ -122,15 +129,12 @@ function RoutePrefetcher() {
     const handle = idle(() => {
       // Fire-and-forget dynamic imports; Vite will fetch the chunks.
       import("./pages/AgentPanel");
-      import("./pages/Dashboard");
-      import("./pages/Admin");
-      import("./pages/Master");
-      import("./pages/Agents");
       import("./pages/Agenda");
-      import("./pages/About");
+      if (isAdmin) { import("./pages/Dashboard"); import("./pages/Admin"); import("./pages/Agents"); }
+      if (isMaster || masterSession) import("./pages/Master");
     });
     return () => cancel(handle);
-  }, []);
+  }, [loggedIn, isAdmin, isMaster, masterSession]);
   return null;
 }
 

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
-import loadingBgUrl from "@/assets/midias/section-background.png";
+import loadingBgUrl from "@/assets/midias/section-background.webp";
 
 const LOADING_BG_URL = loadingBgUrl;
 

@@ -13,7 +13,7 @@ import { AnnouncementsCard } from '@/components/dashboard/AnnouncementsCard';
 import { TeamShiftsPanel } from '@/components/dashboard/TeamShiftsPanel';
 const OvertimeChart = lazy(() => import('@/components/dashboard/OvertimeChart').then(m => ({ default: m.OvertimeChart })));
 import { ShiftConflictsBanner } from '@/components/dashboard/ShiftConflictsBanner';
-import hudPageBg from '@/assets/midias/unit-cs-acre.png';
+import hudPageBg from '@/assets/midias/unit-cs-acre.webp';
 const hudBgStyle = { ['--hud-bg-url' as any]: `url(${hudPageBg})` };
 import { Icon3D, type Icon3DName } from '@/components/ui/Icon3D';
 
