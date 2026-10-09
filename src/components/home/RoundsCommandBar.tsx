@@ -10,6 +10,9 @@ import { DutyTeamBadge } from './DutyTeamBadge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 
+const PLATE_CLIP = 'polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px))';
+const PLATE_CLIP_INNER = 'polygon(0 0, calc(100% - 9px) 0, 100% 9px, 100% 100%, 9px 100%, 0 calc(100% - 9px))';
+
 /**
  * Barra de controle — acesso rápido ao Gestor de Rondas, indicadores do
  * turno e relógio sincronizado com o servidor.
@@ -47,19 +50,45 @@ export function RoundsCommandBar() {
       >
         <div className="relative mx-auto flex h-14 max-w-[1600px] items-stretch px-2 sm:px-3">
           <div className="flex flex-1 items-center gap-3 min-w-0 sm:gap-5">
+            {/* Placa tática: cantos chanfrados (clip-path), moldura em degradê, placa
+                do ícone com LED, sheen periódico e chevrons em cascata. Mesmo
+                espaço do botão anterior (225 px), altura usa a folga da barra. */}
             <button
               type="button"
               onClick={() => navigate('/rondas')}
               aria-label="Abrir Gestor de Rondas"
-              className="rounds-btn group inline-flex shrink-0 items-center gap-2 rounded-md border border-primary/50 bg-primary/20 px-3 py-2 text-primary shadow-sm transition-all duration-200 hover:border-primary/70 hover:bg-primary/25 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 sm:px-3.5"
+              className="rounds-plate group relative isolate h-11 w-[225px] shrink-0 text-left focus-visible:outline-none"
+              style={{ clipPath: PLATE_CLIP, background: 'linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary) / 0.35) 55%, hsl(var(--primary)))' }}
             >
-              <span className="relative flex h-2 w-2 shrink-0" aria-hidden>
-                <span className="absolute inline-flex h-full w-full rounded-full bg-primary opacity-70 motion-safe:animate-ping" />
-                <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
+              <span
+                className="absolute inset-px flex items-stretch overflow-hidden transition-[filter] duration-300 group-hover:brightness-125 group-focus-visible:brightness-125"
+                style={{ clipPath: PLATE_CLIP_INNER, background: 'linear-gradient(180deg, rgb(12 20 36), rgb(7 12 24))' }}
+              >
+                {/* Placa do ícone com listras diagonais e LED de status */}
+                <span
+                  className="relative flex w-11 shrink-0 items-center justify-center border-r border-primary/30"
+                  style={{ background: 'repeating-linear-gradient(135deg, hsl(var(--primary) / 0.22) 0 4px, hsl(var(--primary) / 0.10) 4px 8px)' }}
+                >
+                  <span className="absolute left-1.5 top-1.5 flex h-1.5 w-1.5" aria-hidden>
+                    <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-70 motion-safe:animate-ping" />
+                    <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                  </span>
+                  <ClipboardList className="h-5 w-5 text-white drop-shadow transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-6" strokeWidth={2.2} />
+                </span>
+
+                <span className="flex min-w-0 flex-1 flex-col justify-center pl-2.5 leading-none">
+                  <span className="whitespace-nowrap text-[11px] font-bold uppercase tracking-[0.08em] text-white">Gestor de Rondas</span>
+                  <span className="mt-1 whitespace-nowrap text-[8px] font-semibold uppercase tracking-[0.16em] text-primary">Central operacional</span>
+                </span>
+
+                {/* Chevrons em cascata */}
+                <span className="flex shrink-0 items-center pr-2 text-primary" aria-hidden>
+                  <ChevronRight className="rounds-chev -mr-2.5 h-4 w-4" style={{ animationDelay: '0ms' }} strokeWidth={3} />
+                  <ChevronRight className="rounds-chev h-4 w-4" style={{ animationDelay: '200ms' }} strokeWidth={3} />
+                </span>
+
+                <span aria-hidden className="rounds-sheen pointer-events-none absolute inset-y-0 left-0 w-1/3 motion-reduce:hidden" />
               </span>
-              <ClipboardList className="h-4 w-4 transition-transform duration-200 group-hover:rotate-6 group-hover:scale-110" strokeWidth={2.4} />
-              <span className="text-[11px] font-bold uppercase tracking-wider transition-all duration-200 motion-safe:animate-pulse group-hover:animate-none group-hover:tracking-widest sm:text-xs">Gestor de Rondas</span>
-              <ChevronRight className="h-3.5 w-3.5 transition-transform duration-200 group-hover:translate-x-0.5" strokeWidth={2.6} />
             </button>
 
             <div className="flex shrink-0 items-center gap-3 sm:gap-4">

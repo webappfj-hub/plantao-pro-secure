@@ -1824,17 +1824,14 @@ export default function Index() {
         <CopyrightFooter
           compact
           leftSlot={
-            <span className="inline-flex items-center gap-1.5 text-[9px] font-mono tracking-[0.24em] uppercase text-white/55">
-              <ShieldCheck className="h-3 w-3 text-primary/80" strokeWidth={2.2} />
+            <span className="inline-flex items-center gap-1.5 whitespace-nowrap border-r border-white/10 pr-2.5 text-[9px] font-mono tracking-[0.24em] uppercase text-white/60">
+              <ShieldCheck className="h-3.5 w-3.5 text-primary/80" strokeWidth={2.2} />
               <span>ISE · Acre</span>
-              <span className="text-white/25">/</span>
-              <span>Sistema Operacional</span>
             </span>
           }
           rightSlot={
             <>
-              <span className="text-white/25">·</span>
-              <span className="inline-flex items-center gap-1 text-[9px] font-mono tracking-[0.2em] uppercase text-white/55">
+              <span className="inline-flex items-center gap-1.5 text-[9px] font-mono tracking-[0.2em] uppercase text-white/60">
                 <span className="relative flex h-1.5 w-1.5">
                   <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400/60" />
                   <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" />
@@ -1842,12 +1839,11 @@ export default function Index() {
                 <span>Online</span>
               </span>
 
-              <span className="text-white/25">·</span>
               <button
                 type="button"
                 onClick={() => setShowMasterLogin(true)}
                 aria-label="Acesso Administrador Master"
-                className="inline-flex items-center gap-1 rounded-sm px-1 py-0.5 text-[9px] font-mono tracking-[0.2em] uppercase text-white/55 hover:text-primary transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/50"
+                className="inline-flex items-center gap-1 rounded-sm border border-white/10 px-1.5 py-1 text-[9px] font-mono tracking-[0.2em] uppercase text-white/55 hover:text-primary transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/50"
               >
                 <Lock className="h-3 w-3" strokeWidth={2.2} />
                 <span>Master</span>

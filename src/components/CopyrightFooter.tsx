@@ -36,72 +36,66 @@ export const CopyrightFooter = forwardRef<HTMLDivElement, CopyrightFooterProps>(
     const year = new Date().getFullYear();
 
     if (compact) {
+      // Barra de status tática: marca + estado à esquerda, leituras de
+      // telemetria (segurança/versão) no centro, conexão/acesso/assinatura à
+      // direita. Tudo em uma linha (nowrap) — nada quebra nem empurra.
+      const mono = { fontFamily: "'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace" };
+      const chip = 'inline-flex items-center gap-1.5 whitespace-nowrap rounded-sm border border-white/10 bg-white/[0.04] px-2 py-1 text-[9px] font-semibold uppercase leading-none tracking-[0.18em] text-white/65';
       return (
         <div
           ref={ref}
           className={cn(
             'relative w-full overflow-hidden',
-            'border-t border-primary/20',
-            'bg-[linear-gradient(180deg,hsl(220_35%_6%/0.92)_0%,hsl(222_40%_4%/0.98)_100%)]',
+            'border-t border-primary/25',
+            'bg-[linear-gradient(180deg,hsl(220_35%_6%/0.94)_0%,hsl(222_40%_4%/0.99)_100%)]',
             'backdrop-blur-md',
             className,
           )}
         >
-          {/* Steel accent line */}
+          {/* Grade tática + brilho + marcas de canto */}
           <span
             aria-hidden
-            className="pointer-events-none absolute inset-x-0 top-0 h-px bg-[linear-gradient(90deg,transparent,hsl(var(--primary))_50%,transparent)] opacity-80"
+            className="pointer-events-none absolute inset-0 opacity-60"
+            style={{
+              backgroundImage: 'linear-gradient(hsl(var(--primary) / 0.05) 1px, transparent 1px), linear-gradient(90deg, hsl(var(--primary) / 0.05) 1px, transparent 1px)',
+              backgroundSize: '22px 22px',
+            }}
           />
-          <div className="relative mx-auto max-w-6xl px-3 sm:px-4 py-1.5 sm:py-2.5 flex flex-col sm:flex-row items-center justify-between gap-1.5 sm:gap-3">
-            {/* Left: Brand + Status + optional slot */}
-            <div className="flex items-center gap-1.5 sm:gap-2.5 min-w-0 font-sans">
+          <span aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-px bg-[linear-gradient(90deg,transparent,hsl(var(--primary))_50%,transparent)]" />
+          <span aria-hidden className="pointer-events-none absolute left-0 top-0 h-2 w-2 border-l border-t border-primary/70" />
+          <span aria-hidden className="pointer-events-none absolute right-0 top-0 h-2 w-2 border-r border-t border-primary/70" />
+
+          <div className="relative mx-auto grid max-w-6xl items-center gap-x-4 gap-y-2 px-3 py-2 sm:grid-cols-[1fr_auto] lg:grid-cols-[1fr_auto_1fr] sm:px-4 sm:py-2.5" style={mono}>
+            {/* Esquerda: marca + estado + jurisdição */}
+            <div className="flex min-w-0 items-center gap-2.5 whitespace-nowrap">
               {leftSlot}
-              <span className="text-[10px] sm:text-[11px] font-semibold uppercase tracking-[0.2em] sm:tracking-[0.22em] text-white/85">
-                PlantãoPro
-              </span>
-              <span className="hidden min-[480px]:inline-flex items-center gap-1.5 px-1.5 py-0.5 rounded-sm bg-white/[0.06] ring-1 ring-white/15">
+              <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-white/90">PlantãoPro</span>
+              <span className="hidden min-[480px]:inline-flex items-center gap-1.5 rounded-sm border border-success/30 bg-success/10 px-1.5 py-1 leading-none">
                 <span className="relative flex h-1.5 w-1.5">
-                  <span className="absolute inset-0 rounded-full bg-success opacity-60" />
+                  <span className="absolute inset-0 rounded-full bg-success opacity-60 motion-safe:animate-ping" />
                   <span className="relative h-1.5 w-1.5 rounded-full bg-success" />
                 </span>
-                <span className="text-[9px] font-semibold tracking-[0.20em] uppercase text-success/90">
-                  Operacional
-                </span>
+                <span className="text-[9px] font-semibold uppercase tracking-[0.2em] text-success/95">Operacional</span>
               </span>
-              {/* Dot indicator apenas em telas pequenas */}
-              <span className="inline-flex min-[480px]:hidden relative h-1.5 w-1.5" aria-label="Operacional">
-                <span className="absolute inset-0 rounded-full bg-success opacity-60" />
-                <span className="relative h-1.5 w-1.5 rounded-full bg-success" />
-              </span>
-
-              {/* Jurisdição — discreto, no espírito de um rodapé de
-                  segurança pública (unidade + município de referência). */}
-              <span className="hidden min-[480px]:inline-flex items-center gap-1 pl-0.5 text-[9px] font-semibold tracking-[0.18em] text-white/55">
-                <span className="text-white/25">·</span>
-                <ShieldCheck className="h-2.5 w-2.5 text-primary/70" />
-                <span className="uppercase">Feijó · AC</span>
+              <span className="hidden lg:inline-flex items-center gap-1 text-[9px] font-semibold uppercase tracking-[0.18em] text-white/50">
+                <MapPin className="h-2.5 w-2.5 text-primary/70" />
+                Feijó · AC
               </span>
             </div>
 
+            {/* Centro: telemetria */}
+            <div className="hidden items-center gap-2 lg:flex">
+              <span className={chip}><Lock className="h-3 w-3 text-primary/80" />LGPD · TLS 1.3</span>
+              <span className={cn(chip, 'text-white/85')}>v2.7</span>
+            </div>
 
-            {/* Right: Meta + signature */}
-            <div className="flex flex-wrap items-center justify-center gap-x-1.5 sm:gap-x-2 gap-y-1 text-[9px] text-white/55 tracking-[0.18em] uppercase">
-              <MadeInFeijoBadge inline size="sm" />
-              <span className="hidden md:inline text-white/25">·</span>
-              <span className="hidden sm:inline-flex items-center gap-1">
-                <Lock className="h-3 w-3 text-primary/70" />
-                <span>LGPD · TLS 1.3</span>
-              </span>
-              <span className="hidden sm:inline text-white/30">·</span>
-              <span className="font-semibold text-white/80">v2.7</span>
-              <span className="hidden min-[360px]:inline text-white/30">·</span>
-              <span className="hidden min-[360px]:inline">© {year}</span>
+            {/* Direita: conexão/acesso + © + assinatura discreta */}
+            <div className="flex flex-wrap items-center justify-start gap-x-3 gap-y-1 text-[9px] uppercase tracking-[0.18em] text-white/50 sm:justify-end sm:flex-nowrap sm:whitespace-nowrap">
               {rightSlot}
+              <span className="hidden min-[360px]:inline">© {year}</span>
+              <MadeInFeijoBadge inline size="sm" />
             </div>
           </div>
-
-
-
         </div>
       );
     }
