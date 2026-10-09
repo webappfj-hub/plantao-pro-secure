@@ -62,7 +62,7 @@ export function CinematicBrandHero({
         className="pointer-events-none absolute inset-0 -z-10"
         style={{
           backgroundImage:
-            "linear-gradient(180deg, hsl(222 47% 7%) 0%, transparent 18%, transparent 78%, hsl(222 47% 7%) 100%)," +
+            "linear-gradient(180deg, hsl(var(--background)) 0%, transparent 18%, transparent 78%, hsl(var(--background)) 100%)," +
             "linear-gradient(90deg, hsl(222 20% 6% / 0.94) 0%, hsl(222 20% 6% / 0.72) 45%, hsl(222 20% 6% / 0.15) 100%)",
         }}
       />
@@ -78,7 +78,7 @@ export function CinematicBrandHero({
           </div>
 
           <h2
-            className="mt-4 font-heading text-[clamp(1.9rem,3.6vw,3.1rem)] font-bold leading-[1.1] tracking-tight text-white animate-fade-in"
+            className="text-flow mt-4 font-heading text-[clamp(1.9rem,3.6vw,3.1rem)] font-bold leading-[1.1] tracking-tight text-white animate-fade-in"
             style={{ animationDelay: "160ms" }}
           >
             Gestão de plantões com controle real e segurança institucional.
