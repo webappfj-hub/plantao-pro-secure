@@ -6,6 +6,7 @@ import { useAgentProfile } from '@/hooks/useAgentProfile';
 import { useRoundsStats } from '@/hooks/useRoundsStats';
 
 import { useServerTime } from '@/hooks/useServerTime';
+import { DutyTeamBadge } from './DutyTeamBadge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 
@@ -89,6 +90,8 @@ export function RoundsCommandBar() {
                 </>
               )}
             </div>
+
+            <DutyTeamBadge className="ml-auto hidden md:flex" />
           </div>
 
           <div className="flex shrink-0 items-center gap-3 border-l border-border pl-3 sm:pl-5">
