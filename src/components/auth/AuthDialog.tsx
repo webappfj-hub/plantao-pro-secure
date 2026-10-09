@@ -239,7 +239,7 @@ export function AuthDialog({
               loading="eager"
               decoding="async"
               draggable={false}
-              className="absolute inset-0 h-full w-full select-none object-cover object-[28%_30%]"
+              className="absolute inset-y-0 left-0 h-full w-[125%] max-w-none select-none object-cover object-left"
             />
             <div aria-hidden className="absolute inset-0 bg-gradient-to-b from-slate-950/55 via-slate-950/70 to-slate-950" />
             <div aria-hidden className={cn("absolute -top-16 left-1/2 h-40 w-72 -translate-x-1/2 rounded-full opacity-25 blur-3xl", styles.decorColor)} />
