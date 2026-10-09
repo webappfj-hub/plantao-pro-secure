@@ -18,6 +18,7 @@ import * as api from '../api';
 import { buildQuickModeWindows } from './AgentScheduleTimeline';
 import { ShareScheduleButton } from './ShareScheduleButton';
 import { QuickRoundHero } from './QuickRoundHero';
+import { fmtDuration } from '../quickSession';
 
 /** Início/fim em "HH:mm" → duração em minutos. Vira o dia (fim < início) soma 24h. */
 function diffMinutes(start: string, end: string): number {
@@ -538,6 +539,20 @@ export function QuickRoundsMode({ unitId, team, onSessionActiveChange }: QuickRo
       </div>
 
       <div className="space-y-2 border-t border-border px-4 py-2.5">
+        {/* Divisão do tempo — atualiza enquanto os nomes e horários são digitados */}
+        {activeNames.length > 0 && durationMinutes > 0 && (
+          <div className="flex items-center justify-between gap-3 rounded-xl border px-4 py-3" style={{ borderColor: `${quickColors.primary}55`, background: `${quickColors.primary}12` }} aria-live="polite">
+            <div>
+              <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-muted-foreground">Cada agente fica</p>
+              <p className="text-3xl font-extrabold tabular-nums leading-tight" style={{ color: quickColors.primary }}>{fmtDuration(perAgentMsPreview)}</p>
+            </div>
+            <div className="text-right text-sm text-muted-foreground">
+              <p><b className="text-foreground">{activeNames.length}</b> agente{activeNames.length !== 1 ? 's' : ''}</p>
+              <p>total <b className="text-foreground">{fmtDuration(durationMinutes * 60_000)}</b></p>
+              <p className="font-mono tabular-nums">{startTime} → {endTime}</p>
+            </div>
+          </div>
+        )}
         <div className="space-y-1">
           {names.map((name, i) => {
             const win = rowWindow(name);
@@ -557,7 +572,7 @@ export function QuickRoundsMode({ unitId, team, onSessionActiveChange }: QuickRo
                   className="h-8 text-sm"
                 />
                 {win && (
-                  <span className="hidden shrink-0 whitespace-nowrap font-mono text-[10px] tabular-nums text-muted-foreground sm:inline">
+                  <span className="shrink-0 whitespace-nowrap font-mono text-xs font-semibold tabular-nums text-foreground sm:text-sm">
                     {fmtRowTime(win.start)}–{fmtRowTime(win.end)}
                   </span>
                 )}
