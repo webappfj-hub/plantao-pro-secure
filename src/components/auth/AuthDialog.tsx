@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils';
 import logoShieldUrl from '@/assets/logo-ise-socioeducativo.webp';
 const logoShield = logoShieldUrl;
 const logoShieldWebp = logoShieldUrl;
+import heroBanner from '@/assets/midias/hero-banner.webp';
 import { getTeamPoster, getTeamColors } from '@/lib/teamAssets';
 
 type AuthDialogVariant = 'agent' | 'master' | 'admin' | 'register' | 'check';
@@ -21,6 +22,14 @@ interface AuthDialogProps {
   /** When provided, renders the team-branded hero (poster + emblem + team colors). */
   team?: TeamName | string | null;
 }
+
+const variantEyebrow: Record<AuthDialogVariant, string> = {
+  agent: 'Acesso do agente',
+  master: 'Acesso master',
+  admin: 'Acesso administrativo',
+  register: 'Primeiro acesso',
+  check: 'Identificação',
+};
 
 const variantStyles = {
   agent: {
@@ -125,7 +134,9 @@ export function AuthDialog({
           variant === 'register' ? "max-w-[480px]" : "max-w-[440px]",
           "bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950",
           // outline removido — sem border-2 nem ring duplicado
-          "border-0",
+          "border border-white/10",
+          // X de fechar em vidro, discreto, sem cobrir a foto do hero
+          "[&>button:last-child]:right-3 [&>button:last-child]:top-4 [&>button:last-child]:h-8 [&>button:last-child]:w-8 [&>button:last-child]:rounded-full [&>button:last-child]:border [&>button:last-child]:border-white/20 [&>button:last-child]:bg-white/10 [&>button:last-child]:opacity-90 [&>button:last-child]:backdrop-blur [&>button:last-child]:hover:bg-white/20",
           "shadow-2xl",
           !teamBranded && styles.glow,
           // Instant open/close — no zoom/slide/fade delays
@@ -219,50 +230,50 @@ export function AuthDialog({
                  style={{ background: `linear-gradient(90deg, transparent, ${teamColor!.primary}, transparent)` }} />
           </div>
         ) : (
-          <>
-            {/* Legacy header (non-team dialogs). Compacto para 'register' —
-                é um formulário longo, o cabeçalho decorativo não pode
-                empurrar os campos pra fora da janela. */}
-            <div className={cn("relative bg-gradient-to-b shrink-0", styles.headerBg, variant === 'register' ? "px-5 pt-4 pb-3" : "px-6 pt-8 pb-6")}>
+          <div className={cn("relative shrink-0 overflow-hidden", variant === 'register' ? "h-[104px]" : "h-[208px]")}>
+            {/* Foto institucional de fundo (hero) — dissolve no corpo do diálogo */}
+            <img
+              src={heroBanner}
+              alt=""
+              aria-hidden
+              loading="eager"
+              decoding="async"
+              draggable={false}
+              className="absolute inset-y-0 left-0 h-full w-[125%] max-w-none select-none object-cover object-left"
+            />
+            <div aria-hidden className="absolute inset-0 bg-gradient-to-b from-slate-950/55 via-slate-950/70 to-slate-950" />
+            <div aria-hidden className={cn("absolute -top-16 left-1/2 h-40 w-72 -translate-x-1/2 rounded-full opacity-25 blur-3xl", styles.decorColor)} />
+            {/* Marcas de canto táticas */}
+            <span aria-hidden className="absolute left-3 top-3 h-2.5 w-2.5 border-l border-t border-white/40" />
+            <span aria-hidden className="absolute right-3 top-3 h-2.5 w-2.5 border-r border-t border-white/40" />
 
-              <div className="absolute top-4 right-4 flex gap-1.5">
-                <div className={cn("w-1.5 h-1.5 rounded-full", styles.decorColor)} />
-                <div className={cn("w-1.5 h-1.5 rounded-full opacity-60", styles.decorColor)} />
-                <div className={cn("w-1.5 h-1.5 rounded-full opacity-30", styles.decorColor)} />
-              </div>
+            <div className="relative flex h-full flex-col items-center justify-end px-6 pb-4 text-center">
               {variant !== 'register' && (
-                <div className="flex justify-center mb-5">
-                  <div className={cn("p-4 rounded-2xl bg-gradient-to-br backdrop-blur-sm",
-                    styles.logoBg, "border border-white/10 shadow-lg")}>
-                    <div className="relative aspect-square h-16 w-16 flex items-center justify-center flex-shrink-0">
-                      <picture>
-                        <source type="image/webp" srcSet={logoShieldWebp} />
-                        <img src={logoShield} alt="Plantão Pro" width={128} height={128} loading="eager" decoding="async" className="max-h-full max-w-full h-full w-full object-contain drop-shadow-lg" />
-                      </picture>
-                    </div>
-                  </div>
+                <div className="mb-3 flex h-[68px] w-[68px] items-center justify-center rounded-2xl border border-white/20 bg-white/10 shadow-xl backdrop-blur-md">
+                  <picture>
+                    <source type="image/webp" srcSet={logoShieldWebp} />
+                    <img src={logoShield} alt="Instituto Socioeducativo" width={128} height={128} loading="eager" decoding="async" className="h-12 w-12 object-contain drop-shadow-lg" />
+                  </picture>
                 </div>
               )}
-              {teamBadge && (
-                <div className="flex justify-center mb-4">{teamBadge}</div>
-              )}
-              <div className={cn(variant === 'register' ? "text-center" : "text-center space-y-2")}>
-                <div className="flex items-center justify-center gap-3">
-                  {icon && (
-                    <div className={cn("rounded-xl bg-gradient-to-br", styles.logoBg, "border border-white/10", variant === 'register' ? "p-1.5" : "p-2.5")}>
-                      {icon}
-                    </div>
-                  )}
-                  <h2 className={cn("font-bold tracking-tight", styles.titleColor, variant === 'register' ? "text-lg" : "text-2xl")}>
-                    {title}
-                  </h2>
-                </div>
-                {subtitle && variant !== 'register' && (
-                  <p className={cn("text-base", styles.subtitleColor)}>{subtitle}</p>
+              {teamBadge && <div className="mb-2 flex justify-center">{teamBadge}</div>}
+              <span className="mb-1.5 inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/10 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-white/80 backdrop-blur">
+                <span className={cn("h-1.5 w-1.5 rounded-full", styles.decorColor)} aria-hidden />
+                {variantEyebrow[variant]}
+              </span>
+              <div className="flex items-center justify-center gap-2.5">
+                {icon && (
+                  <div className="rounded-lg border border-white/15 bg-white/10 p-1.5 backdrop-blur">{icon}</div>
                 )}
+                <h2 className={cn("font-bold tracking-tight text-white", variant === 'register' ? "text-lg" : "text-[22px] leading-tight")}>
+                  {title}
+                </h2>
               </div>
+              {subtitle && variant !== 'register' && (
+                <p className="mt-1 max-w-[340px] text-[13px] leading-snug text-white/70">{subtitle}</p>
+              )}
             </div>
-          </>
+          </div>
         )}
 
         {/* Separator */}
