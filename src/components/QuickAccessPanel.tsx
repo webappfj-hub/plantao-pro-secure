@@ -7,6 +7,7 @@ import {
   getSavedCredentials,
   removeCredential,
   canQuickLogin,
+  deobfuscate,
   CREDENTIALS_CHANGED_EVENT,
 } from '@/components/auth/SavedCredentials';
 
@@ -26,14 +27,6 @@ interface QuickAccessPanelProps {
 }
 
 const QUICK_LOGIN_EXPIRY_HOURS = 72;
-
-function deobfuscate(str: string): string {
-  try {
-    return decodeURIComponent(atob(str));
-  } catch {
-    return '';
-  }
-}
 
 function getTimeRemaining(cred: SavedCredential): string | null {
   if (!cred.lastLoginAt || !cred.password) return null;

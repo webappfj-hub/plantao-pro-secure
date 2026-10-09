@@ -158,7 +158,11 @@ export function SplitOperationalHero({ onTeamClick }: Props) {
           </span>
           <span className="min-w-0 flex-1">
             <span className="flex items-center gap-2">
-              <span className="block text-[15px] font-bold tracking-tight text-foreground">Gestor de Rondas</span>
+              <span className="relative flex h-2.5 w-2.5 shrink-0" aria-hidden>
+                <span className="absolute inline-flex h-full w-full rounded-full bg-primary opacity-70 motion-safe:animate-ping" />
+                <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-primary" />
+              </span>
+              <span className="block text-[15px] font-bold tracking-tight text-foreground transition-all duration-200 motion-safe:animate-pulse group-hover:animate-none group-hover:tracking-wide group-hover:text-primary group-active:scale-95">Gestor de Rondas</span>
               <span className="rounded-sm border border-primary/30 bg-primary/10 px-1.5 py-[1px] text-[9px] font-bold uppercase tracking-wider text-primary">
                 Operacional
               </span>
