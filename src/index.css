@@ -3264,3 +3264,44 @@ body.rm-low-motion > #root { filter: none !important; }
 /* Placa metálica da equipe de plantão: brilho que varre a face */
 @keyframes duty-sheen { 0%, 60% { transform: translateX(-120%) skewX(-18deg); opacity: 0; } 66% { opacity: 1; } 100% { transform: translateX(560%) skewX(-18deg); opacity: 0; } }
 .duty-sheen { background: linear-gradient(100deg, transparent, rgb(255 255 255 / 0.28), transparent); animation: duty-sheen 7s ease-in-out infinite; }
+
+/* ===== Metal (distintivo): moldura cromada + face de aço escovado =====
+   Uso: <el class="metal-bezel relative"> <span class="metal-face"><span class="metal-sheen"/></span> …conteúdo com z-10… </el>
+   Variáveis: --ch (chanfro, px), --tint (tom no topo), --face-a/b/c (degradê da face). */
+.metal-bezel {
+  --ch: 12px;
+  background: linear-gradient(135deg, #fbfcfe 0%, #9aa5b4 22%, #eef1f5 45%, #6b7687 70%, #d3dae3 100%);
+  clip-path: polygon(0 0, calc(100% - var(--ch)) 0, 100% var(--ch), 100% 100%, var(--ch) 100%, 0 calc(100% - var(--ch)));
+}
+.metal-face {
+  position: absolute;
+  inset: 2px;
+  overflow: hidden;
+  pointer-events: none;
+  clip-path: polygon(0 0, calc(100% - var(--ch) + 1px) 0, 100% calc(var(--ch) - 1px), 100% 100%, calc(var(--ch) - 1px) 100%, 0 calc(100% - var(--ch) + 1px));
+  background:
+    repeating-linear-gradient(0deg, rgb(255 255 255 / 0.05) 0 1px, transparent 1px 3px),
+    linear-gradient(180deg, rgb(255 255 255 / 0.15), rgb(255 255 255 / 0) 50%),
+    radial-gradient(70% 160% at 50% 0%, var(--tint, rgb(47 111 237 / 0.22)), transparent 70%),
+    linear-gradient(180deg, var(--face-a, #243044), var(--face-b, #121a2a) 48%, var(--face-c, #090e1a));
+  transition: filter 0.2s ease;
+}
+.metal-bezel:hover .metal-face, .metal-bezel:focus-visible .metal-face { filter: brightness(1.18); }
+.metal-sheen {
+  position: absolute; inset-block: 0; left: 0; width: 20%;
+  background: linear-gradient(100deg, transparent, rgb(255 255 255 / 0.28), transparent);
+  animation: duty-sheen 7s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) { .metal-sheen { display: none; } }
+
+/* Escurecimento do hero em tela cheia para o texto branco ler bem sobre a foto:
+   no celular o texto ocupa a largura toda (véu uniforme); em telas largas o texto
+   fica à esquerda (degradê lateral que libera a foto à direita). Sem blur/mask. */
+.hero-scrim { background: linear-gradient(180deg, rgb(8 12 22 / 0.72) 0%, rgb(8 12 22 / 0.84) 100%); }
+@media (min-width: 1024px) {
+  .hero-scrim {
+    background:
+      radial-gradient(70% 90% at 22% 50%, rgb(8 12 22 / 0.55), transparent 70%),
+      linear-gradient(90deg, rgb(8 12 22 / 0.95) 0%, rgb(8 12 22 / 0.84) 42%, rgb(8 12 22 / 0.4) 72%, rgb(8 12 22 / 0.08) 100%);
+  }
+}

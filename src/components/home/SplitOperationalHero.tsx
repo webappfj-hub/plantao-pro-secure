@@ -55,16 +55,23 @@ function TeamCard({
       aria-label={`Selecionar equipe ${team.key}`}
       onClick={() => onSelect(team.key)}
       onMouseMove={track}
-      style={{ ['--accent' as string]: accent }}
+      style={{
+        ['--accent' as string]: accent,
+        // moldura: cromada; selecionada = degradê na cor da equipe
+        background: isSelected
+          ? `linear-gradient(135deg, hsl(${accent}), #eef1f5 45%, hsl(${accent}))`
+          : 'linear-gradient(135deg, #fbfcfe 0%, #9aa5b4 22%, #eef1f5 45%, #6b7687 70%, #d3dae3 100%)',
+      }}
       className={cn(
-        'group relative flex aspect-[3/2] w-full flex-col overflow-hidden rounded-xl border bg-card text-left',
-        'transition-[box-shadow,border-color] duration-300 ease-out',
+        'group relative block aspect-[3/2] w-full rounded-xl p-[2px] text-left',
+        'transition-[box-shadow] duration-300 ease-out',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--accent))] focus-visible:ring-offset-2 focus-visible:ring-offset-background',
         isSelected
-          ? 'border-[hsl(var(--accent))] shadow-[0_0_0_1px_hsl(var(--accent)/0.5),0_10px_30px_-12px_hsl(var(--accent)/0.55)]'
-          : 'border-border/60 hover:border-[hsl(var(--accent)/0.6)] hover:shadow-[0_10px_30px_-14px_hsl(var(--accent)/0.5)]',
+          ? 'shadow-[0_10px_30px_-12px_hsl(var(--accent)/0.6)]'
+          : 'shadow-[0_6px_16px_-10px_rgb(0_0_0/0.6)] hover:shadow-[0_10px_30px_-14px_hsl(var(--accent)/0.55)]',
       )}
     >
+      <span className="relative flex h-full w-full flex-col overflow-hidden rounded-[10px] bg-card">
       <img
         src={TEAM_PHOTOS[team.key]}
         alt={`Equipe ${team.key}`}
@@ -105,6 +112,7 @@ function TeamCard({
           {isSelected ? 'Selecionada' : 'Acessar equipe'}
         </span>
         {isSelected ? <CheckCircle2 className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+      </span>
       </span>
     </button>
   );
