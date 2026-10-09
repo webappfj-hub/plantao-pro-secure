@@ -132,10 +132,10 @@ function TeamCard({
 }
 
 const FEATURES: { Icon: typeof CalendarDays; title: string; desc: string }[] = [
-  { Icon: CalendarDays, title: 'Escalas e plantões', desc: 'Escala da equipe, folgas e trocas sempre atualizadas, no celular ou no computador.' },
-  { Icon: Clock3, title: 'Banco de horas', desc: 'Saldo, extrato e horas extras calculados a partir dos plantões registrados.' },
-  { Icon: ShieldCheck, title: 'Gestor de rondas', desc: 'Quartos de hora, cronômetro, ocorrências e histórico de cada turno.' },
-  { Icon: ArrowLeftRight, title: 'Permutas', desc: 'Pedidos de troca de plantão com aprovação e registro de quem autorizou.' },
+  { Icon: CalendarDays, title: 'Escalas e plantões', desc: 'Consulte a escala da equipe, folgas e trocas atualizadas, no celular ou no computador.' },
+  { Icon: Clock3, title: 'Banco de horas', desc: 'Saldo, extrato e horas extras calculados automaticamente a partir dos plantões registrados.' },
+  { Icon: ShieldCheck, title: 'Gestor de rondas', desc: 'Divisão do tempo por agente, cronômetro, ocorrências e histórico de cada turno.' },
+  { Icon: ArrowLeftRight, title: 'Permutas', desc: 'Solicite trocas de plantão com aprovação e registro de quem autorizou.' },
 ];
 
 function SectionHeader({ eyebrow, title, desc, aside }: { eyebrow: string; title: string; desc?: string; aside?: string }) {
@@ -195,7 +195,7 @@ export function SplitOperationalHero({ onTeamClick }: Props) {
             Plantões e rondas sob controle, <span className="text-primary">em tempo real.</span>
           </h1>
           <p className="mt-4 max-w-xl text-base leading-relaxed text-muted-foreground sm:text-lg">
-            Escalas, banco de horas, permutas e rondas das unidades socioeducativas do Acre em um só sistema — feito por agentes, para agentes.
+            Escalas, banco de horas, permutas e rondas das unidades socioeducativas do Acre, reunidos em um único sistema. Desenvolvido por agentes, para agentes.
           </p>
 
           <div className="mt-7 flex flex-col gap-3 sm:flex-row">
@@ -260,7 +260,7 @@ export function SplitOperationalHero({ onTeamClick }: Props) {
         <SectionHeader
           eyebrow="Acesso"
           title="Escolha sua equipe para entrar"
-          desc="Selecione a equipe e informe sua matrícula. A equipe em destaque é a que está de plantão agora."
+          desc="Selecione a sua equipe e informe a matrícula. A equipe marcada “De plantão” é a que está em serviço agora."
           aside="4 equipes"
         />
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
@@ -272,7 +272,7 @@ export function SplitOperationalHero({ onTeamClick }: Props) {
 
       {/* RECURSOS */}
       <div className="mt-12 sm:mt-16">
-        <SectionHeader eyebrow="Recursos" title="Tudo o que o plantão precisa, num lugar só" />
+        <SectionHeader eyebrow="Recursos" title="Tudo o que o plantão precisa, em um só lugar" />
         <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {FEATURES.map(({ Icon, title, desc }) => (
             <li key={title} className="rounded-xl border border-border bg-card p-5 transition-colors hover:border-primary/40">

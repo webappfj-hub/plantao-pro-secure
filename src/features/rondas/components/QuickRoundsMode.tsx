@@ -277,7 +277,7 @@ export function QuickRoundsMode({ unitId, team, onSessionActiveChange }: QuickRo
 
   const startSession = (mode: 'now' | 'scheduled') => {
     if (activeNames.length < 1) {
-      toast.error('Digite pelo menos um nome.');
+      toast.error('Informe o nome de pelo menos um agente.');
       return;
     }
     savedRef.current = false;
@@ -290,7 +290,7 @@ export function QuickRoundsMode({ unitId, team, onSessionActiveChange }: QuickRo
         names: activeNames, startTime, endTime, durationMinutes,
         triggerAt: triggerAt.toISOString(), phase: 'waiting', wasScheduled: true,
       });
-      toast.success(`Programado para iniciar às ${startTime}.`);
+      toast.success(`Rodízio programado para as ${startTime}.`);
       return;
     }
 
@@ -307,7 +307,7 @@ export function QuickRoundsMode({ unitId, team, onSessionActiveChange }: QuickRo
         names: activeNames, startTime, endTime, durationMinutes,
         triggerAt: typedStart.toISOString(), phase: 'waiting', wasScheduled: false,
       });
-      toast.info(`Ainda não são ${startTime} — o rodízio vai começar sozinho nesse horário.`);
+      toast.info(`O rodízio começa automaticamente às ${startTime}.`);
       return;
     }
 
@@ -334,7 +334,7 @@ export function QuickRoundsMode({ unitId, team, onSessionActiveChange }: QuickRo
       triggerAt: typedStart.toISOString(), phase: 'running', wasScheduled: false,
     });
     if (backdatedMinutes > 1) {
-      toast.success(`Rodízio iniciado — ${backdatedMinutes} min já contabilizados desde as ${startTime}.`);
+      toast.success(`Rodízio iniciado. ${backdatedMinutes} min já contados desde as ${startTime}.`);
     } else {
       toast.success('Rodízio iniciado.');
     }
@@ -342,7 +342,7 @@ export function QuickRoundsMode({ unitId, team, onSessionActiveChange }: QuickRo
 
   const handleScheduleClick = () => {
     if (activeNames.length < 1) {
-      toast.error('Digite pelo menos um nome.');
+      toast.error('Informe o nome de pelo menos um agente.');
       return;
     }
     setConfirmScheduleOpen(true);
@@ -358,7 +358,7 @@ export function QuickRoundsMode({ unitId, team, onSessionActiveChange }: QuickRo
     persist(null);
     setCancelDialogOpen(false);
     setCancelPhrase('');
-    toast.info('Rodízio cancelado — nada foi salvo.');
+    toast.info('Rodízio cancelado. Nada foi salvo.');
   };
 
   const handleCancelClick = () => {
@@ -463,7 +463,7 @@ export function QuickRoundsMode({ unitId, team, onSessionActiveChange }: QuickRo
         </div>
         <div className="flex flex-col items-center gap-1.5 px-6 py-5 text-center">
           <CheckCircle2 className="h-8 w-8 text-emerald-500" />
-          <p className="text-sm font-semibold text-foreground">Equipe {team} — turno encerrado</p>
+          <p className="text-sm font-semibold text-foreground">Equipe {team} — turno concluído</p>
           <p className="text-xs text-muted-foreground">{sessionNames.join(' · ')}</p>
           <Button
             variant="outline" size="sm" className="mt-2 h-7 gap-1.5 text-xs"
@@ -534,8 +534,8 @@ export function QuickRoundsMode({ unitId, team, onSessionActiveChange }: QuickRo
           <path d="M12 2 L20 5.5 V11 C20 16 16.5 20 12 22 C7.5 20 4 16 4 11 V5.5 Z" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
           <path d="M12 7 V12 L15 14" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
-        <h3 className="text-xs font-bold text-foreground">Modo rápido — digitar nomes</h3>
-        <span className="text-[10px] text-muted-foreground">· sem cadastro, tempo dividido igual</span>
+        <h3 className="text-xs font-bold text-foreground">Rodízio rápido</h3>
+        <span className="text-[10px] text-muted-foreground">· digite os nomes; o tempo é dividido igualmente</span>
       </div>
 
       <div className="space-y-2 border-t border-border px-4 py-2.5">
@@ -567,8 +567,8 @@ export function QuickRoundsMode({ unitId, team, onSessionActiveChange }: QuickRo
                 <Input
                   value={name}
                   onChange={(e) => updateName(i, e.target.value)}
-                  placeholder={`Nome do agente ${i + 1}`}
-                  aria-label={`Nome do agente ${i + 1}`}
+                  placeholder={`Agente ${i + 1}`}
+                  aria-label={`Agente ${i + 1}`}
                   className="h-8 text-sm"
                 />
                 {win && (
@@ -607,13 +607,13 @@ export function QuickRoundsMode({ unitId, team, onSessionActiveChange }: QuickRo
         {sameStartEnd && (
           <p className="flex items-center gap-1.5 text-[11px] text-warning">
             <Clock3 className="h-3 w-3 shrink-0" />
-            Início e término iguais — o rodízio vai durar 24h. Confira se não esqueceu de ajustar o término.
+            Início e término iguais: o rodízio vai durar 24 h. Confira o horário de término.
           </p>
         )}
 
         <div className="grid grid-cols-2 gap-2">
           <Button variant="outline" size="sm" className="gap-1.5" onClick={handleScheduleClick}>
-            <CalendarClock className="h-3.5 w-3.5" /> Programar p/ {startTime}
+            <CalendarClock className="h-3.5 w-3.5" /> Programar para {startTime}
           </Button>
           <Button size="sm" className="gap-1.5" onClick={() => startSession('now')}>
             <Zap className="h-3.5 w-3.5" /> Iniciar agora
@@ -665,7 +665,7 @@ export function QuickRoundsMode({ unitId, team, onSessionActiveChange }: QuickRo
             )}
           </div>
           {history.length === 0 ? (
-            <p className="text-[11px] text-muted-foreground">Nenhum rodízio registrado ainda.</p>
+            <p className="text-[11px] text-muted-foreground">Nenhum rodízio concluído ainda.</p>
           ) : (
             <div className="space-y-1">
               {history.map((h) => (

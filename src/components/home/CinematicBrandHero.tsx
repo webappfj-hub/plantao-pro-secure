@@ -82,7 +82,7 @@ export function CinematicBrandHero({
             className="mt-4 max-w-lg text-[15px] leading-[1.7] text-white/90 [text-shadow:0_1px_14px_rgb(0_0_0/0.75),0_0_2px_rgb(0_0_0/0.6)] animate-fade-in"
             style={{ animationDelay: "260ms" }}
           >
-            Desenvolvido em Feijó/AC para as unidades do Sistema Socioeducativo — com segurança,
+            Desenvolvido em Feijó/AC para as unidades do Sistema Socioeducativo, com segurança,
             registro e transparência em cada turno.
           </p>
 
