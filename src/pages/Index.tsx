@@ -1806,14 +1806,9 @@ export default function Index() {
       {/* Divisor entre seção institucional e rodapé */}
       <SectionDivider />
 
-      {/* Assinatura do desenvolvedor — só no mobile (no desktop ela já
-          aparece dentro do rodapé completo). Fica no fluxo normal da
-          página (não fixa) pra nunca sobrepor conteúdo enquanto rola —
-          só aparece uma vez, no fim de tudo, com espaço pra não colidir
-          com a faixa fina fixa do rodapé. */}
-      <div className="flex justify-center pb-10 pt-1 sm:hidden">
-        <MadeInFeijoBadge inline size="md" />
-      </div>
+      {/* Espaço reservado para a faixa fixa do rodapé mobile (a assinatura do
+          desenvolvedor agora fica dentro dela, sem aumentar a altura). */}
+      <div aria-hidden className="h-10 sm:hidden" />
 
       {/* Mobile-only beta notice */}
       <div className="hidden sm:block">
@@ -1859,27 +1854,30 @@ export default function Index() {
       </footer>
 
       {/* Mobile-only ultra-thin footer strip (fixo, não empurra viatura/boneco) */}
-      <div className="sm:hidden fixed bottom-0 inset-x-0 z-20 h-8 flex items-center justify-center gap-2.5 bg-gradient-to-r from-background/85 via-background/95 to-background/85 backdrop-blur-md border-t border-primary/20 pointer-events-auto shadow-[0_-4px_16px_-8px_rgba(0,0,0,0.4)]">
+      <div className="sm:hidden fixed bottom-0 inset-x-0 z-20 h-8 flex flex-col items-center justify-center gap-[3px] bg-gradient-to-r from-background/85 via-background/95 to-background/85 backdrop-blur-md border-t border-primary/20 pointer-events-auto shadow-[0_-4px_16px_-8px_rgba(0,0,0,0.4)]">
+        <div className="flex items-center justify-center gap-2.5 leading-none">
         <ShieldCheck className="h-3 w-3 text-primary/90" strokeWidth={2.4} />
-        <span className="text-[10.5px] font-mono tracking-[0.22em] uppercase text-primary font-bold">PlantãoPro</span>
-        <span className="text-muted-foreground/40 text-[10.5px]">·</span>
-        <span className="inline-flex items-center gap-1 text-[9.5px] font-mono tracking-[0.18em] uppercase text-muted-foreground/80">
-          <span className="relative flex h-1.5 w-1.5">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400/60" />
-            <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" />
+          <span className="text-[10.5px] font-mono tracking-[0.22em] uppercase text-primary font-bold">PlantãoPro</span>
+          <span className="text-muted-foreground/40 text-[10.5px]">·</span>
+          <span className="inline-flex items-center gap-1 text-[9.5px] font-mono tracking-[0.18em] uppercase text-muted-foreground/80">
+            <span className="relative flex h-1.5 w-1.5">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400/60" />
+              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" />
+            </span>
+            <span>Online</span>
           </span>
-          <span>Online</span>
-        </span>
-        <span className="text-muted-foreground/40 text-[10.5px]">·</span>
-        <button
-          type="button"
-          onClick={() => setShowMasterLogin(true)}
-          aria-label="Acesso Administrador Master"
-          className="inline-flex items-center gap-1 text-[10px] font-mono tracking-[0.18em] uppercase text-muted-foreground/80 hover:text-primary transition-colors"
-        >
-          <Lock className="h-3 w-3" strokeWidth={2.2} />
-          <span>Master</span>
-        </button>
+          <span className="text-muted-foreground/40 text-[10.5px]">·</span>
+          <button
+            type="button"
+            onClick={() => setShowMasterLogin(true)}
+            aria-label="Acesso Administrador Master"
+            className="inline-flex items-center gap-1 text-[10px] font-mono tracking-[0.18em] uppercase text-muted-foreground/80 hover:text-primary transition-colors"
+          >
+            <Lock className="h-3 w-3" strokeWidth={2.2} />
+            <span>Master</span>
+          </button>
+        </div>
+        <MadeInFeijoBadge inline size="sm" tone="theme" />
       </div>
 
 
