@@ -427,7 +427,7 @@ export function AccessAuditPanel() {
               disabled={loading || logs.length === 0}
               className="border-red-500/40 text-red-400 hover:bg-red-500/10 hover:text-red-300"
             >
-              <Trash2 className="h-4 w-4 mr-2" /> Apagar tudo
+              <Trash2 className="h-4 w-4 mr-2" /> Limpar logs de acesso
             </Button>
             <Button
               onClick={exportPDF}
