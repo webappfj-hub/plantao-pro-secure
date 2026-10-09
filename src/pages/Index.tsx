@@ -1540,24 +1540,19 @@ export default function Index() {
           className="header-glass fixed inset-x-0 top-0 z-40 flex shrink-0 items-center justify-between overflow-hidden px-3 sm:px-5"
           style={{ height: 'var(--app-header-height)', paddingTop: 'env(safe-area-inset-top, 0px)' }}
         >
-          {/* Textura tática discreta — grade de pontos + brilho radial, sem
-              repetir a mesma foto usada na hero logo abaixo. */}
-          <div
-            aria-hidden
-            className="pointer-events-none absolute inset-0 opacity-[0.5]"
-            style={{
-              backgroundImage: 'radial-gradient(hsl(var(--primary) / 0.35) 1px, transparent 1px)',
-              backgroundSize: '18px 18px',
-            }}
-          />
+          {/* Textura tática — grade fina + brilho radial + marcas de canto */}
+          <div aria-hidden className="header-tactical-grid pointer-events-none absolute inset-0" />
           <div
             aria-hidden
             className="pointer-events-none absolute inset-0"
-            style={{ background: 'radial-gradient(60% 140% at 15% 50%, hsl(var(--primary) / 0.10) 0%, transparent 70%)' }}
+            style={{ background: 'radial-gradient(60% 140% at 15% 50%, hsl(var(--primary) / 0.12) 0%, transparent 70%)' }}
           />
+          <span aria-hidden className="pointer-events-none absolute left-0 top-0 h-2.5 w-2.5 border-l border-t border-primary/60" />
+          <span aria-hidden className="pointer-events-none absolute right-0 top-0 h-2.5 w-2.5 border-r border-t border-primary/60" />
           {/* Borda inferior em gradiente sutil (em vez de uma linha sólida) —
               some pro azul da marca no centro, condiz com o efeito de vidro. */}
           <div aria-hidden className="header-glass-edge pointer-events-none absolute inset-x-0 bottom-0 h-px" />
+          <div aria-hidden className="header-scan pointer-events-none absolute bottom-0 left-0 h-px w-1/4 motion-reduce:hidden" />
 
           <div className="relative flex items-center gap-2.5">
             <BrasaoSentinela size={56} title="PlantãoPro AC" />
@@ -1567,7 +1562,8 @@ export default function Index() {
             {/* Selo ISE/Governo do Acre — único lugar na home onde aparece
                 (removido da foto do hero e do rodapé para não duplicar).
                 Fica colado à palavra "Socioeducativo", com leve balanço 3D. */}
-            <div className="ml-2 hidden shrink-0 items-center gap-1.5 sm:flex" style={{ perspective: '300px' }}>
+            <span aria-hidden className="mx-1 hidden h-8 w-px bg-gradient-to-b from-transparent via-primary/40 to-transparent sm:block" />
+            <div className="hidden shrink-0 items-center gap-1.5 sm:flex" style={{ perspective: '300px' }}>
               <img
                 src={iseAcreHeaderBadge}
                 alt="Instituto Socioeducativo · Governo do Estado do Acre"
@@ -1593,6 +1589,13 @@ export default function Index() {
                 <span className="mt-0.5 text-[10.5px] font-medium leading-tight tracking-wide text-muted-foreground">
                   {agent.unit?.name ? `${agent.unit.name} · ` : ''}{todayLongLabel()}
                 </span>
+                <span className="mt-1 inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-2 py-[1px] text-[9px] font-bold uppercase tracking-[0.18em] text-primary">
+                  <span className="relative flex h-1.5 w-1.5" aria-hidden>
+                    <span className="absolute inline-flex h-full w-full rounded-full bg-primary opacity-70 motion-safe:animate-ping" />
+                    <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-primary" />
+                  </span>
+                  Em plantão
+                </span>
               </>
             ) : (
               <>
@@ -1600,7 +1603,14 @@ export default function Index() {
                   Bem-vindo, Agente Socioeducativo
                 </span>
                 <span className="mt-0.5 text-[10.5px] font-medium leading-tight tracking-wide text-muted-foreground">
-                  Você está em plantão · {todayLongLabel()}
+                  {todayLongLabel()}
+                </span>
+                <span className="mt-1 inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-2 py-[1px] text-[9px] font-bold uppercase tracking-[0.18em] text-primary">
+                  <span className="relative flex h-1.5 w-1.5" aria-hidden>
+                    <span className="absolute inline-flex h-full w-full rounded-full bg-primary opacity-70 motion-safe:animate-ping" />
+                    <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-primary" />
+                  </span>
+                  Em plantão
                 </span>
               </>
             )}
