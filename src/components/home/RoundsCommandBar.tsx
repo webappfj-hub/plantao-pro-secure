@@ -42,7 +42,7 @@ export function RoundsCommandBar() {
       <div
         role="group"
         aria-label="Controle de rondas, indicadores e horário"
-        className="w-full rounded-lg border border-border bg-card/95"
+        className="glass w-full rounded-lg"
       >
         <div className="mx-auto flex h-14 max-w-[1600px] items-stretch px-2 sm:px-3">
           <div className="flex flex-1 items-center gap-3 min-w-0 sm:gap-5">
