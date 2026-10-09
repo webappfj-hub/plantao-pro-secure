@@ -5,7 +5,6 @@ import { getDutyTeam } from '@/lib/dutyTeam';
 import { TEAM_COLORS, type TeamKey } from '@/lib/teamColors';
 import { TEAM_ART, SHIELD_CLIP, CHROME_GRADIENT, mascotStyle } from '@/lib/teamArt';
 import { formatClock, type RoundTimerState } from '../useRoundTimer';
-import heroBanner from '@/assets/midias/hero-banner.webp';
 
 const isTeam = (t: string | null | undefined): t is TeamKey => !!t && t in TEAM_ART;
 
@@ -53,16 +52,30 @@ export function RoundsCommandCenter({ team, unitName, active, children }: Props)
       aria-label={`Central de operação — Equipe ${shown}`}
       className="relative overflow-hidden rounded-xl border border-white/10 bg-[#070c18] text-white shadow-[0_12px_32px_-20px_rgb(0_0_0/0.8)]"
     >
-      {/* Fundo institucional (unidade + mapa do Acre + brasão) em largura total —
-          diferente da arte da equipe usada no painel do rodízio logo abaixo. */}
-      <img
-        src={heroBanner}
-        alt=""
+      {/* Fundo vetorial tático: azul-marinho em degradê, grade fina, malha de
+          hexágonos discreta e faixa diagonal na cor da equipe — sem foto. */}
+      <div aria-hidden className="absolute inset-0" style={{ background: 'linear-gradient(115deg, #0a1122 0%, #0d1830 45%, #0a1326 100%)' }} />
+      <div
         aria-hidden
-        decoding="async"
-        className="pointer-events-none absolute inset-0 h-full w-full select-none object-cover object-[50%_42%]"
+        className="absolute inset-0 opacity-60"
+        style={{
+          backgroundImage: `url("data:image/svg+xml;utf8,${encodeURIComponent(
+            "<svg xmlns='http://www.w3.org/2000/svg' width='28' height='48' viewBox='0 0 28 48'><path d='M14 0 28 8v16L14 32 0 24V8zM14 32l14 8v16M14 32 0 40v16' fill='none' stroke='#8fb4ff' stroke-opacity='0.07' stroke-width='1'/></svg>",
+          )}")`,
+          backgroundSize: '28px 48px',
+        }}
       />
-      <div aria-hidden className="absolute inset-0 bg-[linear-gradient(90deg,rgb(7_12_24/0.92)_0%,rgb(7_12_24/0.72)_40%,rgb(7_12_24/0.45)_70%,rgb(7_12_24/0.3)_100%)]" />
+      <div
+        aria-hidden
+        className="absolute inset-0"
+        style={{
+          backgroundImage: 'linear-gradient(rgb(143 180 255 / 0.05) 1px, transparent 1px), linear-gradient(90deg, rgb(143 180 255 / 0.05) 1px, transparent 1px)',
+          backgroundSize: '32px 32px',
+        }}
+      />
+      <div aria-hidden className="absolute inset-y-0 right-[22%] w-40 -skew-x-[24deg] opacity-[0.18]" style={{ background: `linear-gradient(90deg, transparent, ${color}, transparent)` }} />
+      <div aria-hidden className="absolute inset-y-0 right-[16%] w-10 -skew-x-[24deg] opacity-10" style={{ background: color }} />
+      <div aria-hidden className="absolute inset-0" style={{ background: `radial-gradient(60% 140% at 0% 50%, ${color}1f, transparent 60%)` }} />
       <div aria-hidden className="absolute inset-x-0 top-0 h-px" style={{ background: `linear-gradient(90deg, transparent, ${color}, transparent)` }} />
 
       <div className="relative flex flex-wrap items-center gap-x-6 gap-y-3 px-4 py-3 sm:px-5">
