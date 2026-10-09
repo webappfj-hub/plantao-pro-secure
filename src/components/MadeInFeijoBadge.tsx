@@ -50,69 +50,19 @@ export function MadeInFeijoBadge({
       aria-label="Software desenvolvido por Franc Denis"
       className={cn(wrapperClass, className)}
     >
-      <div
-        data-tactical-dark
+      {/* Assinatura discreta: só texto, sem moldura — realça no hover */}
+      <span
         className={cn(
-          'inline-flex items-center rounded-md border border-primary/30 bg-[linear-gradient(180deg,hsl(220_40%_7%/0.95),hsl(222_45%_4%/0.98))] shadow-[0_1px_0_hsl(45_95%_55%/0.15)_inset,0_2px_8px_rgba(0,0,0,0.35)]',
-          sizeMap.pad,
+          'inline-flex items-center gap-1.5 font-mono uppercase leading-none text-white/35 transition-colors duration-200 hover:text-white/75',
+          sizeMap.tag,
         )}
+        style={{ fontFamily: "'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace" }}
       >
-        {/* Acento amarelo lateral */}
-        <span
-          aria-hidden
-          className={cn(
-            'w-[3px] rounded-sm bg-gradient-to-b from-primary to-primary shadow-[0_0_6px_hsl(45_95%_55%/0.55)]',
-            sizeMap.bar,
-          )}
-        />
-
-        {/* Chevron </> */}
-        <span
-          aria-hidden
-          className={cn(
-            'font-mono font-bold text-primary leading-none',
-            sizeMap.chev,
-          )}
-          style={{ fontFamily: "'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace" }}
-        >
-          {'</>'}
-        </span>
-
-        {/* Tag pequena */}
-        <span
-          className={cn(
-            'font-mono font-semibold uppercase text-slate-400 leading-none',
-            sizeMap.tag,
-          )}
-          style={{ fontFamily: "'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace" }}
-        >
-          Developed by
-        </span>
-
-        {/* Separador */}
-        <span aria-hidden className="text-primary/40 leading-none">·</span>
-
-        {/* Título */}
-        <span
-          className={cn(
-            'font-mono font-extrabold uppercase text-slate-100 leading-none',
-            sizeMap.title,
-          )}
-          style={{ fontFamily: "'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace" }}
-        >
-          Franc Denis
-        </span>
-
-        {/* Cidade e ano — mesmo peso/contraste do nome, pra ficar tão
-            legível quanto ele (só o rótulo "Developed by" fica discreto) */}
-        <span aria-hidden className="text-primary/40 leading-none">·</span>
-        <span
-          className={cn('font-mono font-bold uppercase text-slate-200 leading-none', sizeMap.tag)}
-          style={{ fontFamily: "'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace" }}
-        >
-          Feijó/AC · 2026
-        </span>
-      </div>
+        <span aria-hidden className="text-primary/60">{'</>'}</span>
+        <span>dev</span>
+        <span aria-hidden className="text-white/20">/</span>
+        <span className="font-semibold">Franc Denis</span>
+      </span>
     </div>
   );
 }
