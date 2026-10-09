@@ -37,6 +37,8 @@ import { ShiftDivider } from './ShiftDivider';
 import { RoundHistory } from './RoundHistory';
 import { enqueuePatrolAction, flushPatrolQueue, getQueueLength } from '../offlineQueue';
 import type { PatrolSlot } from '../types';
+import { useServerTime } from '@/hooks/useServerTime';
+import { getDutyTeam } from '@/lib/dutyTeam';
 
 /**
  * Radar de operação — varredura realista de PPI (plan position indicator):
@@ -426,18 +428,10 @@ export function RoundsDashboard({ onShiftActiveChange }: RoundsDashboardProps = 
   // esquecia a equipe/unidade escolhida e voltava pro padrão fixo — a ronda
   // real (de outra equipe) continuava ativa no banco, mas sumia da tela,
   // dando a impressão de que "o sistema reiniciou".
-  const GUEST_TEAM_KEY = 'plantaopro_guest_team_v1';
   const GUEST_UNIT_KEY = 'plantaopro_guest_unit_v1';
-  const [guestTeam, setGuestTeamState] = useState<string | null>(() => {
-    try { return localStorage.getItem(GUEST_TEAM_KEY) || 'ALFA'; } catch { return 'ALFA'; }
-  });
   const [guestUnitId, setGuestUnitIdState] = useState<string | null>(() => {
     try { return localStorage.getItem(GUEST_UNIT_KEY) || 'dd77c458-92fb-49e2-819d-7a32288cc390'; } catch { return 'dd77c458-92fb-49e2-819d-7a32288cc390'; }
   });
-  const setGuestTeam = (v: string | null) => {
-    setGuestTeamState(v);
-    try { if (v) localStorage.setItem(GUEST_TEAM_KEY, v); } catch { /* ignore */ }
-  };
   const setGuestUnitId = (v: string | null) => {
     setGuestUnitIdState(v);
     try { if (v) localStorage.setItem(GUEST_UNIT_KEY, v); } catch { /* ignore */ }
@@ -467,7 +461,13 @@ export function RoundsDashboard({ onShiftActiveChange }: RoundsDashboardProps = 
   }, []);
 
   const unitId = agent?.unit_id ?? guestUnitId ?? null;
-  const team = agent?.team ?? guestTeam ?? null;
+  // A equipe é sempre a de plantão do turno (07h–07h) — ninguém escolhe. Se
+  // uma ronda já está ativa quando o turno vira, a equipe fica travada nela
+  // até a ronda terminar (senão a ronda em andamento sumiria da tela) e só
+  // então volta a acompanhar a equipe do dia.
+  const dutyTeam: string = getDutyTeam(useServerTime(60_000)).team;
+  const [lockedTeam, setLockedTeam] = useState<string | null>(null);
+  const team: string = lockedTeam ?? dutyTeam;
 
   // Só existe para visitante sem login — um agente autenticado nunca usa
   // isolamento por dispositivo, sua ronda é sempre a da equipe (compartilhada).
@@ -484,6 +484,7 @@ export function RoundsDashboard({ onShiftActiveChange }: RoundsDashboardProps = 
     placeholderData: keepPreviousData,
   });
   const shift = shiftQuery.data ?? null;
+  useEffect(() => { setLockedTeam(shift ? team : null); }, [shift, team]);
 
   // Existe alguma ronda em andamento — turno estruturado OU Modo Rápido.
   const hasActiveRound = !!shift || quickRoundActive;
@@ -781,21 +782,15 @@ export function RoundsDashboard({ onShiftActiveChange }: RoundsDashboardProps = 
 
         {!user && (
           <div className="space-y-2.5 rounded-xl border border-primary/25 bg-primary/[0.06] p-3.5 animate-in fade-in-0 slide-in-from-bottom-2 duration-500">
-            <p className="text-xs font-semibold text-primary">Acesso público — indique sua equipe e unidade</p>
+            <p className="text-xs font-semibold text-primary">Acesso público — indique sua unidade (a equipe é a de plantão do dia)</p>
             <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
               <div>
-                <label htmlFor="guest-team-select" className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Equipe</label>
-                <Select value={guestTeam || 'ALFA'} onValueChange={(v) => setGuestTeam(v || 'ALFA')}>
-                  <SelectTrigger id="guest-team-select" className="mt-1 h-9 border-border bg-background text-sm text-foreground">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent side="bottom" avoidCollisions={false}>
-                    <SelectItem value="ALFA">ALFA</SelectItem>
-                    <SelectItem value="BRAVO">BRAVO</SelectItem>
-                    <SelectItem value="CHARLIE">CHARLIE</SelectItem>
-                    <SelectItem value="DELTA">DELTA</SelectItem>
-                  </SelectContent>
-                </Select>
+                <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Equipe de plantão</span>
+                <div className="mt-1 flex h-9 items-center gap-2 rounded-md border border-border bg-background px-3 text-sm font-semibold text-foreground">
+                  <span className="h-1.5 w-1.5 rounded-full bg-primary" aria-hidden />
+                  {team}
+                  <span className="ml-auto text-[10px] font-medium uppercase tracking-wide text-muted-foreground">automática</span>
+                </div>
               </div>
               <div>
                 <label htmlFor="guest-unit-select" className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Unidade</label>
@@ -814,10 +809,10 @@ export function RoundsDashboard({ onShiftActiveChange }: RoundsDashboardProps = 
                 </Select>
               </div>
             </div>
-            {guestTeam && teamPosters[guestTeam] && (
-              <div key={guestTeam} className="flex items-center gap-2.5 animate-in fade-in-0 slide-in-from-left-2 duration-300">
-                <img src={teamPosters[guestTeam]} alt={`Equipe ${guestTeam}`} className="h-12 w-12 shrink-0 rounded-lg border border-primary/25 object-cover" />
-                <p className="text-xs font-bold text-foreground">EQUIPE {guestTeam}</p>
+            {teamPosters[team] && (
+              <div key={team} className="flex items-center gap-2.5 animate-in fade-in-0 slide-in-from-left-2 duration-300">
+                <img src={teamPosters[team]} alt={`Equipe ${team}`} className="h-12 w-12 shrink-0 rounded-lg border border-primary/25 object-cover" />
+                <p className="text-xs font-bold text-foreground">EQUIPE {team}</p>
               </div>
             )}
             <p className="text-[11px] text-muted-foreground">Ou <a href="/login" className="text-primary underline hover:no-underline font-medium">faça login</a> para usar seu perfil de agente</p>
@@ -976,17 +971,17 @@ export function RoundsDashboard({ onShiftActiveChange }: RoundsDashboardProps = 
       )}
       {!user && (
         <div className="flex items-center gap-3 rounded-lg border border-border bg-muted/30 p-3.5">
-          {guestTeam && teamPosters[guestTeam] && (
+          {teamPosters[team] && (
             <img
-              src={teamPosters[guestTeam]}
-              alt={`Equipe ${guestTeam}`}
+              src={teamPosters[team]}
+              alt={`Equipe ${team}`}
               className="h-12 w-12 shrink-0 rounded-xl border border-border object-cover grayscale-[35%]"
             />
           )}
           <div className="min-w-0 flex-1">
             <p className="flex items-center gap-1.5 text-sm font-bold text-foreground">
               <Lock className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-              Equipe {guestTeam} · {agent?.unit?.name ?? 'unidade selecionada'}
+              Equipe {team} · {agent?.unit?.name ?? 'unidade selecionada'}
             </p>
             <p className="text-xs text-muted-foreground">
               Equipe e unidade travadas enquanto esta ronda estiver ativa — evita perder o acompanhamento por engano.
