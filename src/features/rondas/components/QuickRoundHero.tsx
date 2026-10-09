@@ -1,10 +1,11 @@
 import type { ReactNode } from 'react';
-import { CheckCircle2, Clock3, Hourglass, Square, Users } from 'lucide-react';
+import { ArrowRightLeft, CheckCircle2, Clock3, Hourglass, ShieldCheck, Square, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { TEAM_COLORS, type TeamKey } from '@/lib/teamColors';
 import { TEAM_ART, CHROME_GRADIENT } from '@/lib/teamArt';
 import { InstrumentDial } from './CommandClock';
+import { fmtDuration } from '../quickSession';
 
 const FINAL_COUNTDOWN_MS = 10 * 60_000;
 
@@ -18,15 +19,6 @@ function fmtClock(ms: number): string {
   const s = t % 60;
   const p = (n: number) => String(n).padStart(2, '0');
   return h > 0 ? `${h}:${p(m)}:${p(s)}` : `${p(m)}:${p(s)}`;
-}
-
-/** Duração legível: "1h48", "36 min". */
-function fmtDuration(ms: number): string {
-  const min = Math.round(ms / 60_000);
-  const h = Math.floor(min / 60);
-  const m = min % 60;
-  if (h === 0) return `${m} min`;
-  return m === 0 ? `${h}h` : `${h}h${String(m).padStart(2, '0')}`;
 }
 
 interface Props {
@@ -93,6 +85,14 @@ export function QuickRoundHero({ team, names, phase, now, triggerMs, perAgentMs,
   }
 
   const nextIdx = running ? current + 1 : 0;
+  const sliceElapsedMs = running ? elapsed - current * perAgentMs : 0;
+  const sliceLeftMs = running ? perAgentMs - sliceElapsedMs : 0;
+  const isLast = running && current === n - 1;
+  // Passagem de turno: aviso aos 2 min, contagem em destaque nos 20 s finais,
+  // boas-vindas ao novo agente nos primeiros 10 s da vez dele.
+  const handoffWarn = running && !isLast && sliceLeftMs <= 120_000 && sliceLeftMs > 20_000;
+  const handoffCount = running && sliceLeftMs <= 20_000;
+  const welcome = running && sliceElapsedMs < 10_000;
   const finalCountdown = running && totalRemaining <= FINAL_COUNTDOWN_MS;
   const critical = totalRemaining <= 60_000;
 
@@ -148,15 +148,29 @@ export function QuickRoundHero({ team, names, phase, now, triggerMs, perAgentMs,
         </div>
 
         <div className="relative grid items-center gap-4 px-4 py-4 sm:px-6 lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]">
-          {/* Resumo do rodízio (a equipe já aparece na faixa de comando) */}
-          <div className="min-w-0">
-            <p className="text-[10.5px] font-semibold uppercase tracking-[0.2em] text-slate-400">Período do rodízio</p>
-            <p className="mt-1 font-mono text-2xl font-bold tabular-nums text-white">{hm(triggerMs)} → {hm(endMs)}</p>
-            <p className="mt-1 flex flex-wrap items-center gap-x-3 text-[12.5px] text-slate-300">
-              <span className="inline-flex items-center gap-1"><Users className="h-3.5 w-3.5" aria-hidden /> {n} agente{n !== 1 ? 's' : ''}</span>
-              <span className="inline-flex items-center gap-1"><Clock3 className="h-3.5 w-3.5" aria-hidden /> {fmtDuration(perAgentMs)} cada</span>
-            </p>
-          </div>
+          {running ? (
+            /* Agente na ronda — nome grande, equipe e janela da vez dele */
+            <div className="min-w-0">
+              <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-slate-400">Agente na ronda · {current + 1}/{n}</p>
+              <p key={names[current]} className="mt-1 truncate text-3xl font-extrabold leading-tight text-white animate-fade-in sm:text-4xl">{names[current]}</p>
+              <p className="mt-1.5 flex flex-wrap items-center gap-2 text-sm">
+                <span className="rounded-md px-2 py-0.5 text-xs font-bold uppercase tracking-[0.14em]" style={{ background: `${color}22`, color }}>Equipe {key}</span>
+                <span className="font-mono font-semibold tabular-nums text-slate-200">{hm(triggerMs + current * perAgentMs)} – {hm(triggerMs + (current + 1) * perAgentMs)}</span>
+              </p>
+              <p className="mt-2 text-xs text-slate-400">Tempo de cada agente <span className="ml-1 text-base font-bold text-white">{fmtDuration(perAgentMs)}</span></p>
+            </div>
+          ) : (
+            /* Divisão do tempo em destaque */
+            <div className="min-w-0">
+              <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-slate-400">Cada agente fica</p>
+              <p className="mt-1 text-4xl font-extrabold tabular-nums leading-none" style={{ color }}>{fmtDuration(perAgentMs)}</p>
+              <p className="mt-2 font-mono text-lg font-bold tabular-nums text-white">{hm(triggerMs)} → {hm(endMs)}</p>
+              <p className="mt-0.5 flex flex-wrap items-center gap-x-3 text-[12.5px] text-slate-300">
+                <span className="inline-flex items-center gap-1"><Users className="h-3.5 w-3.5" aria-hidden /> {n} agente{n !== 1 ? 's' : ''}</span>
+                <span className="inline-flex items-center gap-1"><Clock3 className="h-3.5 w-3.5" aria-hidden /> total {fmtDuration(totalMs)}</span>
+              </p>
+            </div>
+          )}
 
           <InstrumentDial {...dial} className="relative mx-auto aspect-square w-[172px] shrink-0" />
 
@@ -178,6 +192,41 @@ export function QuickRoundHero({ team, names, phase, now, triggerMs, perAgentMs,
             )}
           </div>
         </div>
+
+        {/* Aviso de troca de turno (2 min) */}
+        {handoffWarn && (
+          <div role="status" aria-live="polite" className="relative flex flex-wrap items-center justify-between gap-2 border-t border-amber-400/40 bg-amber-500/15 px-4 py-2.5 sm:px-6">
+            <span className="flex items-center gap-2 text-sm font-bold uppercase tracking-[0.12em] text-amber-200">
+              <ArrowRightLeft className="h-4 w-4" aria-hidden /> Troca de turno em <span className="font-mono tabular-nums">{fmtClock(sliceLeftMs)}</span>
+            </span>
+            <span className="text-sm text-amber-100">Prepare-se: <b className="text-white">{names[current + 1]}</b> assume às {hm(triggerMs + (current + 1) * perAgentMs)}</span>
+          </div>
+        )}
+
+        {/* Contagem final da passagem (20 s) */}
+        {handoffCount && (
+          <div role="alert" className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-2 bg-[#070c18]/85 text-center backdrop-blur-sm">
+            <p className="text-xs font-bold uppercase tracking-[0.3em] text-rose-300">{isLast ? 'Encerramento do rodízio' : 'Troca de turno'}</p>
+            <p key={Math.ceil(sliceLeftMs / 1000)} className="font-mono text-7xl font-extrabold tabular-nums text-rose-400 motion-safe:animate-in motion-safe:zoom-in-95 sm:text-8xl" style={{ textShadow: '0 0 30px rgb(244 63 94 / 0.6)' }}>
+              {Math.max(0, Math.ceil(sliceLeftMs / 1000))}
+            </p>
+            <p className="text-sm text-slate-200">
+              {isLast ? <>Fim do rodízio às <b className="text-white">{hm(endMs)}</b></> : <><b className="text-white">{names[current]}</b> passa para <b className="text-white">{names[current + 1]}</b></>}
+            </p>
+          </div>
+        )}
+
+        {/* Boas-vindas ao novo agente */}
+        {welcome && !handoffCount && (
+          <div role="status" aria-live="polite" className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-2 bg-[#070c18]/90 px-4 text-center backdrop-blur-sm motion-safe:animate-in motion-safe:fade-in-0">
+            <ShieldCheck className="h-10 w-10" style={{ color }} aria-hidden />
+            <p className="text-xs font-bold uppercase tracking-[0.3em] text-emerald-300">{current === 0 ? 'Rodízio iniciado' : 'Passagem de turno concluída'}</p>
+            <p className="text-3xl font-extrabold text-white sm:text-4xl">Bem-vindo(a), {names[current]}</p>
+            <p className="text-sm text-slate-200">
+              Equipe <b style={{ color }}>{key}</b> · sua ronda vai de <b className="font-mono text-white">{hm(triggerMs + current * perAgentMs)}</b> a <b className="font-mono text-white">{hm(triggerMs + (current + 1) * perAgentMs)}</b> ({fmtDuration(perAgentMs)}). Bom serviço!
+            </p>
+          </div>
+        )}
 
         {/* Contagem final do período */}
         {finalCountdown && (
@@ -248,7 +297,7 @@ export function QuickRoundHero({ team, names, phase, now, triggerMs, perAgentMs,
                   </span>
                   <span className="min-w-0 flex-1 truncate text-[15px] font-semibold">{name}</span>
                   <span className="font-mono text-base font-bold tabular-nums">{hm(s)} – {hm(e)}</span>
-                  <span className="hidden w-16 text-right text-xs text-muted-foreground sm:inline">{fmtDuration(perAgentMs)}</span>
+                  <span className="w-14 text-right text-sm font-bold tabular-nums text-foreground">{fmtDuration(perAgentMs)}</span>
                   <span
                     className={cn(
                       'hidden rounded-full border px-2 py-0.5 text-[10.5px] font-semibold md:inline',

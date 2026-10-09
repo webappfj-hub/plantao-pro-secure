@@ -52,3 +52,12 @@ export function quickRoundStatus(s: StoredQuickSession | null, now: number): Qui
     next: s.names[index + 1] ?? null,
   };
 }
+
+/** Duração legível: "1h48", "36 min". */
+export function fmtDuration(ms: number): string {
+  const min = Math.round(ms / 60_000);
+  const h = Math.floor(min / 60);
+  const m = min % 60;
+  if (h === 0) return `${m} min`;
+  return m === 0 ? `${h}h` : `${h}h${String(m).padStart(2, '0')}`;
+}
