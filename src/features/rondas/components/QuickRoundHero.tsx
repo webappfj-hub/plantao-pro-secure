@@ -3,7 +3,7 @@ import { CheckCircle2, Clock3, Hourglass, Square, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { TEAM_COLORS, type TeamKey } from '@/lib/teamColors';
-import { TEAM_ART, SHIELD_CLIP, CHROME_GRADIENT, mascotStyle } from '@/lib/teamArt';
+import { TEAM_ART, CHROME_GRADIENT } from '@/lib/teamArt';
 import { InstrumentDial } from './CommandClock';
 
 const FINAL_COUNTDOWN_MS = 10 * 60_000;
@@ -147,24 +147,18 @@ export function QuickRoundHero({ team, names, phase, now, triggerMs, perAgentMs,
           </div>
         </div>
 
-        <div className="relative grid items-center gap-6 px-4 py-6 sm:px-6 lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] lg:px-8">
-          {/* Equipe + resumo */}
-          <div className="flex min-w-0 items-center gap-4">
-            <span aria-hidden className="relative h-[72px] w-[64px] shrink-0" style={{ clipPath: SHIELD_CLIP, background: CHROME_GRADIENT, filter: `drop-shadow(0 0 8px ${color}77)` }}>
-              <span className="absolute inset-[2.5px]" style={{ clipPath: SHIELD_CLIP, ...mascotStyle(key) }} />
-            </span>
-            <div className="min-w-0">
-              <p className="text-[10.5px] font-bold uppercase tracking-[0.22em] text-slate-300/85">Equipe</p>
-              <p className="text-3xl font-extrabold uppercase leading-none tracking-[0.12em]" style={{ color }}>{key}</p>
-              <p className="mt-2 font-mono text-lg font-bold tabular-nums text-white">{hm(triggerMs)} → {hm(endMs)}</p>
-              <p className="mt-0.5 flex flex-wrap items-center gap-x-3 text-[12px] text-slate-300">
-                <span className="inline-flex items-center gap-1"><Users className="h-3.5 w-3.5" aria-hidden /> {n} agente{n !== 1 ? 's' : ''}</span>
-                <span className="inline-flex items-center gap-1"><Clock3 className="h-3.5 w-3.5" aria-hidden /> {fmtDuration(perAgentMs)} cada</span>
-              </p>
-            </div>
+        <div className="relative grid items-center gap-4 px-4 py-4 sm:px-6 lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]">
+          {/* Resumo do rodízio (a equipe já aparece na faixa de comando) */}
+          <div className="min-w-0">
+            <p className="text-[10.5px] font-semibold uppercase tracking-[0.2em] text-slate-400">Período do rodízio</p>
+            <p className="mt-1 font-mono text-2xl font-bold tabular-nums text-white">{hm(triggerMs)} → {hm(endMs)}</p>
+            <p className="mt-1 flex flex-wrap items-center gap-x-3 text-[12.5px] text-slate-300">
+              <span className="inline-flex items-center gap-1"><Users className="h-3.5 w-3.5" aria-hidden /> {n} agente{n !== 1 ? 's' : ''}</span>
+              <span className="inline-flex items-center gap-1"><Clock3 className="h-3.5 w-3.5" aria-hidden /> {fmtDuration(perAgentMs)} cada</span>
+            </p>
           </div>
 
-          <InstrumentDial {...dial} />
+          <InstrumentDial {...dial} className="relative mx-auto aspect-square w-[172px] shrink-0" />
 
           {/* Próximo agente */}
           <div className="rounded-xl border border-white/10 bg-black/40 p-4 backdrop-blur-sm lg:justify-self-end lg:w-[240px]">
@@ -228,7 +222,7 @@ export function QuickRoundHero({ team, names, phase, now, triggerMs, perAgentMs,
           <h3 className="text-[13px] font-semibold uppercase tracking-wide">Escala do rodízio</h3>
           <span className="text-xs text-muted-foreground">{fmtDuration(perAgentMs)} por agente</span>
         </div>
-        <ol className="space-y-1.5 px-4 pb-4 pt-2 sm:px-6">
+        <ol className="grid gap-1.5 px-4 pb-4 pt-2 sm:px-6 xl:grid-cols-2">
           {names.map((name, i) => {
             const s = triggerMs + i * perAgentMs;
             const e = s + perAgentMs;
@@ -240,7 +234,7 @@ export function QuickRoundHero({ team, names, phase, now, triggerMs, perAgentMs,
                 key={`${name}-${i}`}
                 aria-current={now_ ? 'step' : undefined}
                 className={cn(
-                  'relative overflow-hidden rounded-lg border px-3 py-2.5',
+                  'relative overflow-hidden rounded-lg border px-3 py-2',
                   now_ ? 'border-primary/50 bg-primary/10' : 'border-border bg-background/40',
                   done && 'opacity-70',
                 )}

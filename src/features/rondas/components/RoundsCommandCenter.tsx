@@ -1,30 +1,27 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { Building2, RadioTower, WifiOff } from 'lucide-react';
-import { BrasaoSentinela } from '@/components/BrasaoSentinela';
-import { useServerTime } from '@/hooks/useServerTime';
+import { Building2, WifiOff } from 'lucide-react';
+import { useServerClockParts, useServerTime } from '@/hooks/useServerTime';
 import { getDutyTeam } from '@/lib/dutyTeam';
 import { TEAM_COLORS, type TeamKey } from '@/lib/teamColors';
-import { TEAM_ART, TEAM_SLOGANS, SHIELD_CLIP, CHROME_GRADIENT, mascotStyle } from '@/lib/teamArt';
-import { CommandClock } from './CommandClock';
-import type { RoundTimerState } from '../useRoundTimer';
+import { TEAM_ART, SHIELD_CLIP, CHROME_GRADIENT, mascotStyle } from '@/lib/teamArt';
+import { formatClock, type RoundTimerState } from '../useRoundTimer';
 
-const DAY_MS = 86_400_000;
 const isTeam = (t: string | null | undefined): t is TeamKey => !!t && t in TEAM_ART;
 
 interface Props {
   team?: string | null;
   unitName?: string | null;
-  /** Ronda em andamento agora (qualquer agente) — o relógio vira cronômetro. */
+  /** Ronda em andamento agora (qualquer agente) — o relógio da faixa vira o tempo restante dela. */
   active?: { timer: RoundTimerState; sector?: string | null; agent?: string | null } | null;
   children?: ReactNode;
 }
 
 /**
- * Central de operação do Gestor de Rondas — cabeçalho em moldura cromada com
- * a arte da equipe de plantão ao fundo (escurecida para leitura), escudo com o
- * mascote, nome em metal, lema/frase, janela do plantão (07h–07h) com contagem
- * até a troca e o relógio de comando no centro. A faixa de ações do turno
- * (children) fica embutida embaixo.
+ * Faixa de comando do Gestor de Rondas — compacta (uma linha em telas largas),
+ * com a arte da equipe de plantão ao fundo: escudo + equipe + lema, um único
+ * relógio digital (hora oficial; vira tempo restante quando há ronda ativa),
+ * janela do plantão e unidade. Mostradores grandes ficam só onde há ação
+ * (rodízio/ronda), para não repetir relógio na tela.
  */
 export function RoundsCommandCenter({ team, unitName, active, children }: Props) {
   const now = useServerTime(30_000);
@@ -32,10 +29,10 @@ export function RoundsCommandCenter({ team, unitName, active, children }: Props)
   const shown: TeamKey = isTeam(team) ? team : duty.team;
   const color = TEAM_COLORS[shown].hex;
   const art = TEAM_ART[shown];
-  const fromPreviousShift = shown !== duty.team;
+  const { hours, minutes, seconds, date } = useServerClockParts();
+  const pad = (n: number) => String(n).padStart(2, '0');
   const h = Math.floor(duty.msToChange / 3_600_000);
   const m = Math.floor((duty.msToChange % 3_600_000) / 60_000);
-  const shiftProgress = Math.min(100, Math.max(0, (1 - duty.msToChange / DAY_MS) * 100));
 
   const [online, setOnline] = useState(typeof navigator === 'undefined' ? true : navigator.onLine);
   useEffect(() => {
@@ -46,122 +43,78 @@ export function RoundsCommandCenter({ team, unitName, active, children }: Props)
     return () => { window.removeEventListener('online', on); window.removeEventListener('offline', off); };
   }, []);
 
+  const t = active?.timer;
+  const overdue = !!t && (t.isOverdue || t.isLate);
+  const clockTone = t ? (overdue ? '#ef4444' : t.isPaused ? '#f59e0b' : color) : color;
+
   return (
     <section
       aria-label={`Central de operação — Equipe ${shown}`}
-      className="relative rounded-2xl p-[2px] shadow-[0_18px_50px_-24px_rgb(0_0_0/0.8)]"
-      style={{ background: CHROME_GRADIENT }}
+      className="relative overflow-hidden rounded-xl border border-white/10 bg-[#070c18] text-white shadow-[0_12px_32px_-20px_rgb(0_0_0/0.8)]"
     >
-      <div className="relative overflow-hidden rounded-[14px] bg-[#070c18] text-white">
-        {/* Arte da equipe ao fundo (lado direito), escurecida para leitura */}
-        {/* Só a metade direita da arte (equipe em campo): a esquerda traz o
-            nome/lema impressos, que duplicariam o texto do painel. */}
-        <img
-          src={art.src}
-          alt=""
-          aria-hidden
-          decoding="async"
-          className="pointer-events-none absolute inset-y-0 right-0 h-full w-[200%] max-w-none select-none object-cover object-[100%_35%]"
-        />
-        <div
-          aria-hidden
-          className="absolute inset-0"
-          style={{
-            background:
-              `radial-gradient(60% 90% at 50% 45%, rgb(7 12 24 / 0.55), transparent 75%),` +
-              `linear-gradient(90deg, rgb(7 12 24 / 0.97) 0%, rgb(7 12 24 / 0.88) 38%, rgb(7 12 24 / 0.7) 62%, rgb(7 12 24 / 0.5) 100%)`,
-          }}
-        />
-        {/* Grade tática fina + tom da equipe */}
-        <div
-          aria-hidden
-          className="absolute inset-0 opacity-70"
-          style={{
-            backgroundImage: `linear-gradient(${color}12 1px, transparent 1px), linear-gradient(90deg, ${color}12 1px, transparent 1px)`,
-            backgroundSize: '24px 24px',
-          }}
-        />
-        <div aria-hidden className="absolute inset-x-0 top-0 h-px" style={{ background: `linear-gradient(90deg, transparent, ${color}, transparent)` }} />
+      <img
+        src={art.src}
+        alt=""
+        aria-hidden
+        decoding="async"
+        className="pointer-events-none absolute inset-y-0 right-0 h-full w-[200%] max-w-none select-none object-cover object-[100%_35%]"
+      />
+      <div aria-hidden className="absolute inset-0 bg-[linear-gradient(90deg,rgb(7_12_24/0.97)_0%,rgb(7_12_24/0.9)_45%,rgb(7_12_24/0.72)_100%)]" />
+      <div aria-hidden className="absolute inset-x-0 top-0 h-px" style={{ background: `linear-gradient(90deg, transparent, ${color}, transparent)` }} />
 
-        {/* Faixa superior: identificação do console */}
-        <div className="relative flex items-center justify-between gap-3 border-b border-white/10 bg-black/25 px-4 py-2 sm:px-6">
-          <div className="flex min-w-0 items-center gap-2.5">
-            <BrasaoSentinela size={26} title="Gestor de Rondas — PlantãoPro AC" />
-            <span className="truncate text-[10px] font-bold uppercase tracking-[0.24em] text-slate-200">
-              Central de operação <span className="text-white/40">·</span> <span className="text-slate-400">Gestor de rondas</span>
-            </span>
+      <div className="relative flex flex-wrap items-center gap-x-6 gap-y-3 px-4 py-3 sm:px-5">
+        {/* Equipe */}
+        <div className="flex min-w-0 flex-1 items-center gap-3">
+          <span aria-hidden className="relative h-12 w-[42px] shrink-0" style={{ clipPath: SHIELD_CLIP, background: CHROME_GRADIENT, filter: `drop-shadow(0 0 6px ${color}66)` }}>
+            <span className="absolute inset-[2px]" style={{ clipPath: SHIELD_CLIP, ...mascotStyle(shown) }} />
+          </span>
+          <div className="min-w-0">
+            <p className="text-[10.5px] font-semibold uppercase tracking-[0.2em] text-slate-400">
+              {shown === duty.team ? 'Equipe de plantão' : 'Plantão anterior · em ronda'}
+            </p>
+            <p className="flex items-baseline gap-2">
+              <span className="text-2xl font-extrabold uppercase leading-none tracking-[0.1em]" style={{ color }}>{shown}</span>
+              <span className="hidden truncate text-[11px] font-medium uppercase tracking-[0.14em] text-slate-300 md:inline">{art.lema}</span>
+            </p>
           </div>
-          <span className={`flex shrink-0 items-center gap-1.5 text-[9.5px] font-bold uppercase tracking-[0.2em] ${online ? 'text-emerald-400' : 'text-amber-400'}`}>
-            {online ? (
-              <span className="relative flex h-1.5 w-1.5" aria-hidden>
-                <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-70 motion-safe:animate-ping" />
-                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-400" />
-              </span>
-            ) : <WifiOff className="h-3 w-3" aria-hidden />}
-            {online ? 'Operante' : 'Sem conexão'}
+        </div>
+
+        {/* Relógio único */}
+        <div className="flex items-center gap-3" role="timer" aria-live="off"
+          aria-label={t ? `Ronda em andamento: ${formatClock(t.secondsRemaining)} restantes` : `Hora oficial do Acre ${pad(hours)}:${pad(minutes)}`}>
+          <div className="text-right leading-tight">
+            <p className="text-[10.5px] font-semibold uppercase tracking-[0.18em]" style={{ color: clockTone }}>
+              {t ? (t.isPaused ? 'Ronda pausada' : overdue ? 'Tempo excedido' : 'Ronda · restante') : 'Hora oficial · AC'}
+            </p>
+            <p className="text-[11px] text-slate-400">
+              {t ? (active?.sector ?? active?.agent ?? 'Em andamento') : date.toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: 'short', timeZone: 'America/Rio_Branco' }).replace(/\./g, '')}
+            </p>
+          </div>
+          <span className="font-mono text-[2rem] font-bold leading-none tabular-nums text-white" style={{ textShadow: `0 0 18px ${clockTone}55` }}>
+            {t
+              ? (overdue ? `+${formatClock(Math.max(0, t.secondsElapsed - t.totalSeconds))}` : formatClock(t.secondsRemaining))
+              : <>{pad(hours)}:{pad(minutes)}<span className="ml-1 text-base" style={{ color: clockTone }}>{pad(seconds)}</span></>}
           </span>
         </div>
 
-        <div className="relative grid items-center gap-6 px-4 py-6 sm:px-6 lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] lg:px-8">
-          {/* Equipe de plantão */}
-          <div className="flex min-w-0 items-center gap-4">
-            <span
-              aria-hidden
-              className="relative h-[84px] w-[74px] shrink-0"
-              style={{ clipPath: SHIELD_CLIP, background: CHROME_GRADIENT, filter: `drop-shadow(0 0 10px ${color}77)` }}
-            >
-              <span className="absolute inset-[2.5px]" style={{ clipPath: SHIELD_CLIP, ...mascotStyle(shown) }} />
-            </span>
-            <div className="min-w-0">
-              <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.24em] text-slate-300/85">
-                <span className="h-1.5 w-1.5 rounded-full" style={{ background: color }} aria-hidden />
-                {fromPreviousShift ? 'Plantão anterior · em ronda' : 'Equipe de plantão'}
-              </p>
-              <h2
-                className="mt-1 text-[2.1rem] font-extrabold uppercase leading-none tracking-[0.12em] sm:text-[2.5rem]"
-                style={{
-                  backgroundImage: `linear-gradient(180deg, #ffffff 0%, ${color} 58%, color-mix(in srgb, ${color} 55%, #000) 100%)`,
-                  WebkitBackgroundClip: 'text',
-                  backgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
-                  filter: 'drop-shadow(0 2px 0 rgb(0 0 0 / 0.55))',
-                }}
-              >
-                {shown}
-              </h2>
-              <p className="mt-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-300/80">{art.lema}</p>
-              <p className="mt-1 text-[12.5px] italic text-white/90">“{TEAM_SLOGANS[shown]}”</p>
-            </div>
+        {/* Plantão + unidade + estado */}
+        <dl className="flex flex-wrap items-center gap-2 text-xs">
+          <div className="rounded-md border border-white/10 bg-black/35 px-3 py-1.5">
+            <dt className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400">Plantão 07→07</dt>
+            <dd className="text-slate-200">Troca em <b className="text-white">{h}h{pad(m)}</b> · {duty.next}</dd>
           </div>
-
-          {/* Relógio de comando */}
-          <CommandClock color={color} active={active} shiftProgress={shiftProgress} />
-
-          {/* Situação do plantão */}
-          <dl className="grid grid-cols-2 gap-2 lg:grid-cols-1 lg:justify-self-end">
-            <div className="rounded-lg border border-white/10 bg-black/35 px-3 py-2 backdrop-blur-sm">
-              <dt className="text-[9.5px] font-bold uppercase tracking-[0.2em] text-slate-400">Plantão</dt>
-              <dd className="mt-0.5 font-mono text-sm font-bold tabular-nums text-white">07:00 → 07:00</dd>
-              <dd className="text-[11px] text-slate-300">
-                Troca em <span className="font-semibold text-white">{h}h{String(m).padStart(2, '0')}</span> · próxima {duty.next}
-              </dd>
-            </div>
-            <div className="rounded-lg border border-white/10 bg-black/35 px-3 py-2 backdrop-blur-sm">
-              <dt className="flex items-center gap-1 text-[9.5px] font-bold uppercase tracking-[0.2em] text-slate-400">
-                <Building2 className="h-3 w-3" aria-hidden /> Unidade
-              </dt>
-              <dd className="mt-0.5 truncate text-sm font-semibold text-white">{unitName ?? 'Unidade selecionada'}</dd>
-              <dd className="flex items-center gap-1 text-[11px] text-slate-300">
-                <RadioTower className="h-3 w-3" aria-hidden /> {active ? `Em ronda${active.agent ? ` · ${active.agent}` : ''}` : 'Sem ronda em curso'}
-              </dd>
-            </div>
-          </dl>
-        </div>
-
-        {children && (
-          <div className="relative border-t border-white/10 bg-black/40 px-3 py-2.5 backdrop-blur-md sm:px-5">{children}</div>
-        )}
+          <div className="rounded-md border border-white/10 bg-black/35 px-3 py-1.5">
+            <dt className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400"><Building2 className="h-3 w-3" aria-hidden /> Unidade</dt>
+            <dd className="max-w-[10rem] truncate font-semibold text-white">{unitName ?? 'Selecionada'}</dd>
+          </div>
+          <span className={`flex items-center gap-1.5 px-1 text-[10.5px] font-bold uppercase tracking-[0.16em] ${online ? 'text-emerald-400' : 'text-amber-400'}`}>
+            {online ? <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" aria-hidden /> : <WifiOff className="h-3 w-3" aria-hidden />}
+            {online ? 'Operante' : 'Offline'}
+          </span>
+        </dl>
       </div>
+
+      {children && <div className="relative border-t border-white/10 bg-black/40 px-3 py-2 backdrop-blur-md sm:px-5">{children}</div>}
     </section>
   );
 }
