@@ -165,7 +165,7 @@ export function SplitOperationalHero({ onTeamClick }: Props) {
             alt="Agente da Socioeducação do Acre, com o brasão do Governo do Acre ao fundo, em unidade operacional"
             loading="eager"
             decoding="async"
-            className="absolute inset-0 h-full w-full object-cover object-[78%_30%] sm:object-[72%_28%]"
+            className="absolute inset-0 h-full w-full object-cover object-[100%_30%]"
             draggable={false}
           />
           <div
