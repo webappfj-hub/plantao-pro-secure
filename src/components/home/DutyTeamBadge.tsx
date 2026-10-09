@@ -1,11 +1,21 @@
 import { useEffect, useState } from 'react';
-import { Crosshair, Radio, Shield, Target, type LucideIcon } from 'lucide-react';
 import { useServerTime } from '@/hooks/useServerTime';
 import { getDutyTeam } from '@/lib/dutyTeam';
 import { TEAM_COLORS, type TeamKey } from '@/lib/teamColors';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import teamAlfa from '@/assets/midias/team-alfa.webp';
+import teamBravo from '@/assets/midias/team-bravo.webp';
+import teamCharlie from '@/assets/midias/team-charlie.webp';
+import teamDelta from '@/assets/midias/team-delta.webp';
 
-const ICONS: Record<TeamKey, LucideIcon> = { ALFA: Shield, BRAVO: Target, CHARLIE: Crosshair, DELTA: Radio };
+// Cada arte (768×512) traz o mascote da equipe no canto superior esquerdo.
+// `x,y,s` = recorte quadrado do mascote em px da arte original.
+const TEAM_ART: Record<TeamKey, { src: string; x: number; y: number; s: number; lema: string }> = {
+  ALFA: { src: teamAlfa, x: 48, y: 38, s: 106, lema: 'Disciplina · Compromisso · Resultados' },
+  BRAVO: { src: teamBravo, x: 46, y: 48, s: 110, lema: 'União · Determinação · Evolução' },
+  CHARLIE: { src: teamCharlie, x: 50, y: 32, s: 116, lema: 'Atenção · Presença · Proteção' },
+  DELTA: { src: teamDelta, x: 50, y: 26, s: 116, lema: 'Planejamento · Disciplina · Resultados' },
+};
 
 const SLOGANS: Record<TeamKey, string> = {
   ALFA: 'Na linha de frente, com firmeza e propósito.',
@@ -14,11 +24,12 @@ const SLOGANS: Record<TeamKey, string> = {
   DELTA: 'Disciplina hoje, futuro amanhã.',
 };
 
+const SHIELD = 'polygon(50% 0, 100% 13%, 100% 58%, 50% 100%, 0 58%, 0 13%)';
 const SWAP_MS = 6500;
 
-/** Equipe de plantão do turno (07h–07h): emblema na cor da equipe + nome que
- * alterna com a frase de impacto. Sem alternância animada se o usuário
- * reduz movimento (fica o nome). */
+/** Equipe de plantão do turno (07h–07h): painel de vidro escuro com a arte da
+ * equipe ao fundo, escudo com o mascote real, nome que alterna com a frase de
+ * impacto. Sem alternância se o usuário reduz movimento (fica o nome). */
 export function DutyTeamBadge({ className }: { className?: string }) {
   const now = useServerTime(60_000);
   const { team, next, msToChange } = getDutyTeam(now);
@@ -31,45 +42,59 @@ export function DutyTeamBadge({ className }: { className?: string }) {
   }, []);
 
   const color = TEAM_COLORS[team].hex;
-  const Icon = ICONS[team];
+  const art = TEAM_ART[team];
   const h = Math.floor(msToChange / 3_600_000);
   const m = Math.floor((msToChange % 3_600_000) / 60_000);
 
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <div className={`flex min-w-0 cursor-default items-center gap-3 ${className ?? ''}`} style={{ ['--duty' as string]: color }}>
-          {/* Emblema: escudo com ícone da equipe, brilho discreto na cor dela */}
-          <span
-            aria-hidden
-            className="relative flex h-10 w-9 shrink-0 items-center justify-center"
-            style={{ filter: 'drop-shadow(0 0 6px color-mix(in srgb, var(--duty) 45%, transparent))' }}
-          >
-            <svg viewBox="0 0 36 40" className="absolute inset-0 h-full w-full">
-              <path
-                d="M18 1.5 33.5 7v13.2c0 9-6.6 15.4-15.5 18.3C9.1 35.6 2.5 29.2 2.5 20.2V7L18 1.5Z"
-                fill="color-mix(in srgb, var(--duty) 14%, transparent)"
-                stroke="var(--duty)"
-                strokeWidth="1.6"
-              />
-            </svg>
-            <Icon className="duty-ink relative h-4 w-4" style={{ color }} strokeWidth={2.3} />
+        <div
+          className={`relative cursor-default items-center gap-3 overflow-hidden rounded-lg border px-3 py-1 ${className ?? ''}`}
+          style={{
+            borderColor: `color-mix(in srgb, ${color} 45%, transparent)`,
+            boxShadow: `0 6px 20px -10px ${color}, inset 0 1px 0 rgb(255 255 255 / 0.1)`,
+            backgroundImage: `linear-gradient(90deg, rgb(8 12 22 / 0.97) 0%, rgb(8 12 22 / 0.9) 48%, rgb(8 12 22 / 0.3) 100%), url(${art.src})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'right center',
+          }}
+        >
+          {/* Escudo com o mascote da equipe */}
+          <span aria-hidden className="relative h-10 w-9 shrink-0" style={{ clipPath: SHIELD, background: color }}>
+            <span
+              className="absolute inset-[1.5px]"
+              style={{
+                clipPath: SHIELD,
+                backgroundColor: 'rgb(8 12 22)',
+                backgroundImage: `url(${art.src})`,
+                backgroundRepeat: 'no-repeat',
+                backgroundSize: `${(768 / art.s) * 100}% auto`,
+                backgroundPosition: `${(art.x / (768 - art.s)) * 100}% ${(art.y / (512 - art.s)) * 100}%`,
+              }}
+            />
           </span>
 
-          <span className="flex min-w-0 flex-col leading-tight">
-            <span className="text-[9.5px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">Equipe de plantão</span>
-            <span key={showMsg ? 'msg' : 'name'} className="mt-0.5 max-w-[260px] truncate motion-safe:animate-fade-in">
+          <span className="relative flex min-w-0 flex-1 flex-col leading-tight">
+            <span className="flex items-center gap-1.5 text-[9px] font-semibold uppercase tracking-[0.22em] text-white/60">
+              <span className="relative flex h-1.5 w-1.5" aria-hidden>
+                <span className="absolute inline-flex h-full w-full rounded-full opacity-70 motion-safe:animate-ping" style={{ background: color }} />
+                <span className="relative inline-flex h-1.5 w-1.5 rounded-full" style={{ background: color }} />
+              </span>
+              Equipe de plantão
+            </span>
+            <span key={showMsg ? 'msg' : 'name'} className="mt-0.5 truncate motion-safe:animate-fade-in">
               {showMsg ? (
-                <span className="text-[12px] font-medium italic text-foreground">“{SLOGANS[team]}”</span>
+                <span className="text-[12px] font-medium italic text-white/90">“{SLOGANS[team]}”</span>
               ) : (
-                <span className="duty-ink text-[15px] font-bold uppercase tracking-[0.14em]" style={{ color }}>{team}</span>
+                <span className="text-[15px] font-bold uppercase tracking-[0.16em]" style={{ color }}>{team}</span>
               )}
             </span>
           </span>
         </div>
       </TooltipTrigger>
       <TooltipContent side="bottom" className="text-xs">
-        <div className="font-semibold">Plantão das 07h às 07h</div>
+        <div className="font-semibold">Equipe {team} · plantão das 07h às 07h</div>
+        <div className="text-muted-foreground">{art.lema}</div>
         <div className="text-muted-foreground">Troca em {h}h{String(m).padStart(2, '0')} · próxima: {next}</div>
       </TooltipContent>
     </Tooltip>
