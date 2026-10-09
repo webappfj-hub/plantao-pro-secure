@@ -6,7 +6,7 @@
  * legível por cima.
  */
 import { memo } from 'react';
-import sectionBackground from '@/assets/midias/section-background.png';
+import sectionBackground from '@/assets/midias/section-background.webp';
 
 export const CommandRoomBackground = memo(function CommandRoomBackground() {
   return (

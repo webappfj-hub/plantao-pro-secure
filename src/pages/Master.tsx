@@ -1,6 +1,6 @@
 import { useEffect, useState, lazy, Suspense } from 'react';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
-import hudPageBg from '@/assets/midias/unit-cs-acre.png';
+import hudPageBg from '@/assets/midias/unit-cs-acre.webp';
 import { Icon3D, Icon3DAction, type Icon3DName } from '@/components/ui/Icon3D';
 const hudBgStyle = { ['--hud-bg-url' as any]: `url(${hudPageBg})` };
 

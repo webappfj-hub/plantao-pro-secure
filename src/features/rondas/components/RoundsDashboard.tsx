@@ -37,339 +37,10 @@ import { ShiftDivider } from './ShiftDivider';
 import { RoundHistory } from './RoundHistory';
 import { enqueuePatrolAction, flushPatrolQueue, getQueueLength } from '../offlineQueue';
 import type { PatrolSlot } from '../types';
+import { RoundsCommandCenter as RondasHero } from './RoundsCommandCenter';
+import { ScheduleEditor } from './ScheduleEditor';
 import { useServerTime } from '@/hooks/useServerTime';
 import { getDutyTeam } from '@/lib/dutyTeam';
-
-/**
- * Radar de operação — varredura realista de PPI (plan position indicator):
- * feixe cônico com rastro que decai, anéis de alcance com marcações de
- * azimute, ecos que acendem no instante em que o feixe passa por eles e
- * anel de retorno expandindo. Tudo em SVG/CSS (zero imagem, GPU); em
- * `lowMotion` o radar continua desenhado, apenas parado.
- */
-function RadarSweep({ color, lowMotion }: { color: string; lowMotion: boolean }) {
-  // Ecos posicionados em azimutes conhecidos: o atraso da animação é
-  // calculado a partir do ângulo, então cada eco acende exatamente quando
-  // o feixe cruza sua posição (ciclo de 6s = 360°).
-  const echoes = [
-    { angle: 38, dist: 0.72 },
-    { angle: 145, dist: 0.46 },
-    { angle: 252, dist: 0.83 },
-  ];
-  const cycle = 6;
-
-  return (
-    <div className="pointer-events-none absolute -right-12 -top-16 h-72 w-72 opacity-80 sm:-right-4 sm:-top-20 sm:h-96 sm:w-96 xl:right-[5%] xl:h-[28rem] xl:w-[28rem]">
-      {/* Feixe cônico com rastro — camada CSS, mais suave que wedge em SVG */}
-      <div
-        className={cn('absolute inset-[6%] rounded-full', !lowMotion && 'radar-sweep')}
-        style={{
-          background: `conic-gradient(from 0deg, ${color}00 0deg, ${color}00 250deg, ${color}0f 300deg, ${color}2e 340deg, ${color}7a 356deg, ${color}e6 359.5deg, ${color}00 360deg)`,
-          maskImage: 'radial-gradient(circle at center, #000 62%, transparent 100%)',
-          WebkitMaskImage: 'radial-gradient(circle at center, #000 62%, transparent 100%)',
-        }}
-      />
-      <svg viewBox="0 0 200 200" className="relative h-full w-full">
-        <defs>
-          <radialGradient id="radar-core" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor={color} stopOpacity="0.22" />
-            <stop offset="70%" stopColor={color} stopOpacity="0.05" />
-            <stop offset="100%" stopColor={color} stopOpacity="0" />
-          </radialGradient>
-        </defs>
-
-        <circle cx="100" cy="100" r="88" fill="url(#radar-core)" />
-
-        {/* Anéis de alcance */}
-        {[88, 66, 44, 22].map((r, i) => (
-          <circle
-            key={r}
-            cx="100"
-            cy="100"
-            r={r}
-            fill="none"
-            stroke={color}
-            strokeOpacity={i === 0 ? 0.42 : 0.2}
-            strokeWidth={i === 0 ? 1.2 : 0.8}
-          />
-        ))}
-
-        {/* Eixos e diagonais discretas */}
-        {[0, 45, 90, 135].map((a) => (
-          <line
-            key={a}
-            x1="100"
-            y1="12"
-            x2="100"
-            y2="188"
-            stroke={color}
-            strokeOpacity={a % 90 === 0 ? 0.16 : 0.08}
-            strokeWidth="0.8"
-            transform={`rotate(${a} 100 100)`}
-          />
-        ))}
-
-        {/* Marcações de azimute a cada 15° — detalhe de instrumento */}
-        {Array.from({ length: 24 }, (_, i) => i * 15).map((a) => {
-          const major = a % 45 === 0;
-          return (
-            <line
-              key={a}
-              x1="100"
-              y1={major ? 78 : 83}
-              x2="100"
-              y2="88"
-              stroke={color}
-              strokeOpacity={major ? 0.5 : 0.26}
-              strokeWidth={major ? 1.1 : 0.7}
-              transform={`rotate(${a} 100 100)`}
-              style={{ transformBox: 'view-box' }}
-            />
-          );
-        })}
-
-        {/* Ecos detectados + anel de retorno, sincronizados com o feixe */}
-        {echoes.map(({ angle, dist }) => {
-          const rad = ((angle - 90) * Math.PI) / 180;
-          const cx = 100 + Math.cos(rad) * 82 * dist;
-          const cy = 100 + Math.sin(rad) * 82 * dist;
-          const delay = `-${((360 - angle) / 360) * cycle}s`;
-          return (
-            <g key={angle}>
-              <circle
-                cx={cx}
-                cy={cy}
-                r="3"
-                fill="none"
-                stroke={color}
-                strokeWidth="1"
-                className={lowMotion ? undefined : 'radar-echo-ring'}
-                style={lowMotion ? { opacity: 0.35 } : { animationDelay: delay }}
-              />
-              <circle
-                cx={cx}
-                cy={cy}
-                r="2.4"
-                fill={color}
-                className={lowMotion ? undefined : 'radar-echo'}
-                style={lowMotion ? { opacity: 0.5 } : { animationDelay: delay }}
-              />
-            </g>
-          );
-        })}
-
-        <circle cx="100" cy="100" r="1.8" fill={color} fillOpacity="0.8" />
-      </svg>
-    </div>
-  );
-}
-
-/**
- * Cabeçalho do Gestor de Rondas — visual tático (radar + grade de pontos +
- * linha de varredura), sem nenhuma foto: mais leve (zero download de
- * imagem) e mais alinhado ao tema de segurança/vigilância do que um pôster
- * de equipe. A cor de destaque muda por equipe (mesma fonte usada no resto
- * do app), então a identidade continua ali, só que via luz, não retrato.
- * Quando há turno ativo, a faixa de operação (turno, equipe, unidade,
- * relógio e ações) fica embutida aqui mesmo, economizando uma seção inteira.
- */
-function RondasHero({ team, children }: { team?: string | null; children?: ReactNode }) {
-  const colors = getTeamColors(team ?? null);
-  const { lowMotion } = useLowMotion();
-  return (
-    <section
-      className="rounds-ops-header relative overflow-hidden rounded-xl border"
-      style={{ borderColor: `${colors.primary}30` }}
-    >
-      {/* Grade tática de pontos — mesma textura usada no resto do painel */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 opacity-40"
-        style={{ backgroundImage: `radial-gradient(${colors.primary}33 1px, transparent 1px)`, backgroundSize: '16px 16px' }}
-      />
-      {/* Linha de varredura vertical — reforça o "modo operação" sem pesar */}
-      {!lowMotion && (
-        <div
-          aria-hidden
-          className="scan-line-y pointer-events-none absolute inset-x-0 h-16"
-          style={{ background: `linear-gradient(180deg, transparent 0%, ${colors.primary}30 50%, transparent 100%)` }}
-        />
-      )}
-      <RadarSweep color={colors.primary} lowMotion={lowMotion} />
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0"
-        style={{ background: 'linear-gradient(180deg, transparent 0%, hsl(var(--background) / 0.67) 75%, hsl(var(--background)) 100%)' }}
-      />
-
-      <div className="relative grid min-h-[184px] items-center gap-5 px-4 py-5 sm:px-6 lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] lg:px-8">
-        <div className="flex min-w-0 items-center gap-3 lg:justify-self-start">
-          <div className="rounds-command-emblem grid h-12 w-12 shrink-0 place-items-center rounded-md border border-primary/30 bg-primary/10">
-            <BrasaoSentinela size={34} title="Gestor de Rondas — PlantãoPro AC" />
-          </div>
-          <div className="min-w-0">
-          <span
-            className="inline-flex items-center gap-1.5 rounded px-2 py-1 text-[9px] font-semibold uppercase tracking-wide text-primary ring-1 ring-primary/25 backdrop-blur-sm"
-            style={{ background: `${colors.primary}26`, borderColor: colors.primary, boxShadow: `inset 0 0 0 1px ${colors.primary}55` }}
-          >
-            <span className="relative flex h-1.5 w-1.5">
-              {!lowMotion && <span className="absolute inline-flex h-full w-full animate-ping rounded-full opacity-70" style={{ background: colors.primary }} />}
-              <span className="relative inline-flex h-1.5 w-1.5 rounded-full" style={{ background: colors.primary }} />
-            </span>
-            {team ? `Equipe ${team} · em operação` : 'Operação em tempo real'}
-          </span>
-            <h2 className="mt-2 truncate text-xl font-bold uppercase leading-tight text-foreground sm:text-2xl">Central de operação</h2>
-            <p className="mt-1 font-mono text-[9px] uppercase text-muted-foreground">Monitoramento e controle de rondas</p>
-          </div>
-        </div>
-
-        <OperationalClock color={colors.primary} />
-
-        <div className="hidden items-center gap-3 lg:flex lg:justify-self-end">
-          <div className="text-right">
-            <p className="text-[9px] font-semibold uppercase text-muted-foreground">Estado do sistema</p>
-            <p className="mt-1 flex items-center justify-end gap-2 font-mono text-xs font-bold text-emerald-400">
-              <span className="relative flex h-2 w-2">
-                {!lowMotion && <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-60" />}
-                <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
-              </span>
-              OPERANTE
-            </p>
-          </div>
-          <div className="grid h-11 w-11 place-items-center rounded-md border border-border bg-muted/40">
-            <RadioTower className="h-5 w-5 text-primary" />
-          </div>
-        </div>
-      </div>
-      {children && <div className="relative border-t border-border/70 bg-background/45 px-3 py-2.5 backdrop-blur-md sm:px-5">{children}</div>}
-    </section>
-  );
-}
-
-/**
- * Relógio operacional do Gestor de Rondas — versão "chique" do LiveClock
- * genérico, feita pra ocupar de verdade o espaço da faixa de operação em
- * vez de uma pastilha pequena perdida no canto. Mostra a hora com brilho
- * sutil, o rótulo "horário oficial" (deixa claro que é o relógio do
- * servidor/Acre, nunca o do aparelho) e a data, com um indicador de
- * sincronização ao vivo. `useServerClockParts` já é imune ao relógio do
- * dispositivo (Seção 41).
- */
-function OperationalClock({ color }: { color: string }) {
-  const { hours, minutes, seconds, date } = useServerClockParts();
-  const { lowMotion } = useLowMotion();
-  const pad = (n: number) => String(n).padStart(2, '0');
-  const dateLabel = date
-    .toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: 'short', timeZone: 'America/Rio_Branco' })
-    .replace('.', '')
-    .toUpperCase();
-
-  return (
-    <div className="rounds-digital-clock relative mx-auto w-fit min-w-[242px] rounded-lg border px-4 py-3 text-center sm:min-w-[300px] sm:px-6" style={{ borderColor: `${color}50` }}>
-      <div className="rounds-clock-glass absolute inset-0 rounded-lg" aria-hidden />
-      <div className="relative leading-none">
-        <div className="rounds-clock-digits flex items-baseline justify-center gap-1 font-mono text-[2rem] font-bold tabular-nums text-foreground sm:text-[2.65rem]" style={{ textShadow: `0 0 16px ${color}90` }}>
-          <span>{pad(hours)}</span>
-          <span className={lowMotion ? undefined : 'live-clock-colon'} style={{ color }}>:</span>
-          <span>{pad(minutes)}</span>
-          <span className="ml-1 text-sm font-semibold opacity-75 sm:text-base" style={{ color }}>{pad(seconds)}</span>
-        </div>
-        <div className="mt-2 flex items-center justify-center gap-1.5 text-[8px] font-bold uppercase" style={{ color }}>
-          <span className="relative flex h-1 w-1">
-            {!lowMotion && <span className="absolute inline-flex h-full w-full animate-ping rounded-full opacity-70" style={{ background: color }} />}
-            <span className="relative inline-flex h-1 w-1 rounded-full" style={{ background: color }} />
-          </span>
-          Horário oficial · Acre
-        </div>
-        <div className="mt-2 border-t border-border/60 pt-1.5 text-[9px] font-semibold uppercase text-muted-foreground">{dateLabel} · SINCRONIZADO</div>
-      </div>
-    </div>
-  );
-}
-
-/**
- * Destaque "Agente em ronda agora" — vitrine do topo do Gestor de Rondas.
- * Vidro fosco (glassmorphism) + tipografia de segurança pública (mono,
- * versalete, tracking largo) + selo do agente com pulso de vida (mesma
- * família de animações "on-duty" usada no resto do app: duty-glow-pulse,
- * duty-scanline, duty-shield-beat). Só aparece quando alguém está de fato
- * em campo AGORA — nunca um placeholder vazio competindo por atenção.
- */
-function ActivePatrolBanner({
-  slot, timer, team,
-}: { slot: PatrolSlot; timer: ReturnType<typeof useRoundTimer>; team: string | null }) {
-  const colors = getTeamColors(team ?? null);
-  const { lowMotion } = useLowMotion();
-  const poster = team ? teamPosters[team] : undefined;
-  const agentName = slot.agent?.name ?? 'Agente';
-  const initials = agentName.split(' ').filter(Boolean).slice(0, 2).map((p) => p[0]).join('').toUpperCase();
-
-  return (
-    <div
-      className="relative overflow-hidden rounded-xl border shadow-lg"
-      style={{
-        borderColor: `${colors.primary}55`,
-        background: `linear-gradient(120deg, ${colors.primary}1f, hsl(var(--background) / 0.55) 55%)`,
-        backdropFilter: 'blur(14px)',
-        WebkitBackdropFilter: 'blur(14px)',
-      }}
-    >
-      {/* Varredura horizontal — reforça "monitoramento ao vivo" sem pesar */}
-      {!lowMotion && (
-        <div
-          aria-hidden
-          className="animate-duty-scanline pointer-events-none absolute inset-y-0 left-0 w-1/3"
-          style={{ background: `linear-gradient(90deg, transparent, ${colors.primary}30, transparent)` }}
-        />
-      )}
-
-      <div className="relative flex items-center gap-3 px-4 py-3 sm:px-5 sm:py-3.5">
-        <div
-          className={cn('relative shrink-0 rounded-lg', !lowMotion && 'animate-duty-glow')}
-          style={{ boxShadow: lowMotion ? `0 0 0 1px ${colors.primary}55` : undefined }}
-        >
-          {poster ? (
-            <img src={poster} alt="" aria-hidden className="h-14 w-14 rounded-lg border object-cover" style={{ borderColor: `${colors.primary}70` }} />
-          ) : (
-            <div
-              className="grid h-14 w-14 place-items-center rounded-lg border text-sm font-bold"
-              style={{ borderColor: `${colors.primary}70`, color: colors.primary, background: `${colors.primary}14` }}
-            >
-              {initials || <UserCheck className="h-5 w-5" />}
-            </div>
-          )}
-          <span
-            className={cn('absolute -bottom-1 -right-1 grid h-5 w-5 place-items-center rounded-full border-2 border-background', !lowMotion && 'animate-duty-shield')}
-            style={{ background: colors.primary }}
-          >
-            <RadioTower className="h-2.5 w-2.5 text-white" />
-          </span>
-        </div>
-
-        <div className="min-w-0 flex-1">
-          <p className="flex items-center gap-1.5 font-mono text-[9.5px] font-bold uppercase tracking-[0.2em]" style={{ color: colors.primary }}>
-            <span className="relative flex h-1.5 w-1.5">
-              {!lowMotion && <span className="absolute inline-flex h-full w-full animate-ping rounded-full opacity-70" style={{ background: colors.primary }} />}
-              <span className="relative inline-flex h-1.5 w-1.5 rounded-full" style={{ background: colors.primary }} />
-            </span>
-            Agente em ronda agora
-          </p>
-          <p className="truncate text-base font-bold text-foreground sm:text-lg">{agentName}</p>
-          <p className="truncate text-[11px] text-muted-foreground">
-            {slot.sector?.name ?? 'Setor não definido'} · Equipe {team ?? '—'}
-          </p>
-        </div>
-
-        <div className="shrink-0 text-right">
-          <p className="font-mono text-xl font-bold tabular-nums text-foreground sm:text-2xl" style={{ textShadow: `0 0 14px ${colors.primary}60` }}>
-            {formatClock(timer?.secondsElapsed ?? 0)}
-          </p>
-          <p className="font-mono text-[9px] font-semibold uppercase tracking-wide text-muted-foreground">em campo</p>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 /**
  * Identidade do dispositivo do visitante sem login — gerada uma vez e
@@ -549,6 +220,7 @@ export function RoundsDashboard({ onShiftActiveChange }: RoundsDashboardProps = 
     enabled: !user,
   });
   const unitsForPicker = unitsQuery.data ?? [];
+  const unitName = agent?.unit?.name ?? unitsForPicker.find((u) => u.id === unitId)?.name ?? null;
 
   // Programações recorrentes criadas no Admin (scheduled_rounds) — só fazem
   // sentido oferecer quando não há turno ativo ainda para a equipe.
@@ -768,7 +440,7 @@ export function RoundsDashboard({ onShiftActiveChange }: RoundsDashboardProps = 
   if (shiftQuery.isLoading) {
     return (
       <div className="rounds-dashboard space-y-4 py-3 sm:py-4">
-        <RondasHero team={team} />
+        <RondasHero team={team} unitName={unitName} />
         <Skeleton className="h-40 w-full rounded-xl" />
         <Skeleton className="h-24 w-full rounded-xl" />
       </div>
@@ -778,7 +450,7 @@ export function RoundsDashboard({ onShiftActiveChange }: RoundsDashboardProps = 
   if (!shift) {
     return (
       <div className="rounds-dashboard space-y-4 py-3 sm:py-4">
-        <RondasHero team={team} />
+        <RondasHero team={team} unitName={unitName} />
 
         {!user && (
           <div className="space-y-2.5 rounded-xl border border-primary/25 bg-primary/[0.06] p-3.5 animate-in fade-in-0 slide-in-from-bottom-2 duration-500">
@@ -909,11 +581,12 @@ export function RoundsDashboard({ onShiftActiveChange }: RoundsDashboardProps = 
           o mesmo elemento de imagem ao trocar de equipe — sem isso, a troca
           desmontava e remontava a foto, gerando o "flash" branco e o atraso
           percebido na transição. */}
-      <RondasHero team={team}>
-        {activePatrolSlot && (
-          <ActivePatrolBanner slot={activePatrolSlot} timer={activePatrolTimer} team={team} />
-        )}
-        <div className={cn('flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between', activePatrolSlot && 'mt-2.5')}>
+      <RondasHero
+        team={team}
+        unitName={unitName}
+        active={activePatrolSlot && activePatrolTimer ? { timer: activePatrolTimer, sector: activePatrolSlot.sector?.name, agent: activePatrolSlot.agent?.name } : null}
+      >
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
             <span className="flex items-center gap-1.5 text-[11px] font-semibold text-white/90">
               {isNightShift ? <Moon className="h-3.5 w-3.5 text-primary" strokeWidth={2.2} /> : <Sun className="h-3.5 w-3.5 text-primary" strokeWidth={2.2} />}
@@ -1167,6 +840,16 @@ export function RoundsDashboard({ onShiftActiveChange }: RoundsDashboardProps = 
           </Tabs>
         </section>
       </div>
+
+      {/* Programação editável do turno */}
+      <ScheduleEditor
+        shiftId={shift.id}
+        slots={slots}
+        agents={shiftAgents}
+        sectors={sectors}
+        intervalMinutes={shift.interval_minutes}
+        onChanged={invalidateAll}
+      />
 
       {/* Linha 3: HISTÓRICO / RELATÓRIOS */}
       <section className="rounded-xl border border-border bg-card p-4">

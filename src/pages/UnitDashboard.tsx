@@ -10,7 +10,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { TeamEmblem } from '@/components/TeamEmblem';
 import { useWelcomeHintEnabled } from '@/hooks/useWelcomeHintEnabled';
 import { PanelHeroHUD } from '@/components/panel/PanelHeroHUD';
-import hudPageBg from '@/assets/midias/unit-cs-acre.png';
+import hudPageBg from '@/assets/midias/unit-cs-acre.webp';
 import {
   Loader2,
   MapPin,

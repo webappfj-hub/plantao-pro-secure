@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { MapPin, Loader2, Users, Building2, ChevronRight, Shield, Sword, Target, Phone, Mail, MapPinned, Search, X } from 'lucide-react';
 import { PanelHeroHUD, HUDIcon3D } from '@/components/panel/PanelHeroHUD';
-import hudPageBg from '@/assets/midias/unit-cs-acre.png';
+import hudPageBg from '@/assets/midias/unit-cs-acre.webp';
 
 
 interface Unit {

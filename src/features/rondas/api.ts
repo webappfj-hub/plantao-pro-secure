@@ -311,6 +311,25 @@ export async function activateScheduledRound(row: ScheduledRoundRow, team: strin
 
 // ---------- Slots (read + lifecycle) ----------
 
+// ---------- Programação editável (slots ainda não iniciados) ----------
+
+export type SlotPatch = Partial<Pick<PatrolSlot, 'scheduled_start' | 'scheduled_end' | 'agent_id' | 'sector_id'>>;
+
+export async function updateSlot(slotId: string, patch: SlotPatch): Promise<void> {
+  const { error } = await sb.from('patrol_slots').update(patch).eq('id', slotId);
+  if (error) throw error;
+}
+
+export async function deleteSlot(slotId: string): Promise<void> {
+  const { error } = await sb.from('patrol_slots').delete().eq('id', slotId);
+  if (error) throw error;
+}
+
+export async function addSlot(shiftId: string, row: Required<SlotPatch>): Promise<void> {
+  const { error } = await sb.from('patrol_slots').insert({ shift_id: shiftId, status: 'pending', ...row });
+  if (error) throw error;
+}
+
 export async function listShiftSlots(shiftId: string): Promise<PatrolSlot[]> {
   const { data, error } = await sb
     .from('patrol_slots')
