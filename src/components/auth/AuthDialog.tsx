@@ -136,7 +136,8 @@ export function AuthDialog({
           // outline removido — sem border-2 nem ring duplicado
           "border border-white/10",
           // X de fechar em vidro, discreto, sem cobrir a foto do hero
-          "[&>button:last-child]:right-3 [&>button:last-child]:top-4 [&>button:last-child]:h-8 [&>button:last-child]:w-8 [&>button:last-child]:rounded-full [&>button:last-child]:border [&>button:last-child]:border-white/20 [&>button:last-child]:bg-white/10 [&>button:last-child]:opacity-90 [&>button:last-child]:backdrop-blur [&>button:last-child]:hover:bg-white/20",
+          // X de fechar limpo: sem círculo/vidro (a regra global de toque esticava o botão para 44×40)
+          "[&>button:last-child]:right-2 [&>button:last-child]:top-3 [&>button:last-child]:!h-9 [&>button:last-child]:!w-9 [&>button:last-child]:!min-h-0 [&>button:last-child]:!min-w-0 [&>button:last-child]:rounded-md [&>button:last-child]:border-0 [&>button:last-child]:bg-transparent [&>button:last-child]:text-white/80 [&>button:last-child]:opacity-100 [&>button:last-child]:backdrop-blur-none [&>button:last-child]:hover:bg-white/10 [&>button:last-child]:hover:text-white",
           "shadow-2xl",
           !teamBranded && styles.glow,
           // Instant open/close — no zoom/slide/fade delays
@@ -240,7 +241,6 @@ export function AuthDialog({
             <div aria-hidden className={cn("absolute -top-16 left-1/2 h-40 w-72 -translate-x-1/2 rounded-full opacity-25 blur-3xl", styles.decorColor)} />
             {/* Marcas de canto táticas */}
             <span aria-hidden className="absolute left-3 top-3 h-2.5 w-2.5 border-l border-t border-white/40" />
-            <span aria-hidden className="absolute right-3 top-3 h-2.5 w-2.5 border-r border-t border-white/40" />
 
             <div className="relative flex h-full flex-col items-center justify-end px-6 pb-4 text-center">
               {variant !== 'register' && (

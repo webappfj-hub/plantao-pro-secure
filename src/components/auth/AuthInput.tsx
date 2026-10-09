@@ -34,7 +34,7 @@ export const AuthInput = forwardRef<HTMLInputElement, AuthInputProps>(
         )}
         <div className="relative">
           {icon && (
-            <div className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-blue-400 transition-colors duration-150">
+            <div className="pointer-events-none absolute left-3 z-10 sm:left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-400 transition-colors duration-150">
               {icon}
             </div>
           )}
@@ -50,7 +50,7 @@ export const AuthInput = forwardRef<HTMLInputElement, AuthInputProps>(
               "h-11 sm:h-14 px-3 sm:px-4",
               icon && "pl-10 sm:pl-12",
               (rightIcon || isPassword) && "pr-10 sm:pr-12",
-              "bg-white/[0.06] backdrop-blur-sm",
+              "bg-white/[0.06]",
               "border border-white/15",
               "focus:border-primary/70 focus:ring-2 focus:ring-primary/25 focus:outline-none focus:transition-colors focus:duration-150",
               "text-white text-base sm:text-lg placeholder:text-slate-500",
