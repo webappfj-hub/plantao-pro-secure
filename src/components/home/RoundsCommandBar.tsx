@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useAgentProfile } from '@/hooks/useAgentProfile';
 import { useRoundsStats } from '@/hooks/useRoundsStats';
 
-import { TacticalClock } from './TacticalClock';
+import { useServerTime } from '@/hooks/useServerTime';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 
@@ -105,7 +105,7 @@ export function RoundsCommandBar() {
               </span>
             </button>
 
-            <TacticalClock accent="hsl(var(--primary))" />
+            <DateBlock />
           </div>
         </div>
       </div>
@@ -152,6 +152,23 @@ function TeamChip({ team, className }: { team: string; className?: string }) {
       <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Equipe</span>
       <span className="self-start rounded-sm border border-primary/30 bg-primary/10 px-1.5 py-[1px] text-[9px] font-bold uppercase tracking-wide text-primary">
         {team}
+      </span>
+    </div>
+  );
+}
+
+/** Data oficial (Rio Branco/AC) — a hora já aparece no relógio do header,
+ * então aqui fica só o dia, para não repetir a informação. */
+function DateBlock() {
+  const date = useServerTime(60_000);
+  const f = (o: Intl.DateTimeFormatOptions) =>
+    new Intl.DateTimeFormat('pt-BR', { timeZone: 'America/Rio_Branco', ...o }).format(date).replace('.', '').toUpperCase();
+  return (
+    <div className="flex items-center gap-2.5 rounded-md border border-border bg-background/60 px-3 py-1.5 leading-none">
+      <span className="text-2xl font-bold tabular-nums text-foreground">{f({ day: '2-digit' })}</span>
+      <span className="flex flex-col gap-1 text-[10px] font-semibold uppercase tracking-[0.14em]">
+        <span className="text-primary">{f({ month: 'short' })} {f({ year: 'numeric' })}</span>
+        <span className="text-muted-foreground">{f({ weekday: 'short' })}</span>
       </span>
     </div>
   );
