@@ -456,7 +456,7 @@ export function RoundsDashboard({ onShiftActiveChange }: RoundsDashboardProps = 
         {!quickRoundActive && (<>
         {!user && (
           <div className="space-y-2.5 rounded-xl border border-primary/25 bg-primary/[0.06] p-3.5 animate-in fade-in-0 slide-in-from-bottom-2 duration-500">
-            <p className="text-xs font-semibold text-primary">Acesso público — indique sua unidade (a equipe é a de plantão do dia)</p>
+            <p className="text-xs font-semibold text-primary">Acesso sem login — escolha a unidade. A equipe é sempre a de plantão do dia.</p>
             <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
               <div>
                 <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Equipe de plantão</span>
@@ -489,7 +489,7 @@ export function RoundsDashboard({ onShiftActiveChange }: RoundsDashboardProps = 
                 <p className="text-xs font-bold text-foreground">EQUIPE {team}</p>
               </div>
             )}
-            <p className="text-[11px] text-muted-foreground">Ou <a href="/login" className="text-primary underline hover:no-underline font-medium">faça login</a> para usar seu perfil de agente</p>
+            <p className="text-[11px] text-muted-foreground">Ou <a href="/login" className="text-primary underline hover:no-underline font-medium">faça login</a> para usar o seu perfil de agente.</p>
           </div>
         )}
 
@@ -500,9 +500,9 @@ export function RoundsDashboard({ onShiftActiveChange }: RoundsDashboardProps = 
                 <ShieldOff className="h-5 w-5 text-primary" strokeWidth={1.8} />
               </div>
               <div>
-                <h3 className="text-sm font-bold text-foreground">Nenhum turno em andamento</h3>
+                <h3 className="text-sm font-bold text-foreground">Nenhum turno ativo</h3>
                 <p className="max-w-sm text-xs text-muted-foreground">
-                  Equipe <span className="font-semibold text-foreground">{team}</span> sem escala ativa.
+                  Equipe <span className="font-semibold text-foreground">{team}</span> ainda não tem escala ativa. Programe o turno ou inicie um rodízio rápido.
                 </p>
               </div>
             </div>
@@ -514,9 +514,9 @@ export function RoundsDashboard({ onShiftActiveChange }: RoundsDashboardProps = 
 
           <div className="grid grid-cols-3 divide-x divide-border border-t border-border/60 bg-card/60">
             {[
-              { Icon: Clock3, label: 'Quartos de hora', value: '15 a 60 min' },
-              { Icon: Users, label: 'Divisão', value: 'Por agente' },
-              { Icon: MapPin, label: 'Setores', value: 'Por unidade' },
+              { Icon: Clock3, label: 'Duração do quarto', value: '15 a 60 min' },
+              { Icon: Users, label: 'Escala', value: 'Dividida por agente' },
+              { Icon: MapPin, label: 'Setores', value: 'Definidos pela unidade' },
             ].map(({ Icon, label, value }) => (
               <div key={label} className="flex flex-col items-center gap-0.5 px-3 py-2.5 text-center">
                 <Icon className="h-3.5 w-3.5 text-primary" strokeWidth={2} />
@@ -637,12 +637,12 @@ export function RoundsDashboard({ onShiftActiveChange }: RoundsDashboardProps = 
 
       {!isOnline && (
         <div className="flex items-center gap-2 rounded-lg border border-warning/40 bg-warning/10 px-3 py-2 text-sm text-warning">
-          <WifiOff className="h-4 w-4" /> Sem conexão — as ações serão reenviadas quando a rede voltar.
+          <WifiOff className="h-4 w-4" /> Sem conexão. As ações ficam salvas e serão enviadas quando a rede voltar.
         </div>
       )}
       {isOnline && pendingCount > 0 && (
         <div className="flex items-center gap-2 rounded-lg border border-warning/40 bg-warning/10 px-3 py-2 text-sm text-warning">
-          <Clock3 className="h-4 w-4" /> {pendingCount} alteração(ões) pendente(s) de sincronização...
+          <Clock3 className="h-4 w-4" /> {pendingCount} ação(ões) aguardando sincronização…
         </div>
       )}
       {!user && (
@@ -660,7 +660,7 @@ export function RoundsDashboard({ onShiftActiveChange }: RoundsDashboardProps = 
               Equipe {team} · {agent?.unit?.name ?? 'unidade selecionada'}
             </p>
             <p className="text-xs text-muted-foreground">
-              Equipe e unidade travadas enquanto esta ronda estiver ativa — evita perder o acompanhamento por engano.
+              Equipe e unidade ficam bloqueadas enquanto a ronda estiver ativa, para não perder o acompanhamento.
             </p>
           </div>
         </div>
@@ -759,7 +759,7 @@ export function RoundsDashboard({ onShiftActiveChange }: RoundsDashboardProps = 
         ) : (
           <section className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border p-8 text-center">
             <Clock3 className="h-8 w-8 text-muted-foreground" strokeWidth={1.8} />
-            <p className="mt-2 text-sm text-muted-foreground">Você não está em ronda no momento.</p>
+            <p className="mt-2 text-sm text-muted-foreground">Você não está em ronda neste momento.</p>
             {slots.some((s) => s.agent_id === agent?.id && s.status === 'pending') && (
               <Button
                 className="mt-3"
@@ -768,7 +768,7 @@ export function RoundsDashboard({ onShiftActiveChange }: RoundsDashboardProps = 
                   if (next) handleStart(next);
                 }}
               >
-                Iniciar próxima ronda
+                Iniciar minha próxima ronda
               </Button>
             )}
           </section>
@@ -837,7 +837,7 @@ export function RoundsDashboard({ onShiftActiveChange }: RoundsDashboardProps = 
                   title="Tempo de cada agente"
                 />
               ) : (
-                <p className="text-sm text-muted-foreground">Nenhum agente escalado neste turno ainda.</p>
+                <p className="text-sm text-muted-foreground">Nenhum agente escalado neste turno.</p>
               )}
             </TabsContent>
           </Tabs>
@@ -904,7 +904,7 @@ export function RoundsDashboard({ onShiftActiveChange }: RoundsDashboardProps = 
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
               <ShieldAlert className="h-5 w-5 text-destructive" />
-              Encerrar esta ronda?
+              Encerrar este turno?
             </AlertDialogTitle>
             <AlertDialogDescription className="space-y-2 text-left">
               <span className="block">
@@ -914,18 +914,18 @@ export function RoundsDashboard({ onShiftActiveChange }: RoundsDashboardProps = 
                 )}
               </span>
               <span className="block font-medium text-destructive">
-                Não é possível reabrir depois de encerrado — só programar um novo turno.
+                Depois de encerrado, o turno não pode ser reaberto — só é possível programar um novo.
               </span>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Continuar acompanhando</AlertDialogCancel>
+            <AlertDialogCancel>Voltar ao acompanhamento</AlertDialogCancel>
             <AlertDialogAction
               onClick={(e) => { e.preventDefault(); void handleConfirmEndShift(); }}
               disabled={endingShift}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {endingShift ? 'Encerrando...' : 'Encerrar definitivamente'}
+              {endingShift ? 'Encerrando...' : 'Encerrar turno'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -965,7 +965,7 @@ function AddSupportAgent({ excludeIds, onAdd }: { excludeIds: string[]; onAdd: (
         onClick={() => setOpen(true)}
         className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-border py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
       >
-        <UserPlus className="h-3.5 w-3.5" /> Adicionar agente de apoio (BH)
+        <UserPlus className="h-3.5 w-3.5" /> Escalar agente de apoio (BH)
       </button>
     );
   }
@@ -1112,7 +1112,7 @@ function CreateShiftDialog({ open, onOpenChange, unitId, team, createdBy, guestD
             <CalendarPlus className="h-5 w-5 text-primary" strokeWidth={2} />
           </div>
           <div>
-            <DialogTitle className="text-base">Programar turno de rondas</DialogTitle>
+            <DialogTitle className="text-base">Programar turno</DialogTitle>
             <DialogDescription className="text-xs">Defina início, duração e quartos de hora — a divisão entre agentes vem na próxima etapa.</DialogDescription>
           </div>
         </div>

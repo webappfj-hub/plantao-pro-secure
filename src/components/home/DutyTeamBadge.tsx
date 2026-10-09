@@ -2,8 +2,7 @@ import { useEffect, useState } from 'react';
 import { useServerTime } from '@/hooks/useServerTime';
 import { getDutyTeam } from '@/lib/dutyTeam';
 import { TEAM_COLORS, type TeamKey } from '@/lib/teamColors';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { TEAM_ART, TEAM_SLOGANS as SLOGANS, SHIELD_CLIP as SHIELD, CHROME_GRADIENT as CHROME, mascotStyle } from '@/lib/teamArt';
+import { TEAM_SLOGANS as SLOGANS, SHIELD_CLIP as SHIELD, CHROME_GRADIENT as CHROME, mascotStyle } from '@/lib/teamArt';
 
 const SWAP_MS = 6500;
 
@@ -12,7 +11,7 @@ const SWAP_MS = 6500;
  * Sem alternância se o usuário reduz movimento (fica o nome). */
 export function DutyTeamBadge({ className }: { className?: string }) {
   const now = useServerTime(60_000);
-  const { team, next, msToChange } = getDutyTeam(now);
+  const { team } = getDutyTeam(now);
   const [showMsg, setShowMsg] = useState(false);
 
   useEffect(() => {
@@ -22,15 +21,10 @@ export function DutyTeamBadge({ className }: { className?: string }) {
   }, []);
 
   const color = TEAM_COLORS[team].hex;
-  const art = TEAM_ART[team];
-  const h = Math.floor(msToChange / 3_600_000);
-  const m = Math.floor((msToChange % 3_600_000) / 60_000);
 
   return (
-    <Tooltip>
-      <TooltipTrigger asChild>
         <div
-          className={`relative cursor-default items-center justify-center gap-3 overflow-hidden rounded-lg border border-white/10 bg-white/[0.03] px-4 ${className ?? ''}`}
+          className={`relative items-center justify-center gap-3 overflow-hidden rounded-lg border border-white/10 bg-white/[0.03] px-4 ${className ?? ''}`}
           style={{ boxShadow: `inset 3px 0 0 ${color}` }}
         >
           {/* Escudo com o mascote da equipe */}
@@ -64,12 +58,6 @@ export function DutyTeamBadge({ className }: { className?: string }) {
             </span>
           </span>
         </div>
-      </TooltipTrigger>
-      <TooltipContent side="bottom" className="text-xs">
-        <div className="font-semibold">Equipe {team} · plantão das 07h às 07h</div>
-        <div className="text-muted-foreground">{art.lema}</div>
-        <div className="text-muted-foreground">Troca em {h}h{String(m).padStart(2, '0')} · próxima: {next}</div>
-      </TooltipContent>
-    </Tooltip>
+
   );
 }

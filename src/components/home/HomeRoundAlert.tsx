@@ -120,7 +120,7 @@ export function HomeRoundAlert({ className }: { className?: string }) {
         tone: 'live', label: 'Turno em andamento',
         agent: `Equipe ${shift.team}`,
         window: `${hm(new Date(shift.start_at).getTime())}–${hm(end)}`,
-        timer: end > now ? `termina em ${clock(end - now)}` : 'encerrando',
+        timer: end > now ? `termina em ${clock(end - now)}` : 'em encerramento',
       };
     }
   }
