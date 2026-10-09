@@ -1,4 +1,5 @@
-import { useEffect, useState, useCallback, useRef, lazy, Suspense, type ReactNode } from 'react';
+import { useEffect, useState, useCallback, useRef, Suspense, type ReactNode } from 'react';
+import { lazyRetry } from '@/lib/lazyRetry';
 import { LoadingBackdrop } from '@/components/ui/loading-backdrop';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -12,10 +13,10 @@ import { useAlarmNotifications } from '@/hooks/useAlarmNotifications';
 import { useShiftLifecycleNotifications } from '@/hooks/useShiftLifecycleNotifications';
 import { useTrackAgentPresence } from '@/hooks/useOnlineAgents';
 
-const TeamMembersCard = lazy(() => import('@/components/agent-panel/TeamMembersCard').then(m => ({ default: m.TeamMembersCard })));
+const TeamMembersCard = lazyRetry(() => import('@/components/agent-panel/TeamMembersCard').then(m => ({ default: m.TeamMembersCard })));
 import { OnDutyOverlay } from '@/components/agent-panel/OnDutyOverlay';
-const ShiftOperationsCenter = lazy(() => import('@/components/agent-panel/ShiftOperationsCenter').then(m => ({ default: m.ShiftOperationsCenter })));
-const ShiftBriefingCard = lazy(() => import('@/components/agent-panel/ShiftBriefingCard').then(m => ({ default: m.ShiftBriefingCard })));
+const ShiftOperationsCenter = lazyRetry(() => import('@/components/agent-panel/ShiftOperationsCenter').then(m => ({ default: m.ShiftOperationsCenter })));
+const ShiftBriefingCard = lazyRetry(() => import('@/components/agent-panel/ShiftBriefingCard').then(m => ({ default: m.ShiftBriefingCard })));
 import { NotificationsPanel } from '@/components/agent-panel/NotificationsPanel';
 import { AgentRoleSelector } from '@/components/agent-panel/AgentRoleSelector';
 import { ShiftSetupPrompt } from '@/components/agent-panel/ShiftSetupPrompt';
@@ -25,7 +26,7 @@ import { BirthdayCard } from '@/components/agent-panel/BirthdayCard';
 import { ProfileCompletionAlert } from '@/components/agent-panel/ProfileCompletionAlert';
 // TacticalRadar removido do painel: agora vive apenas em /dashboard e /diretorio para eliminar duplicidade com TeamMembersCard.
 import { SessionMonitorBanner } from '@/components/SessionMonitorBanner';
-const DiagnosticReportButton = lazy(() => import('@/components/DiagnosticReportButton').then(m => ({ default: m.DiagnosticReportButton })));
+const DiagnosticReportButton = lazyRetry(() => import('@/components/DiagnosticReportButton').then(m => ({ default: m.DiagnosticReportButton })));
 import { SafeModeToggle } from '@/components/SafeModeToggle';
 import { CopyrightFooter } from '@/components/CopyrightFooter';
 import { AnnouncementsMural } from '@/components/AnnouncementsMural';
@@ -38,7 +39,7 @@ import { useNetworkStatus } from '@/hooks/useOfflineCache';
 import { AgentPanelHeader } from '@/components/agent-panel/AgentPanelHeader';
 import { UnitSummaryCard } from '@/components/agent-panel/UnitSummaryCard';
 import { AdminAnnouncementsPanel } from '@/components/agent-panel/AdminAnnouncementsPanel';
-const AdDisplaySystem = lazy(() => import('@/components/agent-panel/AdDisplaySystem').then(m => ({ default: m.AdDisplaySystem })));
+const AdDisplaySystem = lazyRetry(() => import('@/components/agent-panel/AdDisplaySystem').then(m => ({ default: m.AdDisplaySystem })));
 import { usePromosEnabled } from '@/hooks/usePromosEnabled';
 import { AgentHeroPanel } from '@/components/agent-panel/AgentHeroPanel';
 import { PanelHeroHUD } from '@/components/panel/PanelHeroHUD';
@@ -47,26 +48,26 @@ import { useCompactMode } from '@/hooks/useCompactMode';
 import { cn } from '@/lib/utils';
 
 // Lazy-loaded tab-specific components (code-splitting por aba interna)
-const ProfessionalShiftTimer = lazy(() => import('@/components/agent-panel/ProfessionalShiftTimer').then(m => ({ default: m.ProfessionalShiftTimer })));
-const BHTracker = lazy(() => import('@/components/agent-panel/BHTracker').then(m => ({ default: m.BHTracker })));
-const ShiftScheduleCard = lazy(() => import('@/components/agent-panel/ShiftScheduleCard').then(m => ({ default: m.ShiftScheduleCard })));
-const NextShiftCountdown = lazy(() => import('@/components/agent-panel/NextShiftCountdown').then(m => ({ default: m.NextShiftCountdown })));
-const ChatPanel = lazy(() => import('@/components/agent-panel/ChatPanel').then(m => ({ default: m.ChatPanel })));
-const SwapRequestsCard = lazy(() => import('@/components/agent-panel/SwapRequestsCard').then(m => ({ default: m.SwapRequestsCard })));
-const LeaveRequestCard = lazy(() => import('@/components/agent-panel/LeaveRequestCard').then(m => ({ default: m.LeaveRequestCard })));
-const NotificationsAndAlertsCard = lazy(() => import('@/components/agent-panel/NotificationsAndAlertsCard').then(m => ({ default: m.NotificationsAndAlertsCard })));
-const AgentSettingsCard = lazy(() => import('@/components/agent-panel/AgentSettingsCard').then(m => ({ default: m.AgentSettingsCard })));
-const AgentEventsCard = lazy(() => import('@/components/agent-panel/AgentEventsCard').then(m => ({ default: m.AgentEventsCard })));
+const ProfessionalShiftTimer = lazyRetry(() => import('@/components/agent-panel/ProfessionalShiftTimer').then(m => ({ default: m.ProfessionalShiftTimer })));
+const BHTracker = lazyRetry(() => import('@/components/agent-panel/BHTracker').then(m => ({ default: m.BHTracker })));
+const ShiftScheduleCard = lazyRetry(() => import('@/components/agent-panel/ShiftScheduleCard').then(m => ({ default: m.ShiftScheduleCard })));
+const NextShiftCountdown = lazyRetry(() => import('@/components/agent-panel/NextShiftCountdown').then(m => ({ default: m.NextShiftCountdown })));
+const ChatPanel = lazyRetry(() => import('@/components/agent-panel/ChatPanel').then(m => ({ default: m.ChatPanel })));
+const SwapRequestsCard = lazyRetry(() => import('@/components/agent-panel/SwapRequestsCard').then(m => ({ default: m.SwapRequestsCard })));
+const LeaveRequestCard = lazyRetry(() => import('@/components/agent-panel/LeaveRequestCard').then(m => ({ default: m.LeaveRequestCard })));
+const NotificationsAndAlertsCard = lazyRetry(() => import('@/components/agent-panel/NotificationsAndAlertsCard').then(m => ({ default: m.NotificationsAndAlertsCard })));
+const AgentSettingsCard = lazyRetry(() => import('@/components/agent-panel/AgentSettingsCard').then(m => ({ default: m.AgentSettingsCard })));
+const AgentEventsCard = lazyRetry(() => import('@/components/agent-panel/AgentEventsCard').then(m => ({ default: m.AgentEventsCard })));
 
 
-const ShiftCalendarOverview = lazy(() => import('@/components/agent-panel/ShiftCalendarOverview').then(m => ({ default: m.ShiftCalendarOverview })));
-const RecentShiftCyclesCard = lazy(() => import('@/components/agent-panel/RecentShiftCyclesCard').then(m => ({ default: m.RecentShiftCyclesCard })));
-const BHEvolutionChart = lazy(() => import('@/components/agent-panel/BHEvolutionChart').then(m => ({ default: m.BHEvolutionChart })));
-const BHHistoryTracker = lazy(() => import('@/components/agent-panel/BHHistoryTracker').then(m => ({ default: m.BHHistoryTracker })));
+const ShiftCalendarOverview = lazyRetry(() => import('@/components/agent-panel/ShiftCalendarOverview').then(m => ({ default: m.ShiftCalendarOverview })));
+const RecentShiftCyclesCard = lazyRetry(() => import('@/components/agent-panel/RecentShiftCyclesCard').then(m => ({ default: m.RecentShiftCyclesCard })));
+const BHEvolutionChart = lazyRetry(() => import('@/components/agent-panel/BHEvolutionChart').then(m => ({ default: m.BHEvolutionChart })));
+const BHHistoryTracker = lazyRetry(() => import('@/components/agent-panel/BHHistoryTracker').then(m => ({ default: m.BHHistoryTracker })));
 
-const PasswordChangeRequest = lazy(() => import('@/components/agent-panel/PasswordChangeRequest').then(m => ({ default: m.PasswordChangeRequest })));
-const SmartAlarmClock = lazy(() => import('@/components/agent-panel/SmartAlarmClock').then(m => ({ default: m.SmartAlarmClock })));
-const RoundsHistoryCard = lazy(() => import('@/components/agent-panel/RoundsHistoryCard').then(m => ({ default: m.RoundsHistoryCard })));
+const PasswordChangeRequest = lazyRetry(() => import('@/components/agent-panel/PasswordChangeRequest').then(m => ({ default: m.PasswordChangeRequest })));
+const SmartAlarmClock = lazyRetry(() => import('@/components/agent-panel/SmartAlarmClock').then(m => ({ default: m.SmartAlarmClock })));
+const RoundsHistoryCard = lazyRetry(() => import('@/components/agent-panel/RoundsHistoryCard').then(m => ({ default: m.RoundsHistoryCard })));
 // AgentsDirectoryCard agora vive somente na rota /diretorio (abas Equipe/Unidade/Sistema).
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2, Users, MessageCircle, Calendar, Clock, ArrowRightLeft, CalendarOff, Settings, User, CalendarDays, Shield, Zap, Key, Bell, BellRing, Megaphone, Radio, ChevronDown } from 'lucide-react';

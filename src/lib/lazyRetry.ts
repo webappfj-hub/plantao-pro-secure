@@ -1,4 +1,5 @@
 import { lazy, type ComponentType } from 'react';
+import { isChunkLoadError, reloadOnceForChunkError } from './chunkError';
 
 /**
  * `lazy` que tenta de novo se o chunk falhar (rede instável ou deploy novo
@@ -20,6 +21,10 @@ export function lazyRetry<T extends ComponentType<any>>(
         lastError = e;
         await new Promise((r) => setTimeout(r, delayMs * (i + 1)));
       }
+    }
+    // Arquivo velho (publicação nova): recarregar uma vez busca os arquivos certos.
+    if (isChunkLoadError(lastError) && reloadOnceForChunkError()) {
+      return new Promise<never>(() => { /* a página está recarregando */ });
     }
     throw lastError;
   });
