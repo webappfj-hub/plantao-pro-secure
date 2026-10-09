@@ -73,8 +73,6 @@ export function RoundsCommandCenter({ team, unitName, active, children }: Props)
           backgroundSize: '32px 32px',
         }}
       />
-      <div aria-hidden className="absolute inset-y-0 right-[22%] w-40 -skew-x-[24deg] opacity-[0.18]" style={{ background: `linear-gradient(90deg, transparent, ${color}, transparent)` }} />
-      <div aria-hidden className="absolute inset-y-0 right-[16%] w-10 -skew-x-[24deg] opacity-10" style={{ background: color }} />
       <div aria-hidden className="absolute inset-0" style={{ background: `radial-gradient(60% 140% at 0% 50%, ${color}1f, transparent 60%)` }} />
       <div aria-hidden className="absolute inset-x-0 top-0 h-px" style={{ background: `linear-gradient(90deg, transparent, ${color}, transparent)` }} />
 

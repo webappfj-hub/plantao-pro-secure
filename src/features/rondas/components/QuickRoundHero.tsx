@@ -121,7 +121,6 @@ export function QuickRoundHero({ team, names, phase, now, triggerMs, perAgentMs,
           className="absolute inset-0"
           style={{ backgroundImage: 'linear-gradient(rgb(143 180 255 / 0.05) 1px, transparent 1px), linear-gradient(90deg, rgb(143 180 255 / 0.05) 1px, transparent 1px)', backgroundSize: '32px 32px' }}
         />
-        <div aria-hidden className="absolute inset-y-0 right-[24%] w-36 -skew-x-[24deg] opacity-[0.16]" style={{ background: `linear-gradient(90deg, transparent, ${color}, transparent)` }} />
         <div aria-hidden className="absolute inset-0" style={{ background: `radial-gradient(60% 140% at 0% 50%, ${color}1f, transparent 60%)` }} />
         <div aria-hidden className="absolute inset-x-0 top-0 h-px" style={{ background: `linear-gradient(90deg, transparent, ${color}, transparent)` }} />
 
