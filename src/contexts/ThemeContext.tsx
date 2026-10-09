@@ -378,13 +378,17 @@ const COLOR_MODE_KEY = 'plantaopro_color_mode';
 // active. The accent (primary/gradient) never changes between modes; only
 // background/foreground/card/border/muted flip so every screen (including
 // components styled with plain Tailwind `dark:` utilities) responds to it.
+// Azul de acento no modo claro: mais escuro que o do escuro (205 88% 46%) para
+// manter ≥4.5:1 em texto pequeno sobre fundo claro.
+const LIGHT_PRIMARY = '207 90% 36%';
+
 const LIGHT_SURFACE = {
-  background: '210 20% 97%',
-  foreground: '222 25% 14%',
+  background: '220 14% 97%',
+  foreground: '222 25% 12%',
   card: '0 0% 100%',
-  border: '214 18% 89%',
-  muted: '210 20% 94%',
-  mutedForeground: '215 12% 42%',
+  border: '220 13% 87%',
+  muted: '220 14% 94%',
+  mutedForeground: '220 14% 30%',
   sidebarBackground: '0 0% 100%',
   sidebarForeground: '222 20% 16%',
   sidebarAccent: '210 20% 94%',
@@ -531,9 +535,10 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
           sidebarBorder: config.colors.border,
         };
 
-    root.style.setProperty('--primary', config.colors.primary);
+    const primary = isLight ? LIGHT_PRIMARY : config.colors.primary;
+    root.style.setProperty('--primary', primary);
     root.style.setProperty('--primary-foreground', config.colors.primaryForeground);
-    root.style.setProperty('--accent', config.colors.accent);
+    root.style.setProperty('--accent', isLight ? LIGHT_PRIMARY : config.colors.accent);
     root.style.setProperty('--accent-foreground', config.colors.primaryForeground);
     root.style.setProperty('--background', surface.background);
     root.style.setProperty('--foreground', surface.foreground);
@@ -545,17 +550,17 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     root.style.setProperty('--muted-foreground', surface.mutedForeground);
     root.style.setProperty('--border', surface.border);
     root.style.setProperty('--input', surface.muted);
-    root.style.setProperty('--ring', config.colors.primary);
+    root.style.setProperty('--ring', primary);
     root.style.setProperty('--secondary', surface.muted);
     root.style.setProperty('--secondary-foreground', surface.foreground);
     root.style.setProperty('--sidebar-background', surface.sidebarBackground);
     root.style.setProperty('--sidebar-foreground', surface.sidebarForeground);
-    root.style.setProperty('--sidebar-primary', config.colors.primary);
+    root.style.setProperty('--sidebar-primary', primary);
     root.style.setProperty('--sidebar-primary-foreground', config.colors.primaryForeground);
     root.style.setProperty('--sidebar-accent', surface.sidebarAccent);
     root.style.setProperty('--sidebar-accent-foreground', surface.foreground);
     root.style.setProperty('--sidebar-border', surface.sidebarBorder);
-    root.style.setProperty('--sidebar-ring', config.colors.primary);
+    root.style.setProperty('--sidebar-ring', primary);
     
     // Tipografia global — body usa sans (IBM Plex Sans) para todos os shadcn;
     // display (serif) fica reservado para h1-h6 via CSS e utilitário font-serif/font-display.
