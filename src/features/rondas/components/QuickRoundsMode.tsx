@@ -18,7 +18,7 @@ import * as api from '../api';
 import { buildQuickModeWindows } from './AgentScheduleTimeline';
 import { ShareScheduleButton } from './ShareScheduleButton';
 import { QuickRoundHero } from './QuickRoundHero';
-import { fmtClockTime, fmtDuration, needsSeconds } from '../quickSession';
+import { addLocalHistory, clearLocalHistory, fmtClockTime, fmtDuration, needsSeconds, readLocalHistory, type LocalHistoryRow } from '../quickSession';
 
 /** Início/fim em "HH:mm" → duração em minutos. Vira o dia (fim < início) soma 24h. */
 function diffMinutes(start: string, end: string): number {
@@ -173,7 +173,12 @@ export function QuickRoundsMode({ unitId, team, onSessionActiveChange }: QuickRo
     queryFn: () => api.listQuickRoundHistory(unitId, team),
     enabled: !!user,
   });
-  const history = historyQuery.data ?? [];
+  // Logado: histórico registrado no banco. Visitante: últimos 4 só neste aparelho.
+  const [localHistory, setLocalHistory] = useState<LocalHistoryRow[]>(() => readLocalHistory(unitId, team));
+  useEffect(() => { setLocalHistory(readLocalHistory(unitId, team)); }, [unitId, team]);
+  const history: Array<{ id: string; agent_names: string[]; completed_at: string; duration_minutes?: number; per_agent_minutes?: number }> =
+    user ? (historyQuery.data ?? []) : localHistory;
+  const [clearHistoryOpen, setClearHistoryOpen] = useState(false);
 
   const persist = (s: Session | null) => {
     setSession(s);
@@ -252,6 +257,12 @@ export function QuickRoundsMode({ unitId, team, onSessionActiveChange }: QuickRo
           });
           queryClient.invalidateQueries({ queryKey: ['quick-round-history', unitId, team] });
         } catch { /* segue mesmo se não conseguir salvar o histórico */ }
+      } else {
+        setLocalHistory(addLocalHistory(unitId, team, {
+          agent_names: session.names, duration_minutes: session.durationMinutes,
+          per_agent_minutes: session.durationMinutes / session.names.length,
+          started_at: session.triggerAt, completed_at: getServerDate().toISOString(),
+        }));
       }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -372,6 +383,12 @@ export function QuickRoundsMode({ unitId, team, onSessionActiveChange }: QuickRo
   const canConfirmCancel = !requiresPhrase || cancelPhrase.trim().toUpperCase() === CANCEL_PHRASE;
 
   const handleClearHistory = async () => {
+    if (!user) {
+      clearLocalHistory(unitId, team);
+      setLocalHistory([]);
+      toast.success('Histórico deste aparelho apagado.');
+      return;
+    }
     try {
       await api.clearQuickRoundHistory(unitId, team);
       queryClient.invalidateQueries({ queryKey: ['quick-round-history', unitId, team] });
@@ -652,14 +669,17 @@ export function QuickRoundsMode({ unitId, team, onSessionActiveChange }: QuickRo
         </AlertDialogContent>
       </AlertDialog>
 
-      {user && (
+      {(user || localHistory.length > 0) && (
         <div className="border-t border-border px-4 py-2.5">
           <div className="mb-1 flex items-center justify-between">
             <h4 className="flex items-center gap-1.5 text-[10.5px] font-semibold uppercase tracking-wide text-foreground">
-              <History className="h-3.5 w-3.5 text-primary" /> Histórico
+              <History className="h-3.5 w-3.5 text-primary" /> Últimos rodízios
+              <span className="font-normal normal-case tracking-normal text-muted-foreground">
+                {user ? '· registrados no sistema' : `· só neste aparelho (últimos 4)`}
+              </span>
             </h4>
             {history.length > 0 && (
-              <Button variant="ghost" size="sm" className="h-6 gap-1 text-[11px] text-muted-foreground" onClick={handleClearHistory}>
+              <Button variant="ghost" size="sm" className="h-6 gap-1 text-[11px] text-muted-foreground" onClick={() => setClearHistoryOpen(true)}>
                 <Trash2 className="h-3 w-3" /> Limpar
               </Button>
             )}
@@ -670,12 +690,36 @@ export function QuickRoundsMode({ unitId, team, onSessionActiveChange }: QuickRo
             <div className="space-y-1">
               {history.map((h) => (
                 <div key={h.id} className="flex items-center justify-between rounded-lg border border-border bg-background/40 px-2.5 py-1.5 text-[11px]">
-                  <span className="text-foreground">{h.agent_names.join(', ')}</span>
-                  <span className="shrink-0 text-muted-foreground">{new Date(h.completed_at).toLocaleString('pt-BR', { timeZone: 'America/Rio_Branco' })}</span>
+                  <span className="min-w-0 truncate text-foreground">
+                    {h.agent_names.join(', ')}
+                    {h.per_agent_minutes ? <span className="ml-1.5 text-muted-foreground">· {fmtDuration(h.per_agent_minutes * 60_000)} cada</span> : null}
+                  </span>
+                  <span className="ml-2 shrink-0 text-muted-foreground">{new Date(h.completed_at).toLocaleString('pt-BR', { timeZone: 'America/Rio_Branco', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</span>
                 </div>
               ))}
             </div>
           )}
+          <AlertDialog open={clearHistoryOpen} onOpenChange={setClearHistoryOpen}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Limpar o histórico de rodízios?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  {user
+                    ? 'Os rodízios registrados desta equipe serão apagados do sistema. Essa ação não pode ser desfeita.'
+                    : 'Os últimos rodízios guardados neste aparelho serão apagados. Essa ação não pode ser desfeita.'}
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Voltar</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => { void handleClearHistory(); }}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  Limpar histórico
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       )}
     </section>

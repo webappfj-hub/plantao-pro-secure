@@ -35,3 +35,25 @@ describe('divisão curta do tempo', () => {
     expect(fmtClockTime(t, true)).toBe('07:05:30');
   });
 });
+
+import { addLocalHistory, clearLocalHistory, readLocalHistory, LOCAL_HISTORY_LIMIT } from './quickSession';
+
+describe('histórico local do visitante', () => {
+  const row = (i: number) => ({ agent_names: ['A', 'B'], duration_minutes: 60, per_agent_minutes: 30, started_at: `2026-10-09T0${i}:00:00Z`, completed_at: `2026-10-09T0${i}:59:00Z` });
+  it('guarda só os últimos 4, do mais novo para o mais antigo, e limpa', () => {
+    localStorage.clear();
+    for (let i = 1; i <= 6; i++) addLocalHistory('u', 'ALFA', row(i));
+    const h = readLocalHistory('u', 'ALFA');
+    expect(h).toHaveLength(LOCAL_HISTORY_LIMIT);
+    expect(h[0].completed_at).toContain('T06:');
+    expect(h[3].completed_at).toContain('T03:');
+    clearLocalHistory('u', 'ALFA');
+    expect(readLocalHistory('u', 'ALFA')).toEqual([]);
+  });
+  it('não duplica o mesmo rodízio', () => {
+    localStorage.clear();
+    addLocalHistory('u', 'ALFA', row(1));
+    addLocalHistory('u', 'ALFA', row(1));
+    expect(readLocalHistory('u', 'ALFA')).toHaveLength(1);
+  });
+});

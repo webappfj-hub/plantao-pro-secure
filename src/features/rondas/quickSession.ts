@@ -78,3 +78,39 @@ export function fmtClockTime(ms: number, withSeconds = false): string {
     hour: '2-digit', minute: '2-digit', ...(withSeconds ? { second: '2-digit' } : {}), timeZone: 'America/Rio_Branco',
   });
 }
+
+// ---------- Histórico local (visitante sem login) ----------
+// Só neste aparelho: guarda os últimos rodízios concluídos. Agente logado grava no banco.
+
+export interface LocalHistoryRow {
+  id: string;
+  agent_names: string[];
+  duration_minutes: number;
+  per_agent_minutes: number;
+  started_at: string;
+  completed_at: string;
+}
+
+export const LOCAL_HISTORY_LIMIT = 4;
+const historyKey = (unitId: string | null, team: string | null) => `quick-rounds-history-${unitId ?? 'x'}-${team ?? 'x'}`;
+
+export function readLocalHistory(unitId: string | null, team: string | null): LocalHistoryRow[] {
+  try {
+    const raw = localStorage.getItem(historyKey(unitId, team));
+    const rows = raw ? (JSON.parse(raw) as LocalHistoryRow[]) : [];
+    return Array.isArray(rows) ? rows.slice(0, LOCAL_HISTORY_LIMIT) : [];
+  } catch { return []; }
+}
+
+/** Adiciona no topo e mantém só os `LOCAL_HISTORY_LIMIT` mais recentes. */
+export function addLocalHistory(unitId: string | null, team: string | null, row: Omit<LocalHistoryRow, 'id'>): LocalHistoryRow[] {
+  const next = [{ ...row, id: `${row.completed_at}-${row.agent_names.join('|')}` }, ...readLocalHistory(unitId, team)]
+    .filter((r, i, a) => a.findIndex((x) => x.id === r.id) === i)
+    .slice(0, LOCAL_HISTORY_LIMIT);
+  try { localStorage.setItem(historyKey(unitId, team), JSON.stringify(next)); } catch { /* ignore */ }
+  return next;
+}
+
+export function clearLocalHistory(unitId: string | null, team: string | null): void {
+  try { localStorage.removeItem(historyKey(unitId, team)); } catch { /* ignore */ }
+}
