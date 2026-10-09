@@ -202,15 +202,10 @@ export function AuthDialog({
             <div className="absolute left-0 top-0 bottom-0 w-[3px]"
                  style={{ background: teamColor!.primary, opacity: 0.7 }} />
 
-            {/* O pôster já traz "EQUIPE {teamKey}" embutido na própria arte
-                (nome + lema) — nada de repetir esse texto por cima, ficava
-                redundante. Só um indicador discreto de status no canto. */}
-            <div className="absolute top-2 sm:top-2.5 right-3 sm:right-4">
-              <div className="relative flex h-2 w-2">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full opacity-60" style={{ background: teamColor!.primary }} />
-                <span className="relative inline-flex h-2 w-2 rounded-full" style={{ background: teamColor!.primary }} />
-              </div>
-            </div>
+            {/* O pôster já traz "EQUIPE {teamKey}" embutido na própria arte (nome +
+                lema) — nada de repetir texto por cima. Sem indicador no canto: o
+                ponto pulsante ficava colado ao botão de fechar (visível como um
+                "círculo" extra no celular). */}
 
             {/* Title — fica no canto INFERIOR DIREITO, longe do canto
                 esquerdo (onde o pôster já traz nome da equipe + lema
