@@ -9,7 +9,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Crown, Shield, User, Droplet, Phone, MessageCircle, Cake, Send } from 'lucide-react';
+import { Crown, Shield, User, Droplet, Phone, MessageCircle, MessagesSquare, Cake, Send } from 'lucide-react';
 import { differenceInYears, parseISO } from 'date-fns';
 
 const quickMessages = [
@@ -37,9 +37,11 @@ interface TeamMemberDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   isCurrentUser?: boolean;
+  /** Abre o chat do sistema (aba Chat) — fecha este perfil antes. */
+  onOpenChat?: () => void;
 }
 
-export function TeamMemberDialog({ member, open, onOpenChange, isCurrentUser }: TeamMemberDialogProps) {
+export function TeamMemberDialog({ member, open, onOpenChange, isCurrentUser, onOpenChat }: TeamMemberDialogProps) {
   const [selectedMessage, setSelectedMessage] = useState<string | null>(null);
   
   if (!member) return null;
@@ -79,7 +81,7 @@ export function TeamMemberDialog({ member, open, onOpenChange, isCurrentUser }: 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 border-2 border-slate-600/50 max-w-xs p-0 gap-0 rounded-2xl shadow-2xl overflow-hidden">
+      <DialogContent className="[&>button:last-child]:!h-9 [&>button:last-child]:!w-9 [&>button:last-child]:!min-h-0 [&>button:last-child]:!min-w-0 [&>button:last-child]:border-0 [&>button:last-child]:bg-transparent [&>button:last-child]:text-white [&>button:last-child]:shadow-none [&>button:last-child]:hover:scale-100 [&>button:last-child]:hover:bg-white/20 [&>button:last-child]:hover:text-white bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 border-2 border-slate-600/50 max-w-xs p-0 gap-0 rounded-2xl shadow-2xl overflow-hidden">
         <DialogHeader className="sr-only">
           <DialogTitle>Perfil de {member.name}</DialogTitle>
           <DialogDescription>Informações do membro da equipe.</DialogDescription>
@@ -140,6 +142,17 @@ export function TeamMemberDialog({ member, open, onOpenChange, isCurrentUser }: 
 
         {/* Contact Actions */}
         <div className="p-4 space-y-3">
+          {/* Conversar no chat do sistema (aba Chat) */}
+          {onOpenChat && !isCurrentUser && (
+            <Button
+              size="sm"
+              className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 font-bold text-white hover:from-blue-500 hover:to-cyan-500"
+              onClick={() => { onOpenChange(false); onOpenChat(); }}
+            >
+              <MessagesSquare className="mr-1.5 h-3.5 w-3.5" aria-hidden />
+              Conversar no chat
+            </Button>
+          )}
           {member.phone && (
             <>
               {/* Phone Number Display */}

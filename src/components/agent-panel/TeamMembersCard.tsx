@@ -62,6 +62,8 @@ interface TeamMembersCardProps {
   currentAgentId: string;
   currentAgentName?: string;
   unitName?: string;
+  /** Leva à aba Chat (usado pelo botão "Conversar no chat" do perfil do agente). */
+  onOpenChat?: () => void;
 }
 
 const leaveTypeInfo: Record<string, { label: string; icon: React.ReactNode; color: string }> = {
@@ -71,7 +73,7 @@ const leaveTypeInfo: Record<string, { label: string; icon: React.ReactNode; colo
   training: { label: 'Treinamento', icon: <GraduationCap className="h-3 w-3" />, color: 'text-blue-400 bg-blue-500/20' },
 };
 
-export function TeamMembersCard({ unitId, team, currentAgentId, currentAgentName, unitName }: TeamMembersCardProps) {
+export function TeamMembersCard({ unitId, team, currentAgentId, currentAgentName, unitName, onOpenChat }: TeamMembersCardProps) {
   const [members, setMembers] = useState<TeamMember[]>([]);
   const [teamLeaves, setTeamLeaves] = useState<TeamLeave[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -456,6 +458,8 @@ export function TeamMembersCard({ unitId, team, currentAgentId, currentAgentName
                     return (
                       <button
                         key={member.id}
+                        type="button"
+                        aria-label={`Ver perfil e conversar com ${member.name}`}
                         onClick={() => handleMemberClick(member)}
                           className={`relative w-full min-w-0 text-left rounded-xl border p-2.5 sm:p-3 transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] shadow-sm ${
                           isCurrentAgent
@@ -538,6 +542,7 @@ export function TeamMembersCard({ unitId, team, currentAgentId, currentAgentName
         open={showMemberDialog}
         onOpenChange={setShowMemberDialog}
         isCurrentUser={selectedMember?.id === currentAgentId}
+        onOpenChat={onOpenChat}
       />
 
       {/* Team Management Dialog */}
