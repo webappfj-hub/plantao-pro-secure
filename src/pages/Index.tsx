@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, lazy, Suspense } from 'react';
+import { useEffect, useRef, useState, useCallback, lazy, Suspense } from 'react';
 import { useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAgentProfile } from '@/hooks/useAgentProfile';
@@ -159,6 +159,11 @@ export default function Index() {
   const { isAvailable: isBiometricAvailable, isEnrolled: isBiometricEnrolled, enrolledCpf, enrollBiometric, authenticateBiometric } = useBiometricAuth();
   const { saveCredential, updateLastLogin } = useSavedCredentialsSync();
   const { order: homeCardOrder, move: moveHomeCard } = useHomeCardOrder();
+  // Marcado quando o usuário acaba de entrar com a senha: o efeito de papel o
+  // leva à sua área assim que `userRole` estiver resolvido.
+  const redirectAfterLoginRef = useRef(false);
+  const [loginRedirectTick, setLoginRedirectTick] = useState(0);
+  const requestLoginRedirect = () => { redirectAfterLoginRef.current = true; setLoginRedirectTick((t) => t + 1); };
 
 
   const [selectedTeam, setSelectedTeam] = useState<string | null>(null);
@@ -346,9 +351,14 @@ export default function Index() {
 
     if (isMaster) navigate('/master', { replace: true });
     else if (isAdmin) navigate('/admin', { replace: true });
-    // Agente comum: fica na homepage por padrão (não redireciona mais pro
-    // painel sozinho) — a home mostra o botão "Meu Painel" pra ele decidir.
-  }, [user, isLoading, isMaster, isAdmin, userRole, navigate]);
+    // Agente comum: só vai para o painel logo após ENTRAR com a senha (login
+    // por senha, acesso rápido ou biometria). Quem já estava logado e abre a
+    // home de propósito continua nela (botão "Meu Painel").
+    else if (redirectAfterLoginRef.current) {
+      redirectAfterLoginRef.current = false;
+      navigate('/agent-panel', { replace: true });
+    }
+  }, [user, isLoading, isMaster, isAdmin, userRole, navigate, loginRedirectTick]);
 
   const LAST_CPF_KEY = 'plantaopro_last_cpf';
 
@@ -1112,8 +1122,8 @@ export default function Index() {
         title: `Acesso liberado, ${(foundAgent?.name || '').split(' ')[0] || 'Agente'}`,
         description: 'Autenticação confirmada. Boa jornada e proteja-se sempre.',
       });
-      // Fica na homepage — o botão "Meu Painel" leva ao painel quando o
-      // agente quiser, em vez de sair da home assim que loga.
+      // Logo após a senha, vai direto para a área do usuário.
+      requestLoginRedirect();
       setShowLogin(false);
     }
     
@@ -1328,6 +1338,7 @@ export default function Index() {
           title: 'Acesso rápido confirmado',
           description: 'Sessão iniciada com credenciais do dispositivo.',
         });
+        requestLoginRedirect();
         setShowLogin(false);
       }
     } catch (error) {
@@ -1382,6 +1393,7 @@ export default function Index() {
       description: shouldSave ? 'Credenciais salvas neste dispositivo' : 'Sessão iniciada',
     });
 
+    requestLoginRedirect();
     setShowLogin(false);
   };
 
