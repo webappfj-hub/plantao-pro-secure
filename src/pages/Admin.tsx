@@ -1,4 +1,4 @@
-import { useEffect, useState, lazy, Suspense } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -6,20 +6,24 @@ import { useBackNavigation } from '@/hooks/useBackNavigation';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { ThemedPanelBackground } from '@/components/ThemedPanelBackground';
 import { PanelSkeleton } from '@/components/ui/panel-skeleton';
+import { SectionBoundary } from '@/components/ui/section-boundary';
+import { lazyRetry } from '@/lib/lazyRetry';
+import { MASTER_EXPIRED_EVENT } from '@/lib/adminClient';
+import { useConfirm } from '@/components/ui/confirm-provider';
 import { ShiftConflictsBanner } from '@/components/dashboard/ShiftConflictsBanner';
 import { useShiftConflictDetection } from '@/hooks/useShiftConflictDetection';
 
-const UnitsManagementCard = lazy(() => import('@/components/dashboard/UnitsManagementCard').then(m => ({ default: m.UnitsManagementCard })));
-const TeamShiftsPanel = lazy(() => import('@/components/dashboard/TeamShiftsPanel').then(m => ({ default: m.TeamShiftsPanel })));
-const BHControlCard = lazy(() => import('@/components/dashboard/BHControlCard').then(m => ({ default: m.BHControlCard })));
-const AnnouncementsCard = lazy(() => import('@/components/dashboard/AnnouncementsCard').then(m => ({ default: m.AnnouncementsCard })));
-const ActivityLogsCard = lazy(() => import('@/components/dashboard/ActivityLogsCard').then(m => ({ default: m.ActivityLogsCard })));
-const SystemOverviewCard = lazy(() => import('@/components/dashboard/SystemOverviewCard').then(m => ({ default: m.SystemOverviewCard })));
-const RegistrationsToggleCard = lazy(() => import('@/components/admin/RegistrationsToggleCard').then(m => ({ default: m.RegistrationsToggleCard })));
-const RoundsAccessToggleCard = lazy(() => import('@/components/admin/RoundsAccessToggleCard').then(m => ({ default: m.RoundsAccessToggleCard })));
-const AdvertisementsManager = lazy(() => import('@/components/admin/AdvertisementsManager').then(m => ({ default: m.AdvertisementsManager })));
-const DynamicScreensManager = lazy(() => import('@/components/admin/DynamicScreensManager').then(m => ({ default: m.DynamicScreensManager })));
-const ScheduledRoundsManager = lazy(() => import('@/components/admin/ScheduledRoundsManager').then(m => ({ default: m.ScheduledRoundsManager })));
+const UnitsManagementCard = lazyRetry(() => import('@/components/dashboard/UnitsManagementCard').then(m => ({ default: m.UnitsManagementCard })));
+const TeamShiftsPanel = lazyRetry(() => import('@/components/dashboard/TeamShiftsPanel').then(m => ({ default: m.TeamShiftsPanel })));
+const BHControlCard = lazyRetry(() => import('@/components/dashboard/BHControlCard').then(m => ({ default: m.BHControlCard })));
+const AnnouncementsCard = lazyRetry(() => import('@/components/dashboard/AnnouncementsCard').then(m => ({ default: m.AnnouncementsCard })));
+const ActivityLogsCard = lazyRetry(() => import('@/components/dashboard/ActivityLogsCard').then(m => ({ default: m.ActivityLogsCard })));
+const SystemOverviewCard = lazyRetry(() => import('@/components/dashboard/SystemOverviewCard').then(m => ({ default: m.SystemOverviewCard })));
+const RegistrationsToggleCard = lazyRetry(() => import('@/components/admin/RegistrationsToggleCard').then(m => ({ default: m.RegistrationsToggleCard })));
+const RoundsAccessToggleCard = lazyRetry(() => import('@/components/admin/RoundsAccessToggleCard').then(m => ({ default: m.RoundsAccessToggleCard })));
+const AdvertisementsManager = lazyRetry(() => import('@/components/admin/AdvertisementsManager').then(m => ({ default: m.AdvertisementsManager })));
+const DynamicScreensManager = lazyRetry(() => import('@/components/admin/DynamicScreensManager').then(m => ({ default: m.DynamicScreensManager })));
+const ScheduledRoundsManager = lazyRetry(() => import('@/components/admin/ScheduledRoundsManager').then(m => ({ default: m.ScheduledRoundsManager })));
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -69,6 +73,12 @@ export default function Admin() {
   const [activeTab, setActiveTab] = useState('overview');
   const [permissions, setPermissions] = useState<AdminPermissions | null>(null);
   const [loadingPermissions, setLoadingPermissions] = useState(true);
+  // Depois de 8 s validando a sessão, oferece saída em vez de girar para sempre.
+  const [slowLoading, setSlowLoading] = useState(false);
+  useEffect(() => {
+    const t = window.setTimeout(() => setSlowLoading(true), 8000);
+    return () => window.clearTimeout(t);
+  }, []);
   
   // Accept either Supabase auth user OR master session
   const hasMasterAccess = !!masterSession;
@@ -80,6 +90,22 @@ export default function Admin() {
   });
   
   useBackNavigation({ enabled: true, fallbackPath: '/' });
+
+  // Sessão master recusada pelo servidor (token vencido): avisa e volta à home
+  // pelo roteador — sem recarregar a página nem ficar preso em "carregando".
+  useEffect(() => {
+    const onExpired = () => {
+      setMasterSession(null);
+      toast({
+        title: 'Sessão master expirada',
+        description: 'Entre novamente para continuar no painel administrativo.',
+        variant: 'destructive',
+      });
+      navigate('/', { replace: true });
+    };
+    window.addEventListener(MASTER_EXPIRED_EVENT, onExpired);
+    return () => window.removeEventListener(MASTER_EXPIRED_EVENT, onExpired);
+  }, [navigate, setMasterSession]);
 
   // Fetch admin permissions - skip if master session (master has all permissions)
   useEffect(() => {
@@ -179,21 +205,40 @@ export default function Admin() {
     return () => clearTimeout(timer);
   }, [user, userRole, isLoading, navigate, hasMasterAccess]);
 
-  const handleExit = async () => {
+  const confirm = useConfirm();
+  const handleExit = useCallback(async () => {
+    const ok = await confirm({
+      title: 'Sair do painel administrativo?',
+      description: 'Você será desconectado e voltará para a página inicial.',
+      confirmText: 'Sair',
+      destructive: true,
+    });
+    if (!ok) return;
     // Clear master session if exists
     if (hasMasterAccess) {
       setMasterToken(null);
       setMasterSession(null);
     }
     await signOut();
-    navigate('/');
-  };
+    navigate('/', { replace: true });
+  }, [confirm, hasMasterAccess, setMasterSession, signOut, navigate]);
 
   // Show loading only when truly loading (not when we have master access)
   if (!hasMasterAccess && (isLoading || loadingPermissions || (!!user && !isRoleResolved))) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-900">
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-slate-900 px-6 text-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        {slowLoading && (
+          <div role="status" className="max-w-sm space-y-3">
+            <p className="text-sm text-slate-300">
+              Está demorando mais que o normal para validar a sua sessão. Verifique a conexão e tente novamente.
+            </p>
+            <div className="flex justify-center gap-2">
+              <Button size="sm" onClick={() => window.location.reload()}>Tentar novamente</Button>
+              <Button size="sm" variant="outline" onClick={() => navigate('/', { replace: true })}>Voltar ao início</Button>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -396,7 +441,7 @@ export default function Admin() {
 
                 {/* Tab Contents */}
                 <TabsContent value="overview" className="space-y-4 mt-4">
-                  <Suspense fallback={<PanelSkeleton />}>
+                  <SectionBoundary label="painel-admin" fallback={<PanelSkeleton />}>
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                       <SystemOverviewCard />
                       <ActivityLogsCard />
@@ -404,14 +449,14 @@ export default function Admin() {
                     <RegistrationsToggleCard />
                     <RoundsAccessToggleCard />
                     <TeamShiftsPanel />
-                  </Suspense>
+                  </SectionBoundary>
                 </TabsContent>
 
                 {permissions?.can_manage_units && (
                   <TabsContent value="units" className="mt-4">
-                    <Suspense fallback={<PanelSkeleton />}>
+                    <SectionBoundary label="painel-admin" fallback={<PanelSkeleton />}>
                       <UnitsManagementCard />
-                    </Suspense>
+                    </SectionBoundary>
                   </TabsContent>
                 )}
 
@@ -441,39 +486,39 @@ export default function Admin() {
                 )}
 
                 <TabsContent value="bh" className="mt-4">
-                  <Suspense fallback={<PanelSkeleton />}>
+                  <SectionBoundary label="painel-admin" fallback={<PanelSkeleton />}>
                     <BHControlCard />
-                  </Suspense>
+                  </SectionBoundary>
                 </TabsContent>
 
                 {permissions?.can_manage_announcements && (
                   <TabsContent value="announcements" className="mt-4">
-                    <Suspense fallback={<PanelSkeleton />}>
+                    <SectionBoundary label="painel-admin" fallback={<PanelSkeleton />}>
                       <AnnouncementsCard />
-                    </Suspense>
+                    </SectionBoundary>
                   </TabsContent>
                 )}
 
                 {permissions?.can_manage_ads && (
                   <TabsContent value="ads" className="mt-4">
-                    <Suspense fallback={<PanelSkeleton />}>
+                    <SectionBoundary label="painel-admin" fallback={<PanelSkeleton />}>
                       <AdvertisementsManager />
-                    </Suspense>
+                    </SectionBoundary>
                   </TabsContent>
                 )}
 
                 {permissions?.can_manage_screens && (
                   <TabsContent value="screens" className="mt-4">
-                    <Suspense fallback={<PanelSkeleton />}>
+                    <SectionBoundary label="painel-admin" fallback={<PanelSkeleton />}>
                       <DynamicScreensManager />
-                    </Suspense>
+                    </SectionBoundary>
                   </TabsContent>
                 )}
 
                 <TabsContent value="rondas" className="mt-4">
-                  <Suspense fallback={<PanelSkeleton />}>
+                  <SectionBoundary label="painel-admin" fallback={<PanelSkeleton />}>
                     <ScheduledRoundsManager />
-                  </Suspense>
+                  </SectionBoundary>
                 </TabsContent>
 
                 <TabsContent value="appearance" className="mt-4">

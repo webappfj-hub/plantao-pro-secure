@@ -38,6 +38,8 @@ type AdminAction =
 /**
  * Unified admin client that works for both Master (token-based) and Admin (session-based)
  */
+export const MASTER_EXPIRED_EVENT = 'plantaopro:master-expired';
+
 async function callAdminBackend<T>(action: AdminAction, payload: Record<string, unknown>): Promise<T> {
   const masterToken = getMasterToken();
   
@@ -73,7 +75,14 @@ async function callAdminBackend<T>(action: AdminAction, payload: Record<string, 
   if (!res.ok) {
     // If master token is invalid/expired, clear it to force a fresh login.
     if (res.status === 401 && masterToken && (json?.error?.toLowerCase?.().includes('sessão master') || json?.error?.toLowerCase?.().includes('sessao master'))) {
+      // Limpa TODO o estado master (antes só o token: a tela seguia "logada" e as
+      // ações seguintes falhavam) e avisa a UI, que navega sem recarregar.
       setMasterToken(null);
+      try {
+        localStorage.removeItem('master_user');
+        sessionStorage.removeItem('masterSession');
+      } catch { /* ignore */ }
+      if (typeof window !== 'undefined') window.dispatchEvent(new Event(MASTER_EXPIRED_EVENT));
     }
     throw new AdminClientError(json?.error || `Falha na operação (${res.status}).`, res.status, json ?? text);
   }
