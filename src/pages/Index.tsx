@@ -1580,7 +1580,7 @@ export default function Index() {
           {/* Boas-vindas — nome + unidade quando logado, genérico quando
               visitante. Maiúsculas com leve tracking (tipografia de
               cabeçalho institucional) + subtítulo discreto abaixo. */}
-          <div className="relative hidden min-w-0 flex-col items-center text-center md:flex">
+          <div className="relative hidden min-w-0 flex-col items-center text-center lg:flex">
             {user && agent ? (
               <>
                 <span className="font-display text-[12.5px] font-bold uppercase leading-tight tracking-[0.06em] text-foreground">
@@ -1589,7 +1589,7 @@ export default function Index() {
                 <span className="mt-0.5 text-[10.5px] font-medium leading-tight tracking-wide text-muted-foreground">
                   {agent.unit?.name ? `${agent.unit.name} · ` : ''}{todayLongLabel()}
                 </span>
-                <span className="mt-1 inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-2 py-[1px] text-[9px] font-bold uppercase tracking-[0.18em] text-primary">
+                <span className="mt-1 hidden items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-2 py-[1px] lg:inline-flex text-[9px] font-bold uppercase tracking-[0.18em] text-primary">
                   <span className="relative flex h-1.5 w-1.5" aria-hidden>
                     <span className="absolute inline-flex h-full w-full rounded-full bg-primary opacity-70 motion-safe:animate-ping" />
                     <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-primary" />
@@ -1605,7 +1605,7 @@ export default function Index() {
                 <span className="mt-0.5 text-[10.5px] font-medium leading-tight tracking-wide text-muted-foreground">
                   {todayLongLabel()}
                 </span>
-                <span className="mt-1 inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-2 py-[1px] text-[9px] font-bold uppercase tracking-[0.18em] text-primary">
+                <span className="mt-1 hidden items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-2 py-[1px] lg:inline-flex text-[9px] font-bold uppercase tracking-[0.18em] text-primary">
                   <span className="relative flex h-1.5 w-1.5" aria-hidden>
                     <span className="absolute inline-flex h-full w-full rounded-full bg-primary opacity-70 motion-safe:animate-ping" />
                     <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-primary" />

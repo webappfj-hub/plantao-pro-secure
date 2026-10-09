@@ -154,8 +154,8 @@
 
   .light-theme body {
     background:
-      var(--gradient-brand-glow),
-      linear-gradient(160deg, hsl(216 42% 97%) 0%, hsl(216 38% 94%) 50%, hsl(217 36% 91%) 100%);
+      radial-gradient(120% 70% at 12% 0%, hsl(220 84% 55% / 0.07) 0%, transparent 60%),
+      linear-gradient(180deg, hsl(216 33% 98%) 0%, hsl(216 30% 96%) 55%, hsl(216 28% 94%) 100%);
   }
 
   /* Fundo institucional da home (CommandRoomBackground) — a imagem oficial
@@ -177,22 +177,22 @@
     .crb-image { opacity: 0.32; }
   }
   .light-theme .crb-image {
-    opacity: 0.34;
+    opacity: 0.12;
   }
   /* Uma única camada de wash, bem mais fraca — a combinação anterior (wash
      "do topo" + vinheta "do centro") criava faixas quase brancas nas
      bordas onde as duas se somavam, apagando a foto quase inteira. */
   .light-theme .crb-wash {
-    background: radial-gradient(ellipse at top, hsl(216 40% 95% / 0.22) 0%, hsl(216 38% 92% / 0.30) 60%, hsl(216 36% 88% / 0.38) 100%);
+    background: radial-gradient(ellipse at top, hsl(216 33% 98% / 0.55) 0%, hsl(216 30% 96% / 0.7) 60%, hsl(216 28% 94% / 0.8) 100%);
   }
   .light-theme .crb-red-glow {
-    background: radial-gradient(70% 55% at 88% 92%, hsl(354 68% 55% / 0.06) 0%, transparent 60%);
+    background: none;
   }
   .light-theme .crb-vignette {
-    background: radial-gradient(ellipse at center, transparent 55%, hsl(216 36% 88% / 0.28) 100%);
+    background: none;
   }
   @media (min-width: 640px) {
-    .light-theme .crb-image { opacity: 0.26; }
+    .light-theme .crb-image { opacity: 0.12; }
   }
 
 
@@ -3224,3 +3224,17 @@ body.rm-low-motion > #root { filter: none !important; }
     backdrop-filter: blur(14px) saturate(140%);
   }
 }
+
+/* Título com cor que "respira": branco -> azul-gelo -> ciano muito suave,
+   deslocamento lento (14s). Sem movimento para quem reduz animações. */
+@keyframes text-flow { 0%, 100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
+.text-flow {
+  background-image: linear-gradient(100deg, #ffffff 0%, #ffffff 30%, #cfe6ff 50%, #9fd4f5 62%, #ffffff 80%, #ffffff 100%);
+  background-size: 250% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  animation: text-flow 14s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) { .text-flow { animation: none; } }

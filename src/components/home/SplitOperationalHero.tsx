@@ -35,12 +35,18 @@ const TEAMS: { key: TeamKey }[] = [
 ];
 
 // Cards oficiais (equipe_*_card.png) já trazem brasão, nome da equipe e
-// lema aplicados pelo design — o card só precisa exibir a arte e sinalizar
-// seleção, sem duplicar texto por cima.
+// lema aplicados pelo design — o card só exibe a arte e adiciona camadas
+// discretas: foco de luz que segue o cursor, filete na cor da equipe e uma
+// faixa de vidro com a ação, que sobe no hover/foco.
 function TeamCard({
   team, isSelected, onSelect,
 }: { team: (typeof TEAMS)[number]; isSelected: boolean; onSelect: (k: TeamKey) => void }) {
   const accent = TEAM_COLORS[team.key].hsl;
+  const track = (e: React.MouseEvent<HTMLButtonElement>) => {
+    const r = e.currentTarget.getBoundingClientRect();
+    e.currentTarget.style.setProperty('--mx', `${e.clientX - r.left}px`);
+    e.currentTarget.style.setProperty('--my', `${e.clientY - r.top}px`);
+  };
   return (
     <button
       type="button"
@@ -48,11 +54,15 @@ function TeamCard({
       aria-pressed={isSelected}
       aria-label={`Selecionar equipe ${team.key}`}
       onClick={() => onSelect(team.key)}
+      onMouseMove={track}
+      style={{ ['--accent' as string]: accent }}
       className={cn(
-        'group relative flex aspect-[3/2] w-full flex-col overflow-hidden rounded-2xl border-2 text-left transition-all duration-300',
+        'group relative flex aspect-[3/2] w-full flex-col overflow-hidden rounded-xl border bg-card text-left',
+        'transition-[box-shadow,border-color] duration-300 ease-out',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--accent))] focus-visible:ring-offset-2 focus-visible:ring-offset-background',
         isSelected
-          ? 'border-primary shadow-lg shadow-primary/25 -translate-y-1'
-          : 'border-border/60 hover:-translate-y-0.5 hover:border-border hover:shadow-md',
+          ? 'border-[hsl(var(--accent))] shadow-[0_0_0_1px_hsl(var(--accent)/0.5),0_10px_30px_-12px_hsl(var(--accent)/0.55)]'
+          : 'border-border/60 hover:border-[hsl(var(--accent)/0.6)] hover:shadow-[0_10px_30px_-14px_hsl(var(--accent)/0.5)]',
       )}
     >
       <img
@@ -60,21 +70,42 @@ function TeamCard({
         alt={`Equipe ${team.key}`}
         loading="lazy"
         decoding="async"
-        className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+        className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 ease-out motion-safe:group-hover:scale-[1.04]"
         draggable={false}
       />
-      {/* Leve escurecimento uniforme — melhora contraste em qualquer tema sem esconder a arte */}
-      <span aria-hidden className="pointer-events-none absolute inset-0 bg-black/10 transition-opacity group-hover:bg-black/0" />
+      {/* Foco de luz que acompanha o cursor */}
       <span
         aria-hidden
-        className="pointer-events-none absolute inset-x-0 bottom-0 h-1.5"
-        style={{ background: `hsl(${accent})` }}
+        className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+        style={{ background: 'radial-gradient(180px circle at var(--mx, 50%) var(--my, 50%), hsl(var(--accent) / 0.16), transparent 70%)' }}
       />
-      {isSelected && (
-        <span className="absolute right-2.5 top-2.5 z-10 flex h-6 w-6 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-md">
-          <CheckCircle2 className="h-4 w-4" />
+      {/* Escurecimento inferior para a faixa de vidro */}
+      <span
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 bottom-0 h-2/5 bg-gradient-to-t from-black/55 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100 group-focus-visible:opacity-100"
+      />
+      {/* Filete superior na cor da equipe */}
+      <span
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 top-0 h-px"
+        style={{ background: 'linear-gradient(90deg, transparent, hsl(var(--accent)), transparent)' }}
+      />
+      {/* Faixa de vidro com a ação */}
+      <span
+        className={cn(
+          'glass pointer-events-none absolute inset-x-1.5 bottom-1.5 flex items-center justify-between rounded-lg px-2.5 py-1 sm:inset-x-2 sm:bottom-2 sm:px-3 sm:py-1.5',
+          'text-[10px] font-semibold uppercase tracking-[0.12em] text-white sm:text-[11px]',
+          'translate-y-2 opacity-0 transition-all duration-300 ease-out',
+          'group-hover:translate-y-0 group-hover:opacity-100 group-focus-visible:translate-y-0 group-focus-visible:opacity-100',
+          isSelected && 'translate-y-0 opacity-100',
+        )}
+      >
+        <span className="flex items-center gap-2">
+          <span aria-hidden className="h-1.5 w-1.5 rounded-full" style={{ background: `hsl(${accent})` }} />
+          {isSelected ? 'Selecionada' : 'Acessar equipe'}
         </span>
-      )}
+        {isSelected ? <CheckCircle2 className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+      </span>
     </button>
   );
 }
