@@ -1855,11 +1855,11 @@ export default function Index() {
 
       {/* Mobile-only ultra-thin footer strip (fixo, não empurra viatura/boneco) */}
       <div className="sm:hidden fixed bottom-0 inset-x-0 z-20 h-8 flex flex-col items-center justify-center gap-[3px] bg-gradient-to-r from-background/85 via-background/95 to-background/85 backdrop-blur-md border-t border-primary/20 pointer-events-auto shadow-[0_-4px_16px_-8px_rgba(0,0,0,0.4)]">
-        <div className="flex items-center justify-center gap-2.5 leading-none">
+        <div className="flex items-center justify-center gap-2.5 whitespace-nowrap leading-none max-[380px]:gap-1.5">
         <ShieldCheck className="h-3 w-3 text-primary/90" strokeWidth={2.4} />
-          <span className="text-[10.5px] font-mono tracking-[0.22em] uppercase text-primary font-bold">PlantãoPro</span>
+          <span className="text-[10.5px] font-mono tracking-[0.22em] uppercase text-primary font-bold max-[380px]:tracking-[0.1em]">PlantãoPro</span>
           <span className="text-muted-foreground/40 text-[10.5px]">·</span>
-          <span className="inline-flex items-center gap-1 text-[9.5px] font-mono tracking-[0.18em] uppercase text-muted-foreground/80">
+          <span className="inline-flex items-center gap-1 text-[9.5px] font-mono tracking-[0.18em] uppercase text-muted-foreground/80 max-[380px]:tracking-[0.08em]">
             <span className="relative flex h-1.5 w-1.5">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400/60" />
               <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" />
@@ -1871,7 +1871,11 @@ export default function Index() {
             type="button"
             onClick={() => setShowMasterLogin(true)}
             aria-label="Acesso Administrador Master"
-            className="inline-flex items-center gap-1 text-[10px] font-mono tracking-[0.18em] uppercase text-muted-foreground/80 hover:text-primary transition-colors"
+            // A regra global de alvo de toque (min-height 40px) esticava esta linha e
+            // empurrava a assinatura para fora da faixa de 32 px; o alvo de toque
+            // continua grande pelo ::before.
+            style={{ minHeight: 0, minWidth: 0 }}
+            className="relative inline-flex h-4 items-center gap-1 text-[10px] font-mono tracking-[0.18em] uppercase text-muted-foreground/80 hover:text-primary transition-colors before:absolute before:-inset-x-2 before:-inset-y-2 before:content-[''] max-[380px]:tracking-[0.08em]"
           >
             <Lock className="h-3 w-3" strokeWidth={2.2} />
             <span>Master</span>
