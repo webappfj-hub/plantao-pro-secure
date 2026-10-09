@@ -52,8 +52,12 @@ export function RoundsCommandBar() {
               aria-label="Abrir Gestor de Rondas"
               className="group inline-flex shrink-0 items-center gap-2 rounded-md border border-primary/50 bg-primary/20 px-3 py-2 text-primary shadow-sm transition-all duration-200 hover:border-primary/70 hover:bg-primary/25 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 sm:px-3.5"
             >
-              <ClipboardList className="h-4 w-4" strokeWidth={2.4} />
-              <span className="text-[11px] font-bold uppercase tracking-wider sm:text-xs">Gestor de Rondas</span>
+              <span className="relative flex h-2 w-2 shrink-0" aria-hidden>
+                <span className="absolute inline-flex h-full w-full rounded-full bg-primary opacity-70 motion-safe:animate-ping" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
+              </span>
+              <ClipboardList className="h-4 w-4 transition-transform duration-200 group-hover:rotate-6 group-hover:scale-110" strokeWidth={2.4} />
+              <span className="text-[11px] font-bold uppercase tracking-wider transition-all duration-200 motion-safe:animate-pulse group-hover:animate-none group-hover:tracking-widest sm:text-xs">Gestor de Rondas</span>
               <ChevronRight className="h-3.5 w-3.5 transition-transform duration-200 group-hover:translate-x-0.5" strokeWidth={2.6} />
             </button>
 
