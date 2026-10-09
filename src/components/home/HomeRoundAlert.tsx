@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAgentProfile } from '@/hooks/useAgentProfile';
 import { useServerTime } from '@/hooks/useServerTime';
-import { getDutyTeam } from '@/lib/dutyTeam';
+import { DUTY_ORDER, getDutyTeam } from '@/lib/dutyTeam';
 import * as api from '@/features/rondas/api';
 import { quickRoundStatus, readQuickSession } from '@/features/rondas/quickSession';
 
@@ -41,6 +41,9 @@ export function HomeRoundAlert({ className }: { className?: string }) {
   const { agent } = useAgentProfile();
   const now = useServerTime(1000).getTime();
   const team = getDutyTeam(new Date(now)).team;
+  // Uma ronda iniciada no plantão anterior continua travada nele após as 07h
+  // (mesma regra do Gestor) — então também procura a equipe anterior.
+  const prevTeam = DUTY_ORDER[(DUTY_ORDER.indexOf(team) + 3) % 4];
   const unitId = agent?.unit_id ?? ls('plantaopro_guest_unit_v1') ?? DEFAULT_GUEST_UNIT;
   const guestDeviceId = user ? null : ls('plantaopro_guest_device_id_v1');
 
@@ -50,7 +53,14 @@ export function HomeRoundAlert({ className }: { className?: string }) {
     refetchInterval: 30_000,
     enabled: !!unitId && (!!user || !!guestDeviceId),
   });
-  const shiftId = shiftQ.data?.id;
+  const prevShiftQ = useQuery({
+    queryKey: ['patrol-shift', unitId, prevTeam, guestDeviceId],
+    queryFn: () => api.getActiveShift(unitId, prevTeam, guestDeviceId),
+    refetchInterval: 60_000,
+    enabled: !!unitId && (!!user || !!guestDeviceId) && !shiftQ.data,
+  });
+  const shift = shiftQ.data ?? prevShiftQ.data ?? null;
+  const shiftId = shift?.id;
   const slotsQ = useQuery({
     queryKey: ['patrol-slots', shiftId],
     queryFn: () => api.listShiftSlots(shiftId!),
@@ -60,8 +70,12 @@ export function HomeRoundAlert({ className }: { className?: string }) {
 
   let view: View | null = null;
   const slots = slotsQ.data ?? [];
-  const active = slots.find((s) => s.status === 'active');
-  const quick = quickRoundStatus(readQuickSession(unitId, team), now);
+  // Quarto em curso: o iniciado pelo agente ou, se ninguém apertou "iniciar",
+  // o que cobre o horário atual pela programação.
+  const active = slots.find((s) => s.status === 'active')
+    ?? slots.find((s) => (s.status === 'pending' || s.status === 'late')
+      && new Date(s.scheduled_start).getTime() <= now && now < new Date(s.scheduled_end).getTime());
+  const quick = quickRoundStatus(readQuickSession(unitId, team), now) ?? quickRoundStatus(readQuickSession(unitId, prevTeam), now);
 
   if (active) {
     const end = new Date(active.scheduled_end).getTime();
@@ -99,6 +113,15 @@ export function HomeRoundAlert({ className }: { className?: string }) {
         timer: `em ${clock(start - now)}`,
         extra: next.sector?.name ?? undefined,
       };
+    } else if (shift) {
+      // Turno ativo, mas sem quartos programados (ou todos já cumpridos).
+      const end = new Date(shift.end_at).getTime();
+      view = {
+        tone: 'live', label: 'Turno em andamento',
+        agent: `Equipe ${shift.team}`,
+        window: `${hm(new Date(shift.start_at).getTime())}–${hm(end)}`,
+        timer: end > now ? `termina em ${clock(end - now)}` : 'encerrando',
+      };
     }
   }
 
@@ -111,7 +134,7 @@ export function HomeRoundAlert({ className }: { className?: string }) {
       onClick={() => navigate('/rondas')}
       aria-label={`${view.label}: ${view.agent}, ${view.window}, ${view.timer}. Abrir Gestor de Rondas`}
       className={cn(
-        'group flex w-full items-center gap-3 rounded-lg border px-3 py-2 text-left text-sm transition-colors animate-fade-in',
+        'group flex w-full items-center gap-3 rounded-lg border px-3 py-2.5 text-left text-sm shadow-sm transition-colors animate-fade-in',
         live ? 'border-emerald-500/30 bg-emerald-500/[0.07] hover:bg-emerald-500/[0.12]' : 'border-amber-500/30 bg-amber-500/[0.07] hover:bg-amber-500/[0.12]',
         className,
       )}

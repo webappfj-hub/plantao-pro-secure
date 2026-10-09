@@ -82,23 +82,54 @@ export function RoundsCommandCenter({ team, unitName, active, children }: Props)
           </div>
         </div>
 
-        {/* Relógio único */}
-        <div className="flex items-center gap-3" role="timer" aria-live="off"
-          aria-label={t ? `Ronda em andamento: ${formatClock(t.secondsRemaining)} restantes` : `Hora oficial do Acre ${pad(hours)}:${pad(minutes)}`}>
-          <div className="text-right leading-tight">
-            <p className="text-[10.5px] font-semibold uppercase tracking-[0.18em]" style={{ color: clockTone }}>
-              {t ? (t.isPaused ? 'Ronda pausada' : overdue ? 'Tempo excedido' : 'Ronda · restante') : 'Hora oficial · AC'}
-            </p>
-            <p className="text-[11px] text-slate-400">
-              {t ? (active?.sector ?? active?.agent ?? 'Em andamento') : date.toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: 'short', timeZone: 'America/Rio_Branco' }).replace(/\./g, '')}
-            </p>
-          </div>
-          <span className="font-mono text-[2rem] font-bold leading-none tabular-nums text-white" style={{ textShadow: `0 0 18px ${clockTone}55` }}>
-            {t
-              ? (overdue ? `+${formatClock(Math.max(0, t.secondsElapsed - t.totalSeconds))}` : formatClock(t.secondsRemaining))
-              : <>{pad(hours)}:{pad(minutes)}<span className="ml-1 text-base" style={{ color: clockTone }}>{pad(seconds)}</span></>}
-          </span>
-        </div>
+        {/* Relógio único — módulo de tempo: rótulo, dígitos grandes com
+            separador piscando, barra que varre os segundos (ou o quarto). */}
+        {(() => {
+          const pct = t ? t.progressPct : (seconds / 60) * 100;
+          const label = t ? (t.isPaused ? 'Ronda pausada' : overdue ? 'Tempo excedido' : 'Ronda · tempo restante') : 'Hora oficial · Acre';
+          const sub = t
+            ? (active?.agent ? `${active.agent}${active.sector ? ` · ${active.sector}` : ''}` : active?.sector ?? 'Em andamento')
+            : `${date.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long', timeZone: 'America/Rio_Branco' })} · UTC−5`;
+          const digits = t
+            ? (overdue ? `+${formatClock(Math.max(0, t.secondsElapsed - t.totalSeconds))}` : formatClock(t.secondsRemaining))
+            : null;
+          return (
+            <div
+              role="timer"
+              aria-live="off"
+              aria-label={t ? `${label}: ${digits}` : `Hora oficial do Acre ${pad(hours)}:${pad(minutes)}:${pad(seconds)}`}
+              className="relative w-full overflow-hidden rounded-lg border border-white/12 bg-black/45 px-4 pb-2.5 pt-2 backdrop-blur-sm sm:w-[260px]"
+              style={{ boxShadow: `inset 0 1px 0 rgb(255 255 255 / 0.06), 0 0 0 1px ${clockTone}22` }}
+            >
+              <div className="flex items-center justify-between gap-2">
+                <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.2em]" style={{ color: clockTone }}>
+                  <span className="relative flex h-1.5 w-1.5" aria-hidden>
+                    <span className="absolute inline-flex h-full w-full rounded-full opacity-70 motion-safe:animate-ping" style={{ background: clockTone }} />
+                    <span className="relative inline-flex h-1.5 w-1.5 rounded-full" style={{ background: clockTone }} />
+                  </span>
+                  {label}
+                </span>
+                {!t && <span className="font-mono text-[10px] font-semibold text-slate-500">SYNC</span>}
+              </div>
+              <div className="mt-1 flex items-baseline justify-center gap-1 font-mono font-bold tabular-nums leading-none">
+                {digits ? (
+                  <span className="text-[2.4rem] text-white" style={{ textShadow: `0 0 20px ${clockTone}55` }}>{digits}</span>
+                ) : (
+                  <>
+                    <span className="text-[2.4rem] text-white" style={{ textShadow: `0 0 20px ${clockTone}44` }}>{pad(hours)}</span>
+                    <span className="live-clock-colon text-[2rem]" style={{ color: clockTone }}>:</span>
+                    <span className="text-[2.4rem] text-white" style={{ textShadow: `0 0 20px ${clockTone}44` }}>{pad(minutes)}</span>
+                    <span className="ml-1 w-[2ch] text-lg text-slate-300">{pad(seconds)}</span>
+                  </>
+                )}
+              </div>
+              <p className="mt-1 truncate text-center text-[10.5px] capitalize text-slate-400">{sub}</p>
+              <div className="absolute inset-x-0 bottom-0 h-[3px] bg-white/[0.06]" aria-hidden>
+                <div className="h-full transition-[width] duration-1000 ease-linear" style={{ width: `${pct}%`, background: clockTone, boxShadow: `0 0 8px ${clockTone}` }} />
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Plantão + unidade + estado */}
         <dl className="flex flex-wrap items-center gap-2 text-xs">
