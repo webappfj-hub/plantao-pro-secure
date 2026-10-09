@@ -43,14 +43,34 @@ export function CinematicBrandHero({
   return (
     <section
       aria-label="PlantãoPro — Sistema de gestão de plantões"
-      className="relative w-full overflow-hidden isolate grid grid-cols-1 lg:grid-cols-[1.1fr_1fr]"
+      className="relative isolate flex min-h-[560px] w-full items-center overflow-hidden lg:min-h-[640px]"
       style={{ background: "hsl(222 20% 6%)" }}
     >
-      {/* Coluna de texto — fundo sólido, nunca compete com a foto */}
-      <div className="relative z-10 order-2 flex flex-col justify-center px-6 py-10 sm:px-10 sm:py-12 lg:order-1 lg:px-14 lg:py-14">
+      {/* Foto em tela cheia — dá continuidade visual com as seções vizinhas */}
+      <img
+        src={IMG_URL}
+        alt="Agentes da Socioeducação do Acre em frente à unidade e viatura oficial"
+        draggable={false}
+        loading="lazy"
+        decoding="async"
+        className="absolute inset-0 -z-20 h-full w-full select-none object-cover object-[62%_35%] lg:object-[58%_32%]"
+        style={{ filter: "saturate(0.95) contrast(1.03)" }}
+      />
+      {/* Scrim: escurece o lado do texto e dissolve topo/base no fundo da página */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 -z-10"
+        style={{
+          backgroundImage:
+            "linear-gradient(180deg, hsl(222 47% 7%) 0%, transparent 18%, transparent 78%, hsl(222 47% 7%) 100%)," +
+            "linear-gradient(90deg, hsl(222 20% 6% / 0.94) 0%, hsl(222 20% 6% / 0.72) 45%, hsl(222 20% 6% / 0.15) 100%)",
+        }}
+      />
+
+      <div className="relative z-10 w-full px-6 py-14 sm:px-10 lg:px-14">
         <div className="max-w-2xl">
           <div
-            className="inline-flex items-center gap-2 rounded-md border border-primary/30 bg-primary/10 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-primary/90 animate-fade-in"
+            className="glass inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-primary animate-fade-in"
             style={{ animationDelay: "80ms" }}
           >
             <ShieldCheck className="h-3.5 w-3.5" strokeWidth={2.2} />
@@ -65,7 +85,7 @@ export function CinematicBrandHero({
           </h2>
 
           <p
-            className="mt-4 max-w-lg text-[15px] leading-[1.7] text-white/70 animate-fade-in"
+            className="mt-4 max-w-lg text-[15px] leading-[1.7] text-white/75 animate-fade-in"
             style={{ animationDelay: "260ms" }}
           >
             Escalas, banco de horas e rondas em um único sistema, feito para
@@ -73,7 +93,7 @@ export function CinematicBrandHero({
           </p>
 
           <div
-            className="mt-7 grid grid-cols-3 gap-6 max-w-md animate-fade-in"
+            className="glass mt-7 grid max-w-md grid-cols-3 gap-6 rounded-xl px-5 py-4 animate-fade-in"
             style={{ animationDelay: "360ms" }}
           >
             {[
@@ -83,19 +103,19 @@ export function CinematicBrandHero({
             ].map((m) => (
               <div key={m.v} className="flex flex-col">
                 <span className="text-xl font-bold leading-none text-white">{m.k}</span>
-                <span className="mt-1.5 text-[11px] uppercase tracking-wider text-white/50">{m.v}</span>
+                <span className="mt-1.5 text-[11px] uppercase tracking-wider text-white/55">{m.v}</span>
               </div>
             ))}
           </div>
 
           <div
-            className="mt-8 flex flex-col sm:flex-row items-stretch sm:items-center gap-3 animate-fade-in"
+            className="mt-8 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center animate-fade-in"
             style={{ animationDelay: "460ms" }}
           >
             <button
               type="button"
               onClick={handlePrimary}
-              className="group inline-flex items-center justify-center gap-2 rounded-md bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground transition-all hover:brightness-110 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
+              className="group inline-flex items-center justify-center gap-2 rounded-md bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/30 transition-all hover:brightness-110 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
             >
               Entrar no sistema
               <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" strokeWidth={2.4} />
@@ -104,36 +124,12 @@ export function CinematicBrandHero({
             <button
               type="button"
               onClick={() => navigate("/about")}
-              className="inline-flex items-center justify-center gap-2 rounded-md border border-white/20 bg-white/5 px-6 py-3 text-sm font-semibold text-white backdrop-blur-sm transition-all hover:bg-white/10 hover:border-white/35 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+              className="glass inline-flex items-center justify-center gap-2 rounded-md px-6 py-3 text-sm font-semibold text-white transition-all hover:bg-white/15 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
             >
               Saiba mais
             </button>
           </div>
         </div>
-      </div>
-
-      {/* Coluna de imagem — fundo no mesmo tom sólido da seção, e a foto
-          some suavemente sobre ele via máscara (mask-image) em vez de uma
-          camada de gradiente colorido por cima — sem efeito de "sujeira"
-          na emenda com o texto. */}
-      <div
-        className="relative order-1 h-64 sm:h-80 lg:order-2 lg:h-auto lg:min-h-[60vh]"
-        style={{ background: "hsl(222 20% 6%)" }}
-      >
-        <img
-          src={IMG_URL}
-          alt="Agentes da Socioeducação do Acre em frente à unidade e viatura oficial"
-          draggable={false}
-          loading="lazy"
-          decoding="async"
-          className="absolute inset-0 h-full w-full select-none object-cover object-[62%_35%] lg:object-[58%_32%]"
-          style={{ filter: "saturate(0.9) contrast(1.02)" }}
-        />
-        <div
-          aria-hidden
-          className="hero-fade-overlay-lg pointer-events-none absolute inset-0"
-          style={{ ['--hero-fade-color' as string]: 'hsl(222 20% 6%)' }}
-        />
       </div>
     </section>
   );
