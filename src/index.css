@@ -3258,3 +3258,7 @@ body.rm-low-motion > #root { filter: none !important; }
    preenchimento azul-claro translúcido (ficava lavado). */
 .light-theme .rounds-btn { background: hsl(0 0% 100%); border-color: hsl(var(--primary) / 0.35); }
 .light-theme .rounds-btn:hover { background: hsl(var(--primary) / 0.06); border-color: hsl(var(--primary) / 0.55); }
+
+/* Equipe de plantão no modo claro: as cores das equipes são vivas (feitas para o
+   escuro); no claro o texto/ícone escurece misturando com ardósia para manter contraste. */
+.light-theme .duty-ink { color: color-mix(in srgb, var(--duty) 40%, #1e293b) !important; }
