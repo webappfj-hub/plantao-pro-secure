@@ -33,7 +33,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, AlertTriangle, Eye, EyeOff, UserCheck, Lock, Fingerprint, Shield, ShieldCheck, Users, KeyRound, Info, Mail, Calendar, Clock, BarChart3, RefreshCw, Target, Building2, Award, CheckCircle2, Zap, Radio, Settings, ChevronDown, User, LogOut } from 'lucide-react';
+import { Save, Trash2, Loader2, AlertTriangle, Eye, EyeOff, UserCheck, Lock, Fingerprint, Shield, ShieldCheck, Users, KeyRound, Info, Mail, Calendar, Clock, BarChart3, RefreshCw, Target, Building2, Award, CheckCircle2, Zap, Radio, Settings, ChevronDown, User, LogOut } from 'lucide-react';
 
 
 import { Card, CardContent } from '@/components/ui/card';
@@ -2089,21 +2089,41 @@ export default function Index() {
             savePassword={savePasswordEnabled}
           />
           
-          <div className="flex items-center justify-between gap-2 pt-1 border-t border-slate-800/70 mt-1">
-            <div className="pt-3">
-              <ForgotPasswordDialog />
-            </div>
+          {/* Salvar / limpar credenciais deste aparelho — para não digitar sempre */}
+          <div className="grid grid-cols-2 gap-2 pt-3 border-t border-slate-800/70 mt-1">
+            <button
+              type="button"
+              onClick={() => {
+                const cpf = loginCpf.replace(/\D/g, '').slice(0, 6);
+                if (cpf.length !== 6) {
+                  toast({ title: 'Informe a matrícula', description: 'Digite os 6 dígitos para salvar neste aparelho.', variant: 'destructive' });
+                  return;
+                }
+                const withPassword = loginPassword.length === 6;
+                saveCredential(cpf, foundAgent?.name, withPassword ? loginPassword : undefined);
+                setSaveCpfEnabled(true);
+                setSavePasswordEnabled(withPassword);
+                toast({
+                  title: 'Credenciais salvas neste aparelho',
+                  description: withPassword ? 'Matrícula e senha lembradas para o próximo acesso.' : 'Matrícula lembrada. Digite a senha para salvá-la também.',
+                });
+              }}
+              className="flex h-11 items-center justify-center gap-2 rounded-lg border border-emerald-500/40 bg-emerald-500/10 text-xs font-semibold text-emerald-300 transition-colors hover:bg-emerald-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/60"
+            >
+              <Save className="h-4 w-4" aria-hidden /> Salvar credenciais
+            </button>
             <button
               type="button"
               onClick={() => setShowClearCredsConfirm(true)}
-              className="pt-3 text-[10px] uppercase tracking-[0.16em] text-slate-500 hover:text-red-400 transition-colors font-mono"
+              className="flex h-11 items-center justify-center gap-2 rounded-lg border border-red-500/40 bg-red-500/10 text-xs font-semibold text-red-300 transition-colors hover:bg-red-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400/60"
             >
-              Limpar credenciais
+              <Trash2 className="h-4 w-4" aria-hidden /> Limpar credenciais
             </button>
           </div>
+          <div className="flex items-center justify-start">
+            <ForgotPasswordDialog />
+          </div>
 
-
-          
           <AuthButton
             type="submit"
             disabled={isSubmitting}
