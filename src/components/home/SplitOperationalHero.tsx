@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ClipboardList, Users2, Building2, Radio, CheckCircle2, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { OperationalStatusRibbon } from './OperationalStatusRibbon';
+import { ParticleNetwork } from './ParticleNetwork';
 import { useOperationalMetrics } from '@/hooks/useOperationalMetrics';
 import { useOnlineAgents } from '@/hooks/useOnlineAgents';
 import { useVisitorPresence } from '@/hooks/useVisitorPresence';
@@ -141,6 +142,7 @@ export function SplitOperationalHero({ onTeamClick }: Props) {
             className="hero-fade-overlay pointer-events-none absolute inset-0"
             style={{ ['--hero-fade-color' as string]: 'hsl(222 47% 7%)' }}
           />
+          <ParticleNetwork />
         </div>
       </div>
 
