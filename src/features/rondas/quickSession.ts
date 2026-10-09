@@ -84,6 +84,8 @@ export function fmtClockTime(ms: number, withSeconds = false): string {
 
 export interface LocalHistoryRow {
   id: string;
+  /** Equipe do rodízio (registros antigos não têm; a tela usa a equipe atual). */
+  team?: string | null;
   agent_names: string[];
   duration_minutes: number;
   per_agent_minutes: number;

@@ -176,7 +176,7 @@ export function QuickRoundsMode({ unitId, team, onSessionActiveChange }: QuickRo
   // Logado: histórico registrado no banco. Visitante: últimos 4 só neste aparelho.
   const [localHistory, setLocalHistory] = useState<LocalHistoryRow[]>(() => readLocalHistory(unitId, team));
   useEffect(() => { setLocalHistory(readLocalHistory(unitId, team)); }, [unitId, team]);
-  const history: Array<{ id: string; agent_names: string[]; completed_at: string; duration_minutes?: number; per_agent_minutes?: number }> =
+  const history: Array<{ id: string; agent_names: string[]; started_at?: string; completed_at: string; duration_minutes?: number; per_agent_minutes?: number; team?: string | null }> =
     user ? (historyQuery.data ?? []) : localHistory;
   const [clearHistoryOpen, setClearHistoryOpen] = useState(false);
 
@@ -259,7 +259,7 @@ export function QuickRoundsMode({ unitId, team, onSessionActiveChange }: QuickRo
         } catch { /* segue mesmo se não conseguir salvar o histórico */ }
       } else {
         setLocalHistory(addLocalHistory(unitId, team, {
-          agent_names: session.names, duration_minutes: session.durationMinutes,
+          team, agent_names: session.names, duration_minutes: session.durationMinutes,
           per_agent_minutes: session.durationMinutes / session.names.length,
           started_at: session.triggerAt, completed_at: getServerDate().toISOString(),
         }));
@@ -688,15 +688,25 @@ export function QuickRoundsMode({ unitId, team, onSessionActiveChange }: QuickRo
             <p className="text-[11px] text-muted-foreground">Nenhum rodízio concluído ainda.</p>
           ) : (
             <div className="space-y-1">
-              {history.map((h) => (
-                <div key={h.id} className="flex items-center justify-between rounded-lg border border-border bg-background/40 px-2.5 py-1.5 text-[11px]">
-                  <span className="min-w-0 truncate text-foreground">
-                    {h.agent_names.join(', ')}
-                    {h.per_agent_minutes ? <span className="ml-1.5 text-muted-foreground">· {fmtDuration(h.per_agent_minutes * 60_000)} cada</span> : null}
-                  </span>
-                  <span className="ml-2 shrink-0 text-muted-foreground">{new Date(h.completed_at).toLocaleString('pt-BR', { timeZone: 'America/Rio_Branco', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</span>
-                </div>
-              ))}
+              {history.map((h) => {
+                const startMs = new Date(h.started_at ?? h.completed_at).getTime();
+                const endMs = h.duration_minutes ? startMs + h.duration_minutes * 60_000 : new Date(h.completed_at).getTime();
+                const day = new Date(startMs).toLocaleDateString('pt-BR', { timeZone: 'America/Rio_Branco', weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\./g, '');
+                const rowTeam = h.team ?? team;
+                return (
+                  <div key={h.id} className="rounded-lg border border-border bg-background/40 px-2.5 py-2 text-[11px]">
+                    <p className="font-semibold text-foreground">
+                      {h.agent_names.join(', ')}
+                      {h.per_agent_minutes ? <span className="ml-1.5 font-normal text-muted-foreground">· {fmtDuration(h.per_agent_minutes * 60_000)} cada</span> : null}
+                    </p>
+                    <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-muted-foreground">
+                      {rowTeam && <span className="rounded px-1.5 py-px text-[10px] font-bold uppercase tracking-wide" style={{ background: `${quickColors.primary}22`, color: quickColors.primary }}>Equipe {rowTeam}</span>}
+                      <span>Plantão de {day}</span>
+                      <span className="font-mono tabular-nums">{fmtClockTime(startMs)} → {fmtClockTime(endMs)}</span>
+                    </p>
+                  </div>
+                );
+              })}
             </div>
           )}
           <AlertDialog open={clearHistoryOpen} onOpenChange={setClearHistoryOpen}>
