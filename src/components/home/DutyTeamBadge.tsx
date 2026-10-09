@@ -3,30 +3,10 @@ import { useServerTime } from '@/hooks/useServerTime';
 import { getDutyTeam } from '@/lib/dutyTeam';
 import { TEAM_COLORS, type TeamKey } from '@/lib/teamColors';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import teamAlfa from '@/assets/midias/team-alfa.webp';
-import teamBravo from '@/assets/midias/team-bravo.webp';
-import teamCharlie from '@/assets/midias/team-charlie.webp';
-import teamDelta from '@/assets/midias/team-delta.webp';
-
-// Cada arte (768×512) traz o mascote da equipe no canto superior esquerdo.
-// `x,y,s` = recorte quadrado do mascote em px da arte original.
-const TEAM_ART: Record<TeamKey, { src: string; x: number; y: number; s: number; lema: string }> = {
-  ALFA: { src: teamAlfa, x: 48, y: 38, s: 106, lema: 'Disciplina · Compromisso · Resultados' },
-  BRAVO: { src: teamBravo, x: 46, y: 48, s: 110, lema: 'União · Determinação · Evolução' },
-  CHARLIE: { src: teamCharlie, x: 50, y: 32, s: 116, lema: 'Atenção · Presença · Proteção' },
-  DELTA: { src: teamDelta, x: 50, y: 26, s: 116, lema: 'Planejamento · Disciplina · Resultados' },
-};
-
-const SLOGANS: Record<TeamKey, string> = {
-  ALFA: 'Na linha de frente, com firmeza e propósito.',
-  BRAVO: 'Coragem para proteger, preparo para agir.',
-  CHARLIE: 'Atenção total. Nenhum detalhe passa.',
-  DELTA: 'Disciplina hoje, futuro amanhã.',
-};
+import { TEAM_ART, TEAM_SLOGANS as SLOGANS, SHIELD_CLIP as SHIELD, CHROME_GRADIENT as CHROME, mascotStyle } from '@/lib/teamArt';
 
 const PLATE = 'polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px))';
 const PLATE_IN = 'polygon(0 0, calc(100% - 11px) 0, 100% 11px, 100% 100%, 11px 100%, 0 calc(100% - 11px))';
-const CHROME = 'linear-gradient(135deg, #fbfcfe 0%, #9aa5b4 22%, #eef1f5 45%, #6b7687 70%, #d3dae3 100%)';
 
 /** Face da placa metálica: aço escuro escovado, tom da equipe, reflexo no topo,
  * parafusos nos cantos e brilho que varre a placa — mesma linguagem do brasão. */
@@ -56,7 +36,6 @@ function MetalFace({ color }: { color: string }) {
   );
 }
 
-const SHIELD = 'polygon(50% 0, 100% 13%, 100% 58%, 50% 100%, 0 58%, 0 13%)';
 const SWAP_MS = 6500;
 
 /** Equipe de plantão do turno (07h–07h): painel de vidro escuro com a arte da
@@ -89,17 +68,7 @@ export function DutyTeamBadge({ className }: { className?: string }) {
 
           {/* Escudo com o mascote da equipe */}
           <span aria-hidden className="relative z-10 h-10 w-9 shrink-0" style={{ clipPath: SHIELD, background: CHROME, filter: `drop-shadow(0 0 4px ${color}88)` }}>
-            <span
-              className="absolute inset-[1.5px]"
-              style={{
-                clipPath: SHIELD,
-                backgroundColor: 'rgb(8 12 22)',
-                backgroundImage: `url(${art.src})`,
-                backgroundRepeat: 'no-repeat',
-                backgroundSize: `${(768 / art.s) * 100}% auto`,
-                backgroundPosition: `${(art.x / (768 - art.s)) * 100}% ${(art.y / (512 - art.s)) * 100}%`,
-              }}
-            />
+            <span className="absolute inset-[1.5px]" style={{ clipPath: SHIELD, ...mascotStyle(team) }} />
           </span>
 
           <span className="relative flex min-w-0 max-w-[75%] flex-col items-center text-center leading-tight">
