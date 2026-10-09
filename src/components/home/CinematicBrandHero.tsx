@@ -43,7 +43,7 @@ export function CinematicBrandHero({
   return (
     <section
       aria-label="PlantãoPro — Sistema de gestão de plantões"
-      className="relative isolate flex min-h-[560px] w-full items-center overflow-hidden lg:min-h-[640px]"
+      className="relative isolate flex min-h-[560px] w-full items-center overflow-hidden border-y border-border/60 lg:min-h-[640px]"
       style={{ background: "hsl(222 20% 6%)" }}
     >
       {/* Foto em tela cheia — dá continuidade visual com as seções vizinhas */}
@@ -62,10 +62,11 @@ export function CinematicBrandHero({
         className="pointer-events-none absolute inset-0 -z-10"
         style={{
           backgroundImage:
-            "linear-gradient(180deg, hsl(var(--background)) 0%, transparent 18%, transparent 78%, hsl(var(--background)) 100%)," +
             "linear-gradient(90deg, hsl(222 20% 6% / 0.94) 0%, hsl(222 20% 6% / 0.72) 45%, hsl(222 20% 6% / 0.15) 100%)",
         }}
       />
+
+      <div aria-hidden className="hero-vfade pointer-events-none absolute inset-0 -z-10" />
 
       <div className="relative z-10 w-full px-6 py-14 sm:px-10 lg:px-14">
         <div className="max-w-2xl">
