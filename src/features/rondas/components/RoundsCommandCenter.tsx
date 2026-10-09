@@ -5,6 +5,7 @@ import { getDutyTeam } from '@/lib/dutyTeam';
 import { TEAM_COLORS, type TeamKey } from '@/lib/teamColors';
 import { TEAM_ART, SHIELD_CLIP, CHROME_GRADIENT, mascotStyle } from '@/lib/teamArt';
 import { formatClock, type RoundTimerState } from '../useRoundTimer';
+import heroBanner from '@/assets/midias/hero-banner.webp';
 
 const isTeam = (t: string | null | undefined): t is TeamKey => !!t && t in TEAM_ART;
 
@@ -52,24 +53,26 @@ export function RoundsCommandCenter({ team, unitName, active, children }: Props)
       aria-label={`Central de operação — Equipe ${shown}`}
       className="relative overflow-hidden rounded-xl border border-white/10 bg-[#070c18] text-white shadow-[0_12px_32px_-20px_rgb(0_0_0/0.8)]"
     >
+      {/* Fundo institucional (unidade + mapa do Acre + brasão) em largura total —
+          diferente da arte da equipe usada no painel do rodízio logo abaixo. */}
       <img
-        src={art.src}
+        src={heroBanner}
         alt=""
         aria-hidden
         decoding="async"
-        className="pointer-events-none absolute inset-y-0 right-0 h-full w-[200%] max-w-none select-none object-cover object-[100%_35%]"
+        className="pointer-events-none absolute inset-0 h-full w-full select-none object-cover object-[50%_42%]"
       />
-      <div aria-hidden className="absolute inset-0 bg-[linear-gradient(90deg,rgb(7_12_24/0.97)_0%,rgb(7_12_24/0.9)_45%,rgb(7_12_24/0.72)_100%)]" />
+      <div aria-hidden className="absolute inset-0 bg-[linear-gradient(90deg,rgb(7_12_24/0.92)_0%,rgb(7_12_24/0.72)_40%,rgb(7_12_24/0.45)_70%,rgb(7_12_24/0.3)_100%)]" />
       <div aria-hidden className="absolute inset-x-0 top-0 h-px" style={{ background: `linear-gradient(90deg, transparent, ${color}, transparent)` }} />
 
       <div className="relative flex flex-wrap items-center gap-x-6 gap-y-3 px-4 py-3 sm:px-5">
         {/* Equipe */}
-        <div className="flex min-w-0 flex-1 items-center gap-3">
+        <div className="flex min-w-[12rem] flex-1 items-center gap-3">
           <span aria-hidden className="relative h-12 w-[42px] shrink-0" style={{ clipPath: SHIELD_CLIP, background: CHROME_GRADIENT, filter: `drop-shadow(0 0 6px ${color}66)` }}>
             <span className="absolute inset-[2px]" style={{ clipPath: SHIELD_CLIP, ...mascotStyle(shown) }} />
           </span>
           <div className="min-w-0">
-            <p className="text-[10.5px] font-semibold uppercase tracking-[0.2em] text-slate-400">
+            <p className="whitespace-nowrap text-[10.5px] font-semibold uppercase tracking-[0.2em] text-slate-300">
               {shown === duty.team ? 'Equipe de plantão' : 'Plantão anterior · em ronda'}
             </p>
             <p className="flex items-baseline gap-2">
