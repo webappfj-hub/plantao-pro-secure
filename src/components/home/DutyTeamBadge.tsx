@@ -24,53 +24,34 @@ const SLOGANS: Record<TeamKey, string> = {
   DELTA: 'Disciplina hoje, futuro amanhã.',
 };
 
-/** Arte própria da faixa (segurança pública), feita para caber na largura e na
- * altura do painel: grade tática, régua de marcações em cima/baixo, faixas de
- * alerta nas pontas, luz de viatura alternando e radares nas duas extremidades.
- * Camadas em CSS/SVG — sem foto esticada. */
-function StripArt({ color }: { color: string }) {
-  const arcs = [14, 26, 38, 50];
-  const radar = (side: 'left' | 'right') => (
-    <svg
-      aria-hidden
-      viewBox="-60 -60 120 120"
-      className={`absolute top-1/2 h-[120px] w-[120px] -translate-y-1/2 ${side === 'left' ? '-left-[62px]' : '-right-[62px]'}`}
-      style={{ color }}
-    >
-      {arcs.map((r) => <circle key={r} r={r} fill="none" stroke="currentColor" strokeOpacity="0.28" strokeWidth="0.8" />)}
-      <line x1="-58" x2="58" y1="0" y2="0" stroke="currentColor" strokeOpacity="0.18" strokeWidth="0.6" />
-      <line y1="-58" y2="58" x1="0" x2="0" stroke="currentColor" strokeOpacity="0.18" strokeWidth="0.6" />
-      <g className="duty-sweep" style={{ transformOrigin: '0 0' }}>
-        <path d="M0 0 L52 0 A52 52 0 0 0 36.8 -36.8 Z" fill="currentColor" fillOpacity="0.22" />
-        <line x1="0" y1="0" x2="52" y2="0" stroke="currentColor" strokeOpacity="0.9" strokeWidth="1" />
-      </g>
-    </svg>
-  );
-  const stripes = (dir: 'left' | 'right') => (
+const PLATE = 'polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px))';
+const PLATE_IN = 'polygon(0 0, calc(100% - 11px) 0, 100% 11px, 100% 100%, 11px 100%, 0 calc(100% - 11px))';
+const CHROME = 'linear-gradient(135deg, #fbfcfe 0%, #9aa5b4 22%, #eef1f5 45%, #6b7687 70%, #d3dae3 100%)';
+
+/** Face da placa metálica: aço escuro escovado, tom da equipe, reflexo no topo,
+ * parafusos nos cantos e brilho que varre a placa — mesma linguagem do brasão. */
+function MetalFace({ color }: { color: string }) {
+  const rivet = (pos: string) => (
     <span
-      aria-hidden
-      className={`absolute inset-y-0 w-8 ${dir === 'left' ? 'left-0' : 'right-0'}`}
-      style={{
-        backgroundImage: `repeating-linear-gradient(135deg, ${color}26 0 5px, transparent 5px 10px), linear-gradient(${dir === 'left' ? '90deg' : '270deg'}, rgb(8 12 22 / 0) 0%, rgb(8 12 22) 100%)`,
-      }}
+      className={`absolute h-[5px] w-[5px] rounded-full ${pos}`}
+      style={{ background: 'radial-gradient(circle at 35% 30%, #ffffff, #8c97a6 55%, #3a4352)', boxShadow: '0 0 0 0.5px rgb(0 0 0 / 0.6)' }}
     />
   );
   return (
-    <span aria-hidden className="pointer-events-none absolute inset-0">
-      {/* grade tática */}
-      <span className="absolute inset-0" style={{ backgroundImage: `linear-gradient(${color}14 1px, transparent 1px), linear-gradient(90deg, ${color}14 1px, transparent 1px)`, backgroundSize: '16px 16px' }} />
-      {/* brilho central */}
-      <span className="absolute inset-0" style={{ background: `radial-gradient(60% 140% at 50% 50%, ${color}1f 0%, transparent 70%)` }} />
-      {radar('left')}
-      {radar('right')}
-      {stripes('left')}
-      {stripes('right')}
-      {/* luz de viatura: alterna esquerda/direita */}
-      <span className="duty-beacon-l absolute inset-y-0 left-0 w-16" style={{ background: `linear-gradient(90deg, ${color}55, transparent)` }} />
-      <span className="duty-beacon-r absolute inset-y-0 right-0 w-16" style={{ background: `linear-gradient(270deg, ${color}55, transparent)` }} />
-      {/* régua de marcações */}
-      <span className="absolute inset-x-0 top-0 h-[4px]" style={{ backgroundImage: `repeating-linear-gradient(90deg, ${color}66 0 1px, transparent 1px 8px)` }} />
-      <span className="absolute inset-x-0 bottom-0 h-[4px]" style={{ backgroundImage: `repeating-linear-gradient(90deg, ${color}66 0 1px, transparent 1px 8px)` }} />
+    <span aria-hidden className="pointer-events-none absolute inset-[2px] overflow-hidden" style={{ clipPath: PLATE_IN }}>
+      <span className="absolute inset-0" style={{ background: 'linear-gradient(180deg, #243044 0%, #121a2a 48%, #090e1a 100%)' }} />
+      {/* tom da equipe */}
+      <span className="absolute inset-0" style={{ background: `radial-gradient(70% 160% at 50% 0%, ${color}33 0%, transparent 70%)` }} />
+      {/* aço escovado */}
+      <span className="absolute inset-0 opacity-70" style={{ backgroundImage: 'repeating-linear-gradient(0deg, rgb(255 255 255 / 0.05) 0 1px, transparent 1px 3px)' }} />
+      {/* reflexo no topo + sombra embaixo */}
+      <span className="absolute inset-x-0 top-0 h-1/2" style={{ background: 'linear-gradient(180deg, rgb(255 255 255 / 0.16), rgb(255 255 255 / 0))' }} />
+      <span className="absolute inset-x-0 bottom-0 h-px bg-black/60" />
+      {rivet('left-[7px] top-[5px]')}
+      {rivet('right-[16px] top-[5px]')}
+      {rivet('left-[7px] bottom-[5px]')}
+      {rivet('right-[16px] bottom-[5px]')}
+      <span className="duty-sheen absolute inset-y-0 left-0 w-1/5 motion-reduce:hidden" />
     </span>
   );
 }
@@ -101,17 +82,13 @@ export function DutyTeamBadge({ className }: { className?: string }) {
     <Tooltip>
       <TooltipTrigger asChild>
         <div
-          className={`relative cursor-default items-center justify-center gap-3 overflow-hidden rounded-lg border px-3 ${className ?? ''}`}
-          style={{
-            borderColor: `color-mix(in srgb, ${color} 45%, transparent)`,
-            boxShadow: `0 6px 20px -10px ${color}, inset 0 1px 0 rgb(255 255 255 / 0.1)`,
-            backgroundColor: 'rgb(8 12 22)',
-          }}
+          className={`relative cursor-default items-center justify-center gap-3 px-4 ${className ?? ''}`}
+          style={{ clipPath: PLATE, background: CHROME }}
         >
-          <StripArt color={color} />
+          <MetalFace color={color} />
 
           {/* Escudo com o mascote da equipe */}
-          <span aria-hidden className="relative h-10 w-9 shrink-0" style={{ clipPath: SHIELD, background: color }}>
+          <span aria-hidden className="relative z-10 h-10 w-9 shrink-0" style={{ clipPath: SHIELD, background: CHROME, filter: `drop-shadow(0 0 4px ${color}88)` }}>
             <span
               className="absolute inset-[1.5px]"
               style={{
@@ -126,7 +103,7 @@ export function DutyTeamBadge({ className }: { className?: string }) {
           </span>
 
           <span className="relative flex min-w-0 max-w-[75%] flex-col items-center text-center leading-tight">
-            <span className="flex items-center justify-center gap-1.5 text-[9px] font-semibold uppercase tracking-[0.22em] text-white/60">
+            <span className="flex items-center justify-center gap-1.5 text-[9px] font-semibold uppercase tracking-[0.22em] text-slate-300/80">
               <span className="relative flex h-1.5 w-1.5" aria-hidden>
                 <span className="absolute inline-flex h-full w-full rounded-full opacity-70 motion-safe:animate-ping" style={{ background: color }} />
                 <span className="relative inline-flex h-1.5 w-1.5 rounded-full" style={{ background: color }} />
@@ -135,9 +112,18 @@ export function DutyTeamBadge({ className }: { className?: string }) {
             </span>
             <span key={showMsg ? 'msg' : 'name'} className="mt-0.5 truncate motion-safe:animate-fade-in">
               {showMsg ? (
-                <span className="text-[12px] font-medium italic text-white/90">“{SLOGANS[team]}”</span>
+                <span className="text-[12px] font-medium italic text-slate-100 [text-shadow:0_1px_0_rgb(0_0_0/0.6)]">“{SLOGANS[team]}”</span>
               ) : (
-                <span className="text-[15px] font-bold uppercase tracking-[0.16em]" style={{ color }}>{team}</span>
+                <span
+                  className="text-[15px] font-extrabold uppercase tracking-[0.16em]"
+                  style={{
+                    backgroundImage: `linear-gradient(180deg, #ffffff 0%, ${color} 55%, color-mix(in srgb, ${color} 55%, #000) 100%)`,
+                    WebkitBackgroundClip: 'text',
+                    backgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    filter: 'drop-shadow(0 1px 0 rgb(0 0 0 / 0.6))',
+                  }}
+                >{team}</span>
               )}
             </span>
           </span>
