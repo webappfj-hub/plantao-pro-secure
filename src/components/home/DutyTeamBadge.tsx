@@ -50,13 +50,14 @@ export function DutyTeamBadge({ className }: { className?: string }) {
     <Tooltip>
       <TooltipTrigger asChild>
         <div
-          className={`relative cursor-default items-center gap-3 overflow-hidden rounded-lg border px-3 py-1 ${className ?? ''}`}
+          className={`relative cursor-default items-center justify-center gap-3 overflow-hidden rounded-lg border px-3 ${className ?? ''}`}
           style={{
             borderColor: `color-mix(in srgb, ${color} 45%, transparent)`,
             boxShadow: `0 6px 20px -10px ${color}, inset 0 1px 0 rgb(255 255 255 / 0.1)`,
-            backgroundImage: `linear-gradient(90deg, rgb(8 12 22 / 0.97) 0%, rgb(8 12 22 / 0.9) 48%, rgb(8 12 22 / 0.3) 100%), url(${art.src})`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'right center',
+            backgroundImage: `linear-gradient(90deg, rgb(8 12 22 / 0.78) 0%, rgb(8 12 22 / 0.93) 50%, rgb(8 12 22 / 0.78) 100%), url(${art.src})`,
+            // metade direita da arte (equipe em campo); a esquerda tem o texto/mascote impressos
+            backgroundSize: '200% auto',
+            backgroundPosition: '100% 38%',
           }}
         >
           {/* Escudo com o mascote da equipe */}
@@ -74,8 +75,8 @@ export function DutyTeamBadge({ className }: { className?: string }) {
             />
           </span>
 
-          <span className="relative flex min-w-0 flex-1 flex-col leading-tight">
-            <span className="flex items-center gap-1.5 text-[9px] font-semibold uppercase tracking-[0.22em] text-white/60">
+          <span className="relative flex min-w-0 max-w-[75%] flex-col items-center text-center leading-tight">
+            <span className="flex items-center justify-center gap-1.5 text-[9px] font-semibold uppercase tracking-[0.22em] text-white/60">
               <span className="relative flex h-1.5 w-1.5" aria-hidden>
                 <span className="absolute inline-flex h-full w-full rounded-full opacity-70 motion-safe:animate-ping" style={{ background: color }} />
                 <span className="relative inline-flex h-1.5 w-1.5 rounded-full" style={{ background: color }} />

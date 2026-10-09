@@ -62,7 +62,7 @@ export function RoundsCommandBar() {
               <ChevronRight className="h-3.5 w-3.5 transition-transform duration-200 group-hover:translate-x-0.5" strokeWidth={2.6} />
             </button>
 
-            <div className="flex min-w-0 items-center gap-3 sm:gap-4">
+            <div className="flex shrink-0 items-center gap-3 sm:gap-4">
               <Metric label="Em curso" value={String(rounds.active).padStart(2, '0')} live={rounds.active > 0} />
               <Divider className="hidden xs:block" />
               <Metric label="Hoje" value={String(rounds.today).padStart(2, '0')} className="hidden xs:flex" />
@@ -91,7 +91,7 @@ export function RoundsCommandBar() {
               )}
             </div>
 
-            <DutyTeamBadge className="ml-auto hidden w-[320px] md:flex xl:absolute xl:left-1/2 xl:top-1/2 xl:ml-0 xl:w-[440px] xl:-translate-x-1/2 xl:-translate-y-1/2" />
+            <DutyTeamBadge className="hidden h-11 min-w-0 flex-1 self-center md:flex" />
           </div>
 
           <div className="flex shrink-0 items-center gap-3 border-l border-border pl-3 sm:pl-5">
