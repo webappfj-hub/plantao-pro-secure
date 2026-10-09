@@ -70,6 +70,7 @@ import { DeveloperSignature } from '@/components/DeveloperSignature';
 import { MaskedCpfInput } from '@/components/auth/MaskedCpfInput';
 
 import { SplitOperationalHero } from '@/components/home/SplitOperationalHero';
+import { HomeRoundAlert } from '@/components/home/HomeRoundAlert';
 const CinematicBrandHero = lazy(() => import('@/components/home/CinematicBrandHero').then(m => ({ default: m.CinematicBrandHero })));
 
 import { SectionDivider } from '@/components/home/SectionDivider';
@@ -1687,10 +1688,14 @@ export default function Index() {
           const blocks: Record<HomeCardId, { node: JSX.Element; grow?: boolean } | null> = {
             rounds: {
               node: wrap(
-                <div className="animate-fade-in hidden sm:block">
-                  <DraggableHomeCard id="rounds" onDropCard={moveHomeCard}>
-                    <RoundsCommandBar />
-                  </DraggableHomeCard>
+                <div className="space-y-2">
+                  <div className="animate-fade-in hidden sm:block">
+                    <DraggableHomeCard id="rounds" onDropCard={moveHomeCard}>
+                      <RoundsCommandBar />
+                    </DraggableHomeCard>
+                  </div>
+                  {/* Aviso de ronda programada/em andamento (também no celular) */}
+                  <HomeRoundAlert />
                 </div>,
               ),
             },
