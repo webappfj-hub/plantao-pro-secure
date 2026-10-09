@@ -9,10 +9,13 @@ import { cn } from '@/lib/utils';
 export function MadeInFeijoBadge({
   inline = false,
   size = 'md',
+  tone = 'dark',
   className,
 }: {
   inline?: boolean;
   size?: 'sm' | 'md' | 'lg';
+  /** 'dark' = sobre fundo sempre escuro (rodapé); 'theme' = acompanha claro/escuro da página. */
+  tone?: 'dark' | 'theme';
   className?: string;
 }) {
   const wrapperClass = inline
@@ -53,14 +56,15 @@ export function MadeInFeijoBadge({
       {/* Assinatura discreta: só texto, sem moldura — realça no hover */}
       <span
         className={cn(
-          'inline-flex items-center gap-1.5 font-mono uppercase leading-none text-white/35 transition-colors duration-200 hover:text-white/75',
+          'inline-flex items-center gap-1.5 font-mono uppercase leading-none transition-colors duration-200',
+          tone === 'theme' ? 'text-muted-foreground hover:text-foreground' : 'text-white/35 hover:text-white/75',
           sizeMap.tag,
         )}
         style={{ fontFamily: "'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace" }}
       >
         <span aria-hidden className="text-primary/60">{'</>'}</span>
         <span>dev</span>
-        <span aria-hidden className="text-white/20">/</span>
+        <span aria-hidden className={tone === 'theme' ? 'opacity-40' : 'text-white/20'}>/</span>
         <span className="font-semibold">Franc Denis</span>
       </span>
     </div>
