@@ -1,6 +1,7 @@
 import * as React from "react";
 import { Suspense } from "react";
 import { LoadingState, ErrorState } from "@/components/ui/data-states";
+import { isChunkLoadError } from "@/lib/chunkError";
 
 /**
  * SectionBoundary — combina ErrorBoundary + Suspense com fallbacks táticos
@@ -32,6 +33,12 @@ class SectionErrorBoundary extends React.Component<
   }
 
   reset = () => {
+    // React.lazy guarda a rejeição: só limpar o estado reexibe o mesmo erro. Para
+    // falha de carregamento de arquivo, recarrega a página (pega os arquivos novos).
+    if (this.state.error && isChunkLoadError(this.state.error)) {
+      window.location.reload();
+      return;
+    }
     this.setState({ error: null });
     this.props.onReset?.();
   };
@@ -42,8 +49,9 @@ class SectionErrorBoundary extends React.Component<
         <ErrorState
           title="Falha ao carregar módulo"
           description={
-            this.state.error.message ||
-            "Não foi possível exibir esta seção. Tente novamente."
+            isChunkLoadError(this.state.error)
+              ? "O sistema foi atualizado. Toque em tentar novamente para carregar a versão nova."
+              : this.state.error.message || "Não foi possível exibir esta seção. Tente novamente."
           }
           onRetry={this.reset}
         />

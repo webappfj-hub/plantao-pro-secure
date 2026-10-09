@@ -11,11 +11,20 @@ import "@fontsource/dm-sans/500.css";
 import "@fontsource/dm-sans/600.css";
 import { pushConsoleError, pushDiagEvent } from "@/lib/diagLog";
 import { syncServerTime } from "@/hooks/useServerTime";
+import { reloadOnceForChunkError } from "@/lib/chunkError";
 
 // Relógio confiável: sincroniza o desvio entre o dispositivo e o horário
 // real do servidor assim que o app carrega — o Gestor de Rondas nunca usa
 // a hora do computador/celular diretamente (Seção 41).
 void syncServerTime(true);
+
+// Arquivo de módulo que sumiu depois de uma publicação nova (o navegador ainda tem o index
+// antigo): o Vite avisa por este evento. Recarrega uma vez para pegar a versão atual, em vez
+// de deixar telas/módulos (ex.: o chat) em "falha ao carregar".
+window.addEventListener("vite:preloadError", (event) => {
+  event.preventDefault();
+  reloadOnceForChunkError();
+});
 
 // Capture console errors for the Diagnostics report (no sensitive values).
 (function installConsoleCapture() {
