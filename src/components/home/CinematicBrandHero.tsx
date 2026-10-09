@@ -87,19 +87,18 @@ export function CinematicBrandHero({
           </p>
 
           <div
-            className="metal-bezel relative mt-7 max-w-md animate-fade-in"
+            className="mt-8 max-w-md animate-fade-in"
             style={{ animationDelay: "360ms" }}
           >
-            <span className="metal-face"><span className="metal-sheen" /></span>
-            <div className="relative z-10 grid grid-cols-3 gap-6 px-5 py-4">
+            <div className="grid grid-cols-3 divide-x divide-white/15 border-y border-white/15">
             {[
               { k: "9", v: "Unidades" },
               { k: "24/7", v: "Operação" },
               { k: "AES-256", v: "Criptografia" },
             ].map((m) => (
-              <div key={m.v} className="flex flex-col">
-                <span className="text-xl font-bold leading-none text-white [text-shadow:0_1px_0_rgb(0_0_0/0.6)]">{m.k}</span>
-                <span className="mt-1.5 text-[11px] uppercase tracking-wider text-slate-300/70">{m.v}</span>
+              <div key={m.v} className="flex flex-col px-4 py-3 first:pl-0">
+                <span className="font-heading text-2xl font-bold leading-none text-white">{m.k}</span>
+                <span className="mt-1.5 text-xs text-white/70">{m.v}</span>
               </div>
             ))}
             </div>
@@ -112,24 +111,18 @@ export function CinematicBrandHero({
             <button
               type="button"
               onClick={handlePrimary}
-              className="metal-bezel group relative inline-flex items-center justify-center gap-2 px-6 py-3 text-sm font-semibold text-white transition-transform active:scale-[0.98] focus-visible:outline-none"
-              style={{ ['--ch' as string]: '10px', ['--tint' as string]: 'hsl(var(--primary) / 0.55)', ['--face-a' as string]: '#2a62c0', ['--face-b' as string]: '#0f2f69', ['--face-c' as string]: '#071a3f' }}
+              className="group inline-flex h-12 items-center justify-center gap-2 rounded-lg bg-primary px-6 text-[15px] font-semibold text-primary-foreground shadow-lg shadow-black/30 transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
             >
-              <span className="metal-face"><span className="metal-sheen" /></span>
-              <span className="relative z-10 inline-flex items-center gap-2 [text-shadow:0_1px_0_rgb(0_0_0/0.55)]">
-                Entrar no sistema
-                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" strokeWidth={2.4} />
-              </span>
+              Entrar no sistema
+              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" strokeWidth={2.4} aria-hidden />
             </button>
 
             <button
               type="button"
               onClick={() => navigate("/about")}
-              className="metal-bezel group relative inline-flex items-center justify-center gap-2 px-6 py-3 text-sm font-semibold text-white transition-transform active:scale-[0.98] focus-visible:outline-none"
-              style={{ ['--ch' as string]: '10px' }}
+              className="inline-flex h-12 items-center justify-center rounded-lg border border-white/30 bg-white/5 px-6 text-[15px] font-semibold text-white backdrop-blur-sm transition-colors hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
             >
-              <span className="metal-face" />
-              <span className="relative z-10 [text-shadow:0_1px_0_rgb(0_0_0/0.55)]">Saiba mais</span>
+              Saiba mais
             </button>
           </div>
         </div>
