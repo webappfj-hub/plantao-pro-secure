@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Plus, X, Users, Clock3, History, Trash2, CheckCircle2, ArrowRight, CalendarClock, Zap,
-  ShieldAlert, CalendarDays, Shield, Square, GripVertical, PartyPopper,
+  ShieldAlert, CalendarDays, Shield, PartyPopper,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -13,13 +13,11 @@ import {
 } from '@/components/ui/alert-dialog';
 import { useAuth } from '@/contexts/AuthContext';
 import { getServerDate, acreWallTimeToServerMs, syncServerTime } from '@/hooks/useServerTime';
-import { getTeamColors, getTeamEmblem } from '@/lib/teamAssets';
-import { useLowMotion } from '@/hooks/useLowMotion';
+import { getTeamColors } from '@/lib/teamAssets';
 import * as api from '../api';
-import { AgentScheduleTimeline, buildQuickModeWindows } from './AgentScheduleTimeline';
-import { TacticalChronometer } from './TacticalChronometer';
+import { buildQuickModeWindows } from './AgentScheduleTimeline';
 import { ShareScheduleButton } from './ShareScheduleButton';
-import { PatrolHeroArt } from './PatrolHeroArt';
+import { QuickRoundHero } from './QuickRoundHero';
 
 /** Início/fim em "HH:mm" → duração em minutos. Vira o dia (fim < início) soma 24h. */
 function diffMinutes(start: string, end: string): number {
@@ -133,11 +131,9 @@ function StatusStrip({ team, agentCount, perAgentMs }: { team: string | null; ag
  * libera a tela de configuração quando a programação termina ou é cancelada.
  */
 export function QuickRoundsMode({ unitId, team, onSessionActiveChange }: QuickRoundsModeProps) {
-  const { lowMotion } = useLowMotion();
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const storageKey = `quick-rounds-session-${unitId ?? 'x'}-${team ?? 'x'}`;
-  const posKey = `${storageKey}-pos`;
   // Visitante sem login: guarda a sessão em sessionStorage, não localStorage
   // — fecha o navegador e a próxima abertura já nasce limpa (sem nomes nem
   // rodízio de teste sobrando). Agente logado mantém localStorage: é
@@ -160,36 +156,6 @@ export function QuickRoundsMode({ unitId, team, onSessionActiveChange }: QuickRo
   const [confirmScheduleOpen, setConfirmScheduleOpen] = useState(false);
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [cancelPhrase, setCancelPhrase] = useState('');
-
-  // Posição da janela compacta (fase "aguardando") — arrastável, lembrada
-  // por unidade/equipe entre sessões.
-  const [pos, setPos] = useState(() => {
-    try {
-      const raw = localStorage.getItem(posKey);
-      return raw ? (JSON.parse(raw) as { x: number; y: number }) : { x: 16, y: 88 };
-    } catch {
-      return { x: 16, y: 88 };
-    }
-  });
-  const dragOffsetRef = useRef<{ dx: number; dy: number } | null>(null);
-
-  const onDragPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
-    dragOffsetRef.current = { dx: e.clientX - pos.x, dy: e.clientY - pos.y };
-    (e.currentTarget as Element).setPointerCapture(e.pointerId);
-  };
-  const onDragPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (!dragOffsetRef.current) return;
-    const maxX = window.innerWidth - 260;
-    const maxY = window.innerHeight - 140;
-    const nx = Math.min(Math.max(0, e.clientX - dragOffsetRef.current.dx), Math.max(0, maxX));
-    const ny = Math.min(Math.max(0, e.clientY - dragOffsetRef.current.dy), Math.max(0, maxY));
-    setPos({ x: nx, y: ny });
-  };
-  const onDragPointerUp = () => {
-    if (!dragOffsetRef.current) return;
-    dragOffsetRef.current = null;
-    try { localStorage.setItem(posKey, JSON.stringify(pos)); } catch { /* ignore */ }
-  };
 
   const durationMinutes = diffMinutes(startTime, endTime);
   const activeNames = useMemo(() => names.map((n) => n.trim()).filter(Boolean), [names]);
@@ -399,9 +365,9 @@ export function QuickRoundsMode({ unitId, team, onSessionActiveChange }: QuickRo
     setCancelDialogOpen(true);
   };
 
-  // Só exige reescrever a frase quando a ronda está rodando e foi iniciada
-  // na hora (não programada) — programação e espera cancelam com um clique.
-  const requiresPhrase = session?.phase === 'running' && !session.wasScheduled;
+  // Parar o rodízio (aguardando ou em ronda) sempre exige reescrever a
+  // frase — evita interromper a escala de todos por um toque sem querer.
+  const requiresPhrase = session != null && session.phase !== 'done';
   const canConfirmCancel = !requiresPhrase || cancelPhrase.trim().toUpperCase() === CANCEL_PHRASE;
 
   const handleClearHistory = async () => {
@@ -420,16 +386,19 @@ export function QuickRoundsMode({ unitId, team, onSessionActiveChange }: QuickRo
         <AlertDialogHeader>
           <AlertDialogTitle className="flex items-center gap-2">
             <ShieldAlert className="h-5 w-5 text-destructive" />
-            {session?.phase === 'running' ? 'Você está em ronda' : 'Cancelar programação'}
+            {session?.phase === 'running' ? 'Parar o rodízio em andamento?' : 'Cancelar o rodízio programado?'}
           </AlertDialogTitle>
           <AlertDialogDescription className="space-y-3 text-left">
             {session?.phase === 'running' ? (
               <span className="block">
-                O rodízio ainda está em andamento. Encerrar agora interrompe o controle de tempo de todos os agentes escalados.
+                O rodízio da equipe <strong className="text-foreground">{team}</strong> está em andamento
+                ({sessionNames.length} agente{sessionNames.length !== 1 ? 's' : ''}). Parar agora interrompe o controle de tempo de
+                todos os agentes escalados e não pode ser desfeito.
               </span>
             ) : (
               <span className="block">
-                Essa ronda ainda não começou — o horário programado será cancelado e nada fica salvo.
+                O rodízio programado para <strong className="text-foreground">{session?.startTime}</strong> ainda não começou.
+                Ao parar, a programação é cancelada e nada fica salvo.
               </span>
             )}
             {requiresPhrase && (
@@ -455,51 +424,27 @@ export function QuickRoundsMode({ unitId, team, onSessionActiveChange }: QuickRo
             disabled={!canConfirmCancel}
             className="bg-destructive text-destructive-foreground hover:bg-destructive/90 disabled:opacity-40"
           >
-            Encerrar definitivamente
+            Parar rodízio
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
   );
 
-  // ---------- Aguardando horário programado: janela compacta e arrastável ----------
+  // ---------- Aguardando horário programado: painel em destaque ----------
   if (session && isWaiting) {
-    const waitColors = getTeamColors(team);
-    const waitEmblem = getTeamEmblem(team);
     return (
       <>
-        <div
-          className="fixed z-40 w-64 animate-in fade-in-0 zoom-in-95 select-none overflow-hidden rounded-2xl border bg-card shadow-xl duration-300"
-          style={{ left: pos.x, top: pos.y, borderColor: `${waitColors.primary}4d` }}
-        >
-          <div
-            onPointerDown={onDragPointerDown}
-            onPointerMove={onDragPointerMove}
-            onPointerUp={onDragPointerUp}
-            className="flex cursor-grab items-center justify-between gap-2 border-b px-3 py-1.5 active:cursor-grabbing"
-            style={{ borderColor: `${waitColors.primary}40`, background: `${waitColors.primary}17` }}
-          >
-            <span className="flex items-center gap-1.5 text-[10.5px] font-semibold uppercase tracking-wide" style={{ color: waitColors.primary }}>
-              <GripVertical className="h-3.5 w-3.5" /> Aguardando · {team}
-            </span>
-            <Button
-              variant="ghost" size="icon"
-              aria-label="Cancelar rodízio agendado"
-              className="relative h-6 w-6 text-muted-foreground before:absolute before:-inset-2.5 before:content-['']"
-              onClick={handleCancelClick}
-            >
-              <Square className="h-3 w-3" />
-            </Button>
-          </div>
-          <div className="relative flex flex-col items-center gap-1 overflow-hidden px-4 py-4 text-center">
-            {waitEmblem && (
-              <img src={waitEmblem} alt="" aria-hidden loading="lazy" className="pointer-events-none absolute -right-4 -top-4 h-20 w-20 opacity-[0.08] grayscale" />
-            )}
-            <p className="relative text-[10.5px] uppercase tracking-wide text-muted-foreground">Inicia às {session.startTime}</p>
-            <p className="relative font-mono text-2xl font-bold tabular-nums" style={{ color: waitColors.primary }}>{fmtClock(triggerMs - now)}</p>
-            <p className="relative truncate text-[11px] text-muted-foreground">{sessionNames.join(' · ')}</p>
-          </div>
-        </div>
+        <QuickRoundHero
+          team={team}
+          names={sessionNames}
+          phase="waiting"
+          now={now}
+          triggerMs={triggerMs}
+          perAgentMs={perAgentMs}
+          totalMs={totalMs}
+          onStop={handleCancelClick}
+        />
         {cancelDialog}
       </>
     );
@@ -530,97 +475,30 @@ export function QuickRoundsMode({ unitId, team, onSessionActiveChange }: QuickRo
     );
   }
 
-  // ---------- Rodando: cronômetro automático ----------
+  // ---------- Rodando: painel em destaque com cronômetro e escala ----------
   if (session && session.phase === 'running') {
-    const sliceStartMs = currentIndex * perAgentMs;
-    const elapsedInSlice = elapsedMs - sliceStartMs;
-    const remainingInSlice = perAgentMs - elapsedInSlice;
-    const sliceProgressPct = Math.min(100, Math.max(0, (elapsedInSlice / perAgentMs) * 100));
-    const overallProgressPct = Math.min(100, (elapsedMs / totalMs) * 100);
-    const urgent = remainingInSlice < 60_000;
-    const runColors = getTeamColors(team);
-
     return (
-      <section
-        className="relative animate-in fade-in-0 slide-in-from-bottom-2 duration-500 overflow-hidden rounded-2xl border-2 bg-card shadow-xl"
-        style={{ borderColor: `${runColors.primary}55`, boxShadow: `0 0 0 1px ${runColors.primary}22, 0 12px 36px -12px ${runColors.primary}50` }}
-      >
-        {/* Ilustração de fundo — vigilância/segurança pública (torre, CCTV,
-            agente em ronda) — ocupa o espaço vazio do cartão sem competir
-            com o conteúdo, que fica em z-10 por cima. */}
-        <PatrolHeroArt color={runColors.primary} className="z-0" />
-        <StatusStrip team={team} agentCount={sessionNames.length} perAgentMs={perAgentMs} />
-
-        <div className="relative z-10 flex items-center justify-between gap-3 px-4 py-2">
-          <h3 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-foreground">
-            <span className="relative flex h-2 w-2">
-              {!lowMotion && <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-70" />}
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
-            </span>
-            Rodízio em andamento
-          </h3>
-          <div className="flex items-center gap-1.5">
-            {team && (
-              <ShareScheduleButton
-                team={team}
-                rangeStart={new Date(triggerMs)}
-                rangeEnd={new Date(triggerMs + totalMs)}
-                windows={buildQuickModeWindows(sessionNames, new Date(triggerMs), perAgentMs)}
-              />
-            )}
-            <Button
-              variant="ghost" size="sm"
-              aria-label="Encerrar rodízio"
-              className="relative h-7 gap-1.5 text-xs text-muted-foreground before:absolute before:-inset-y-2.5 before:-inset-x-1 before:content-['']"
-              onClick={handleCancelClick}
-            >
-              <Square className="h-3 w-3" /> Encerrar
-            </Button>
-          </div>
-        </div>
-
-        {/* Cronômetro tático — o agente atual, com contagem regressiva embutida */}
-        <div key={currentIndex} className="relative z-10 flex flex-col items-center gap-2 border-t border-border px-6 py-5 text-center animate-in fade-in-0 zoom-in-95 duration-500">
-          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Agente na ronda</p>
-          <p className="text-lg font-bold text-foreground">{sessionNames[currentIndex]}</p>
-
-          <div className="mt-1">
-            <TacticalChronometer
-              size={144}
-              progressPct={sliceProgressPct}
-              color={runColors.primary}
-              urgent={urgent}
-              centerLabel={fmtClock(remainingInSlice)}
-              bottomLabel="restante"
+      <>
+        <QuickRoundHero
+          team={team}
+          names={sessionNames}
+          phase="running"
+          now={now}
+          triggerMs={triggerMs}
+          perAgentMs={perAgentMs}
+          totalMs={totalMs}
+          onStop={handleCancelClick}
+          actions={team ? (
+            <ShareScheduleButton
+              team={team}
+              rangeStart={new Date(triggerMs)}
+              rangeEnd={new Date(triggerMs + totalMs)}
+              windows={buildQuickModeWindows(sessionNames, new Date(triggerMs), perAgentMs)}
             />
-          </div>
-        </div>
-
-        <div className="relative z-10 border-t border-border px-4 py-2.5">
-          <div className="mb-1 flex items-center justify-between text-[10.5px] text-muted-foreground">
-            <span>Progresso geral do turno</span>
-            <span className="tabular-nums">{fmtClock(elapsedMs)} / {fmtClock(totalMs)}</span>
-          </div>
-          <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
-            <div
-              className="h-full rounded-full bg-gradient-to-r from-primary/60 to-primary transition-all duration-1000 ease-linear"
-              style={{ width: `${overallProgressPct}%` }}
-            />
-          </div>
-        </div>
-
-        <div className="relative z-10 border-t border-border bg-card p-3">
-          <AgentScheduleTimeline
-            rangeStart={new Date(triggerMs)}
-            rangeEnd={new Date(triggerMs + totalMs)}
-            windows={buildQuickModeWindows(sessionNames, new Date(triggerMs), perAgentMs)}
-            live
-            highlightKey={currentIndex >= 0 ? `${sessionNames[currentIndex]}-${currentIndex}` : null}
-            title="Escala do rodízio"
-          />
-        </div>
+          ) : undefined}
+        />
         {cancelDialog}
-      </section>
+      </>
     );
   }
 
