@@ -75,15 +75,15 @@ export function CinematicBrandHero({
             className="text-flow mt-4 [filter:drop-shadow(0_2px_14px_rgb(0_0_0/0.65))] font-heading text-[clamp(1.9rem,3.6vw,3.1rem)] font-bold leading-[1.1] tracking-tight text-white animate-fade-in"
             style={{ animationDelay: "160ms" }}
           >
-            Gestão de plantões com controle real e segurança institucional.
+            Feito por agentes, para quem está no plantão.
           </h2>
 
           <p
             className="mt-4 max-w-lg text-[15px] leading-[1.7] text-white/90 [text-shadow:0_1px_14px_rgb(0_0_0/0.75),0_0_2px_rgb(0_0_0/0.6)] animate-fade-in"
             style={{ animationDelay: "260ms" }}
           >
-            Escalas, banco de horas e rondas em um único sistema, feito para
-            as unidades do Sistema Socioeducativo do Acre.
+            Desenvolvido em Feijó/AC para as unidades do Sistema Socioeducativo — com segurança,
+            registro e transparência em cada turno.
           </p>
 
           <div
