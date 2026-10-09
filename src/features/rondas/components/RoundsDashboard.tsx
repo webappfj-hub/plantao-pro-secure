@@ -452,6 +452,8 @@ export function RoundsDashboard({ onShiftActiveChange }: RoundsDashboardProps = 
       <div className="rounds-dashboard space-y-4 py-3 sm:py-4">
         <RondasHero team={team} unitName={unitName} />
 
+        {/* Com rodízio aguardando/rodando, ele vira o foco da tela: o resto sai. */}
+        {!quickRoundActive && (<>
         {!user && (
           <div className="space-y-2.5 rounded-xl border border-primary/25 bg-primary/[0.06] p-3.5 animate-in fade-in-0 slide-in-from-bottom-2 duration-500">
             <p className="text-xs font-semibold text-primary">Acesso público — indique sua unidade (a equipe é a de plantão do dia)</p>
@@ -524,16 +526,17 @@ export function RoundsDashboard({ onShiftActiveChange }: RoundsDashboardProps = 
             ))}
           </div>
         </div>
+        </>)}
 
         <CreateShiftDialog open={dividerOpen} onOpenChange={setDividerOpen} unitId={unitId} team={team} createdBy={user?.id ?? null} guestDeviceId={guestDeviceId} onCreated={() => shiftQuery.refetch()} />
 
-        <div className="flex items-center gap-3 text-[11px] uppercase tracking-wide text-muted-foreground">
+        {!quickRoundActive && (<div className="flex items-center gap-3 text-[11px] uppercase tracking-wide text-muted-foreground">
           <div className="h-px flex-1 bg-border" /> ou <div className="h-px flex-1 bg-border" />
-        </div>
+        </div>)}
 
         <QuickRoundsMode unitId={unitId} team={team} onSessionActiveChange={setQuickRoundActive} />
 
-        {scheduledRounds.length > 0 && (
+        {!quickRoundActive && scheduledRounds.length > 0 && (
           <section className="rounded-2xl border border-border bg-card p-4">
             <h3 className="mb-3 flex items-center gap-2 text-[13px] font-semibold uppercase tracking-wide text-foreground">
               <CalendarClock className="h-4 w-4 text-primary" />
