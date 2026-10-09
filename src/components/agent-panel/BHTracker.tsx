@@ -20,6 +20,8 @@ import { toast } from 'sonner';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip as RechartsTooltip, Legend } from 'recharts';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { getBHPayPeriod, getPreviousBHPayPeriod, type BHPayPeriod } from '@/hooks/useServerTime';
+import { isMonthClosed, monthKey, useMonthUnlocks } from '@/lib/monthLock';
+import { MonthLockBar, UnlockMonthDialog } from './MonthLockBar';
 
 interface BHTrackerProps {
   agentId: string;
@@ -523,6 +525,30 @@ export function BHTracker({ agentId, compact = false, isAdmin = false }: BHTrack
     return isNaN(d.getTime()) ? null : d;
   };
 
+  // ---- Registros por mês (cada mês navegado tem os seus; mês passado com BH fecha) ----
+  const { isUnlocked, unlock, relock } = useMonthUnlocks(`bh-unlocked-${agentId}`);
+  // Mês cujo desbloqueio está sendo confirmado (null = diálogo fechado).
+  const [unlockTarget, setUnlockTarget] = useState<Date | null>(null);
+  const entryMonth = (e: OvertimeEntry) => parseBHDate(e) ?? new Date(e.created_at);
+  const selectedMonthKey = monthKey(selectedMonth);
+  const monthEntries = entries
+    .filter((e) => monthKey(entryMonth(e)) === selectedMonthKey)
+    .sort((a, b) => entryMonth(b).getTime() - entryMonth(a).getTime());
+  const monthClosed = isMonthClosed(selectedMonth, monthEntries.length);
+  const monthLocked = monthClosed && !isUnlocked(selectedMonthKey);
+  const monthHours = monthEntries.reduce((acc, e) => acc + (e.operation_type === 'credit' ? Number(e.hours) : -Number(e.hours)), 0);
+  const monthIsLocked = (d: Date) => {
+    const k = monthKey(d);
+    const count = entries.filter((e) => monthKey(entryMonth(e)) === k).length;
+    return isMonthClosed(d, count) && !isUnlocked(k);
+  };
+  /** Edição em mês fechado e bloqueado: pede a confirmação de abertura (true = bloqueou). */
+  const blockedByMonthLock = (d: Date) => {
+    if (!monthIsLocked(d)) return false;
+    setUnlockTarget(d);
+    return true;
+  };
+
   /** Soma independente do ciclo de pagamento (16 de um mês a 15 do
    * seguinte) que contém `date` — não mistura com o ciclo anterior/seguinte. */
   const getFortnightBalanceForDate = (date: Date) => {
@@ -576,6 +602,8 @@ export function BHTracker({ agentId, compact = false, isAdmin = false }: BHTrack
 
   const handleDateClick = (date: Date | undefined) => {
     if (!date) return;
+    // Clique em data de um mês fechado e bloqueado: pede confirmação para abrir.
+    if (blockedByMonthLock(date)) return;
     
     // Check if date is in a closed fortnight (only block non-admins)
     if (!isAdmin && isInClosedFortnight(date)) {
@@ -757,6 +785,7 @@ export function BHTracker({ agentId, compact = false, isAdmin = false }: BHTrack
   };
 
   const handleEditEntry = (entry: OvertimeEntry) => {
+    if (blockedByMonthLock(entryMonth(entry))) return;
     setEditingEntry(entry);
     setEditHours(entry.hours.toString());
     // Infer current period from description label; fallback by hours
@@ -771,6 +800,7 @@ export function BHTracker({ agentId, compact = false, isAdmin = false }: BHTrack
   };
 
   const handleRequestDelete = (entry: OvertimeEntry) => {
+    if (blockedByMonthLock(entryMonth(entry))) return;
     setEntryToDelete(entry);
     setShowDeleteConfirm(true);
   };
@@ -1407,6 +1437,7 @@ export function BHTracker({ agentId, compact = false, isAdmin = false }: BHTrack
                           key={e.id}
                           type="button"
                           onClick={() => {
+                            if (blockedByMonthLock(d ?? entryMonth(e))) return;
                             setEditingEntry(e);
                             setEditHours(e.hours.toString());
                             setShowEditDialog(true);
@@ -1498,6 +1529,15 @@ export function BHTracker({ agentId, compact = false, isAdmin = false }: BHTrack
             <CalendarPlus className="h-4 w-4 text-primary" />
             <span className="text-sm font-medium text-slate-300">Clique na data para registrar BH</span>
           </div>
+          <MonthLockBar
+            month={selectedMonth}
+            records={monthEntries.length}
+            noun="BH"
+            closed={monthLocked}
+            unlocked={monthClosed && !monthLocked}
+            onRequestUnlock={() => setUnlockTarget(selectedMonth)}
+            onRelock={() => relock(selectedMonthKey)}
+          />
           <div className="bg-slate-700/30 rounded-lg p-2">
             <Calendar
               mode="single"
@@ -1578,6 +1618,42 @@ export function BHTracker({ agentId, compact = false, isAdmin = false }: BHTrack
               className="rounded-md pointer-events-auto"
             />
           </div>
+
+          {/* Registros do mês navegado — cada mês tem os seus; consulta sempre liberada */}
+          {monthEntries.length > 0 && (
+            <div className="space-y-1.5" aria-label="Registros do mês">
+              <div className="flex items-center justify-between text-xs">
+                <span className="flex items-center gap-1.5 font-semibold text-slate-200 capitalize">
+                  {monthLocked && <Lock className="h-3.5 w-3.5 text-amber-400" aria-hidden />}
+                  Registros de {format(selectedMonth, "MMMM 'de' yyyy", { locale: ptBR })}
+                </span>
+                <span className="font-mono tabular-nums text-slate-400">{monthHours.toFixed(1)}h · {monthEntries.length} lanç.</span>
+              </div>
+              <ul className="space-y-1">
+                {monthEntries.map((e) => (
+                  <li key={e.id} className="flex items-center justify-between gap-2 rounded-md border border-slate-700 bg-slate-800/40 px-2.5 py-2 text-xs">
+                    <span className="min-w-0">
+                      <b className="text-slate-100">Dia {format(entryMonth(e), 'dd/MM', { locale: ptBR })}</b>
+                      <span className="ml-2 truncate text-slate-400">{e.description ?? ''}</span>
+                    </span>
+                    <span className="flex shrink-0 items-center gap-1.5">
+                      <b className={e.operation_type === 'credit' ? 'text-emerald-300' : 'text-rose-300'}>
+                        {e.operation_type === 'credit' ? '+' : '−'}{Number(e.hours).toFixed(1)}h
+                      </b>
+                      {monthLocked ? (
+                        <Lock className="h-3.5 w-3.5 text-amber-400" aria-label="Mês bloqueado" />
+                      ) : (
+                        <>
+                          <button type="button" onClick={() => handleEditEntry(e)} aria-label="Editar registro" className="rounded p-1 text-slate-400 hover:bg-slate-700 hover:text-white"><Edit2 className="h-3.5 w-3.5" /></button>
+                          <button type="button" onClick={() => handleRequestDelete(e)} aria-label="Excluir registro" className="rounded p-1 text-slate-400 hover:bg-red-500/20 hover:text-red-300"><Trash2 className="h-3.5 w-3.5" /></button>
+                        </>
+                      )}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
           <div className="flex flex-wrap items-center gap-3 text-xs">
             <div className="flex items-center gap-1.5">
               <div
@@ -2164,6 +2240,14 @@ export function BHTracker({ agentId, compact = false, isAdmin = false }: BHTrack
       </AlertDialog>
 
       {/* Delete Confirmation Dialog */}
+      <UnlockMonthDialog
+        open={!!unlockTarget}
+        month={unlockTarget ?? selectedMonth}
+        noun="BH"
+        onCancel={() => setUnlockTarget(null)}
+        onConfirm={() => { if (unlockTarget) unlock(monthKey(unlockTarget)); setUnlockTarget(null); toast.success('Mês aberto para edição nesta sessão.'); }}
+      />
+
       <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
         <AlertDialogContent className="bg-slate-800 border-slate-700">
           <AlertDialogHeader>

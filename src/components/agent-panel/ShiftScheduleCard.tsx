@@ -13,9 +13,11 @@ import { notify } from '@/lib/notify';
 import { 
   Calendar as CalendarIcon, Plus, Loader2, RefreshCw, Check, X, 
   AlertTriangle, Palmtree, WifiOff, Settings2, Clock, ChevronDown, ChevronUp,
-  Shield, Briefcase, Sun, Moon, Coffee, Star
+  Shield, Briefcase, Sun, Moon, Coffee, Star, ChevronLeft, ChevronRight, Lock
 } from 'lucide-react';
-import { format, parseISO, isToday, isBefore, startOfDay, differenceInDays } from 'date-fns';
+import { format, parseISO, isToday, isBefore, startOfDay, differenceInDays, addMonths, subMonths, startOfMonth, endOfMonth } from 'date-fns';
+import { isMonthClosed, monthKey, useMonthUnlocks } from '@/lib/monthLock';
+import { MonthLockBar, UnlockMonthDialog } from '@/components/agent-panel/MonthLockBar';
 import { ptBR } from 'date-fns/locale';
 
 interface ShiftScheduleCardProps {
@@ -84,6 +86,16 @@ export function ShiftScheduleCard({ agentId }: ShiftScheduleCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [firstShiftDate, setFirstShiftDate] = useState<Date | undefined>();
   const [configMonth, setConfigMonth] = useState(new Date());
+
+  // ---- Escala por mês: cada mês tem a sua lista, consultável a qualquer tempo ----
+  const [viewMonth, setViewMonth] = useState(() => startOfMonth(new Date()));
+  const [monthShifts, setMonthShifts] = useState<AgentShift[]>([]);
+  const [monthLoading, setMonthLoading] = useState(false);
+  const { isUnlocked, unlock, relock } = useMonthUnlocks(`shifts-unlocked-${agentId}`);
+  const [unlockTarget, setUnlockTarget] = useState<Date | null>(null);
+  const viewKey = monthKey(viewMonth);
+  const viewClosed = isMonthClosed(viewMonth, monthShifts.length);
+  const viewLocked = viewClosed && !isUnlocked(viewKey);
   const [isGenerating, setIsGenerating] = useState(false);
   
   const [selectedShift, setSelectedShift] = useState<AgentShift | null>(null);
@@ -218,7 +230,40 @@ export function ShiftScheduleCard({ agentId }: ShiftScheduleCardProps) {
     return daysUntilLast <= 14; // Alert when 2 weeks or less remaining
   }, [shifts]);
 
+  // Busca só os plantões do mês navegado (qualquer mês, sem depender da janela
+  // de 90 dias/6 meses da lista de "Próximos").
+  useEffect(() => {
+    let alive = true;
+    setMonthLoading(true);
+    (async () => {
+      try {
+        const { data, error } = await supabase
+          .from('agent_shifts')
+          .select('id, shift_date, start_time, end_time, shift_type, status, notes, compensation_date, is_vacation, completed_at')
+          .eq('agent_id', agentId)
+          .gte('shift_date', format(startOfMonth(viewMonth), 'yyyy-MM-dd'))
+          .lte('shift_date', format(endOfMonth(viewMonth), 'yyyy-MM-dd'))
+          .order('shift_date', { ascending: true });
+        if (alive) setMonthShifts(!error && data ? (data as AgentShift[]) : []);
+      } catch {
+        if (alive) setMonthShifts([]);
+      } finally {
+        if (alive) setMonthLoading(false);
+      }
+    })();
+    return () => { alive = false; };
+  }, [agentId, viewKey, shifts]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  /** Mês fechado e bloqueado? Então pede a confirmação em vez de abrir a edição. */
+  const blockedByMonthLock = (d: Date) => {
+    const k = monthKey(d);
+    const count = k === viewKey ? monthShifts.length : shifts.filter((x) => monthKey(parseISO(x.shift_date)) === k).length;
+    if (isMonthClosed(d, count) && !isUnlocked(k)) { setUnlockTarget(d); return true; }
+    return false;
+  };
+
   const handleShiftClick = (shift: AgentShift) => {
+    if (blockedByMonthLock(parseISO(shift.shift_date))) return;
     setSelectedShift(shift);
     setEditStatus(shift.status);
     setEditNotes(shift.notes || '');
@@ -431,6 +476,63 @@ export function ShiftScheduleCard({ agentId }: ShiftScheduleCardProps) {
               </div>
             ) : (
               <>
+            {/* Escala por mês — consulta livre; mês passado com plantões fica trancado */}
+            <div className="space-y-2" aria-label="Escala por mês">
+              <div className="flex items-center justify-between">
+                <Button size="icon" variant="ghost" className="h-9 w-9" aria-label="Mês anterior" onClick={() => setViewMonth((m) => subMonths(m, 1))}>
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <h4 className="flex items-center gap-1.5 text-sm font-semibold capitalize text-slate-100">
+                  {viewLocked && <Lock className="h-3.5 w-3.5 text-amber-400" aria-hidden />}
+                  {format(viewMonth, "MMMM 'de' yyyy", { locale: ptBR })}
+                </h4>
+                <Button size="icon" variant="ghost" className="h-9 w-9" aria-label="Próximo mês" onClick={() => setViewMonth((m) => addMonths(m, 1))}>
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+              <MonthLockBar
+                month={viewMonth}
+                records={monthShifts.length}
+                noun="plantões"
+                closed={viewLocked}
+                unlocked={viewClosed && !viewLocked}
+                onRequestUnlock={() => setUnlockTarget(viewMonth)}
+                onRelock={() => relock(viewKey)}
+              />
+              {monthLoading ? (
+                <div className="flex justify-center py-2"><Loader2 className="h-4 w-4 animate-spin text-primary" /></div>
+              ) : monthShifts.length > 0 && (
+                <ul className="space-y-1">
+                  {monthShifts.map((shift) => (
+                    <li key={shift.id}>
+                      <button
+                        type="button"
+                        onClick={() => handleShiftClick(shift)}
+                        className="flex w-full items-center justify-between gap-2 rounded-md border border-slate-700/60 bg-slate-800/50 px-2.5 py-2 text-left text-xs hover:bg-slate-800"
+                      >
+                        <span className="min-w-0">
+                          <b className="capitalize text-slate-100">{format(parseISO(shift.shift_date), "EEE dd/MM", { locale: ptBR })}</b>
+                          <span className="ml-2 font-mono tabular-nums text-slate-400">{shift.start_time?.slice(0, 5)}–{shift.end_time?.slice(0, 5)}</span>
+                        </span>
+                        <span className="flex shrink-0 items-center gap-1.5 text-slate-400">
+                          {shift.is_vacation ? 'Férias' : shift.status === 'completed' ? 'Cumprido' : shift.status === 'cancelled' ? 'Cancelado' : 'Agendado'}
+                          {viewLocked && <Lock className="h-3.5 w-3.5 text-amber-400" aria-label="Mês bloqueado" />}
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+
+            <UnlockMonthDialog
+              open={!!unlockTarget}
+              month={unlockTarget ?? viewMonth}
+              noun="plantões"
+              onCancel={() => setUnlockTarget(null)}
+              onConfirm={() => { if (unlockTarget) unlock(monthKey(unlockTarget)); setUnlockTarget(null); notify.success('Mês aberto para edição nesta sessão.'); }}
+            />
+
             {/* Upcoming Shifts - New Timeline Design */}
             <div>
               <div className="flex items-center gap-2 mb-2">
